@@ -95,6 +95,54 @@ func TestTrustedManifestRejectsAmbiguousJSON(t *testing.T) {
 	}
 }
 
+func TestTrustedManifestRejectsNestedUnicodeFoldedDuplicateKeys(t *testing.T) {
+	b, err := json.Marshal(fixtureDocument())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ name, field, replacement string }{
+		{"escaped-long-s", `"size":1`, `"size":2,"\u017fize":1`},
+		{"literal-long-s", `"size":1`, `"size":2,"ſize":1`},
+		{"escaped-kelvin-sign", `"packages":[`, `"pac\u212Aages":[],"packages":[`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := []byte(strings.Replace(string(b), tc.field, tc.replacement, 1))
+			if _, err := LoadTrustedManifest(raw, testSHA(raw)); !errors.Is(err, ErrManifest) {
+				t.Fatalf("nested Unicode-fold-equivalent keys were accepted: %v", err)
+			}
+		})
+	}
+}
+
+func TestTrustedManifestPreservesUnicodeValues(t *testing.T) {
+	doc := fixtureDocument()
+	doc.Providers[0].Publisher = "Synthetic ſ K author"
+	m := trustedFixture(t, doc)
+	if m.providers[0].Publisher != "Synthetic ſ K author" {
+		t.Fatal("manifest field value was Unicode-folded")
+	}
+	req := testRequirement(m.Digest())
+	req.Target = "future-ſK-cpu"
+	selection, err := m.Select(req)
+	if err != nil || selection.Requirement.Target != "future-ſK-cpu" {
+		t.Fatalf("open Unicode target value was changed or hidden: %+v %v", selection, err)
+	}
+}
+
+func TestTrustedManifestExternalPinsRemainExactBytes(t *testing.T) {
+	lf, err := json.MarshalIndent(fixtureDocument(), "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	crlf := []byte(strings.ReplaceAll(string(lf), "\n", "\r\n"))
+	if _, err := LoadTrustedManifest(crlf, testSHA(lf)); !errors.Is(err, ErrManifestDigest) {
+		t.Fatalf("external newline bytes were normalized before digest validation: %v", err)
+	}
+	if _, err := LoadTrustedManifest(crlf, testSHA(crlf)); err != nil {
+		t.Fatalf("exact independently pinned external bytes rejected: %v", err)
+	}
+}
+
 func TestEmbeddedManifestPinSurvivesCheckoutLineEndings(t *testing.T) {
 	original := defaultManifest
 	t.Cleanup(func() { defaultManifest = original })

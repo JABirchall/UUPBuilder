@@ -259,7 +259,17 @@ func rejectDuplicateKeys(data []byte) error {
 					return err
 				}
 				key, ok := k.(string)
-				key = strings.ToLower(key) // json struct field matching ignores case.
+				// Match encoding/json's Unicode simple-fold equivalence, which
+				// includes long-s/S and Kelvin-sign/K beyond lowercase mapping.
+				key = strings.Map(func(r rune) rune {
+					canonical := r
+					for folded := unicode.SimpleFold(r); folded != r; folded = unicode.SimpleFold(folded) {
+						if folded < canonical {
+							canonical = folded
+						}
+					}
+					return canonical
+				}, key)
 				if !ok || keys[key] {
 					return ErrManifest
 				}
