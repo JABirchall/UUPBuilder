@@ -66,3 +66,19 @@ func TestSourceCensusAcceptsOnlyBoundFamilyRecordShape(t *testing.T) {
 		t.Fatal("unknown family accepted")
 	}
 }
+
+func TestSourceCensusRejectsDetachedAlgorithmProof(t *testing.T) {
+	// A scoped Gate S record must inherit the expected-result algorithm binding.
+	// These synthetic records do not establish actual source-family support.
+	c, e := unitRecord()
+	c.Gate = "S"
+	e.CaseDigest = c.Digest()
+	s := SourceCensus{Complete: false, Limitations: []string{"synthetic records only"}, Families: []SourceFamily{{ID: "canonical", Observation: "observed", Availability: "available", Implementation: "implemented", MediaCapability: "iso-capable", Proof: Passed, Metadata: []Artifact{unitArtifact("compdb", "metadata")}, Algorithms: []string{"unit-algorithm"}, ProofCases: []string{c.ID}}}}
+	if err := s.ValidateBuildable("canonical", []Case{c}, []Evidence{e}); err != nil {
+		t.Fatalf("control with algorithm bound to expected reconstructed output rejected: %v", err)
+	}
+	moveUnitAlgorithmsToDetachedInvocation(&e)
+	if s.ValidateBuildable("canonical", []Case{c}, []Evidence{e}) == nil {
+		t.Fatal("detached invocation opened scoped family record gate")
+	}
+}

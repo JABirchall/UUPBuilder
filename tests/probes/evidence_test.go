@@ -50,6 +50,9 @@ func unitRecord() (Case, Evidence) {
 			assertions = append(assertions, "filesystem-inspected", "boot-catalog-inspected", "target-boot-resources-inspected")
 		}
 		expected := Expectation{ID: id, Operation: op, OutputID: outputID, SHA256: unitHash, Provenance: "independently prepared synthetic expected bytes", Assertions: assertions}
+		if op == Reconstruct {
+			expected.Algorithms = []string{"unit-algorithm"}
+		}
 		if op == Service {
 			expected.BeforeSHA256 = unitBeforeHash
 			expected.BeforeInputID = "source-image"
@@ -179,6 +182,69 @@ func TestEvidenceRequiresAppliedAlgorithms(t *testing.T) {
 	e.CaseDigest = c.Digest()
 	if ValidateEvidence([]Case{c}, []Evidence{e}) == nil {
 		t.Fatal("declared algorithm without execution accepted")
+	}
+}
+
+// moveUnitAlgorithmsToDetachedInvocation reproduces Q1 using only synthetic
+// records. The added invocation has valid execution/log fields but no output.
+func moveUnitAlgorithmsToDetachedInvocation(e *Evidence) {
+	var detached Invocation
+	for i := range e.Invocations {
+		if e.Invocations[i].ID == "reconstruct" {
+			detached = e.Invocations[i]
+		}
+		e.Invocations[i].Algorithms = nil
+	}
+	detached.ID = "detached-reconstruct"
+	detached.Algorithms = []string{"unit-algorithm"}
+	detached.Log = unitArtifact("detached-log", "log")
+	e.Invocations = append(e.Invocations, detached)
+}
+
+func TestEvidenceAlgorithmsBindVerifiedExpectedOutput(t *testing.T) {
+	for _, binding := range []string{"expected reconstruct producer", "detached invocation", "different verified operation"} {
+		t.Run(binding, func(t *testing.T) {
+			c, e := unitRecord()
+			for i := range e.Invocations {
+				e.Invocations[i].Algorithms = nil
+			}
+			switch binding {
+			case "expected reconstruct producer":
+				e.Invocations[4].Algorithms = []string{"unit-algorithm"}
+			case "detached invocation":
+				moveUnitAlgorithmsToDetachedInvocation(&e)
+			case "different verified operation":
+				e.Invocations[0].Algorithms = []string{"unit-algorithm"}
+			}
+			err := ValidateEvidence([]Case{c}, []Evidence{e})
+			if binding == "expected reconstruct producer" {
+				if err != nil {
+					t.Fatalf("algorithm on independently verified expected reconstruct producer rejected: %v", err)
+				}
+			} else if err == nil {
+				t.Fatal("required reconstruction algorithm credited without its expected reconstructed result")
+			}
+		})
+	}
+}
+
+func TestEvidenceRejectsUnboundAlgorithmRequirements(t *testing.T) {
+	for _, declaration := range []string{"unassigned", "undeclared", "duplicate"} {
+		t.Run(declaration, func(t *testing.T) {
+			c, e := unitRecord()
+			switch declaration {
+			case "unassigned":
+				c.Expected[2].Algorithms = nil
+			case "undeclared":
+				c.Expected[2].Algorithms = []string{"different-algorithm"}
+			case "duplicate":
+				c.Expected[2].Algorithms = []string{"unit-algorithm", "unit-algorithm"}
+			}
+			e.CaseDigest = c.Digest()
+			if ValidateEvidence([]Case{c}, []Evidence{e}) == nil {
+				t.Fatal("invalid expected-output algorithm binding accepted")
+			}
+		})
 	}
 }
 
