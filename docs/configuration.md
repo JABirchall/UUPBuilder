@@ -1,0 +1,187 @@
+# Configuration
+
+UUP Builder uses TOML schema version `1`. The default configuration path is
+`%LOCALAPPDATA%\UUPBuilder\config.toml`; the executable also accepts
+`--config PATH`. Configuration loading and saving are provided by
+`internal/config`; the bootstrap executable does not yet connect these services
+to the TUI.
+
+Every document must contain `schema_version = 1`. Omitted settings receive the
+defaults below. Explicit `false`, `0`, empty strings and empty arrays remain
+explicit; invalid values return diagnostics instead of being reset. Unknown
+keys (including case-mismatched names), wrong types, invalid policy values and
+unsupported versions are rejected with the filename, full key and one-based
+line/column when available. Missing keys have no invented source position.
+Version migration is not implemented: another schema version fails without
+rewriting the file.
+
+`Defaults()` and minimal documents allow an incomplete image selection for
+browsing. `Config.Validate()` checks structural syntax; `Config.Request()` also
+requires a source ID, target architecture, language and at least one unique
+edition. The complete source ID, including its revision, is opaque and retained.
+Unknown upstream architectures, edition identifiers, app families and presets
+remain available for later applicability checks. The host architecture does not
+filter target choices.
+
+This is the default document. The output directory `"."`, app mode `"default"`
+and preservation of required temporary edition bases are builder-chosen
+defaults. The accepted design's empty output-directory example was illustrative;
+a usable directory is required by the shared settings contract.
+
+```toml
+schema_version = 1
+
+[catalog]
+endpoint = "https://api.uupdump.net"
+
+[image]
+update_id = ""
+architecture = "amd64"
+language = "en-us"
+editions = ["professional"]
+
+[conversion]
+updates = "integrate"
+servicing_strategy = "auto"
+cumulative_update_policy = "auto"
+checkpoint_updates = "auto"
+enablement_packages = "auto"
+cleanup = true
+reset_base = "off"
+netfx3 = false
+include_winre = true
+winre_updates = "auto"
+update_boot_files = false
+boot_wim_engine = "auto"
+reference_images = "auto"
+cumulative_msu = "auto"
+keep_reference_esds = false
+
+[conversion.drivers]
+enabled = false
+source = ""
+targets = []
+
+[conversion.editions]
+derived = []
+strategy = "auto"
+preserve_required_bases = true
+
+[apps]
+mode = "default"
+preset = ""
+stub_policy = "auto"
+include = []
+edge_policy = "default"
+
+[output]
+kind = "iso"
+image_format = "wim"
+split_size_mib = 3800
+directory = "."
+filename = "auto"
+label = "auto"
+edition_order = []
+
+[downloads]
+parallel_files = 4
+retries = 5
+
+[downloads.proxy]
+mode = "system"
+
+[storage]
+workspace = "auto"
+cache = "auto"
+keep_downloads = true
+keep_intermediates = false
+```
+
+The schema groups reuse the public typed policies from `internal/model`. The
+proxy is a table, and Edge policy lives under `apps`; these organize the full
+schema beyond the design's abbreviated example.
+
+| Key | Allowed values or meaning |
+| --- | --- |
+| `catalog.endpoint` | HTTP/HTTPS API base URL; no credentials, query or fragment. The default uses the official HTTPS API. |
+| `image.update_id`, `architecture`, `language`, `editions` | One exact source/revision, one target, one language and ordered unique edition identifiers. Empty selections are drafts. |
+| `conversion.updates` | `integrate`, `external`, `omit` |
+| `conversion.servicing_strategy` | `auto`, `per-edition`, `shared-base` |
+| `conversion.cumulative_update_policy`, `checkpoint_updates` | Independently `auto`, `expand`, `preserve` |
+| `conversion.enablement_packages`, `winre_updates` | Independently `auto`, `include`, `omit` |
+| `conversion.cleanup` | Component-cleanup boolean |
+| `conversion.reset_base` | `off`, `auto`, `on` |
+| `conversion.netfx3`, `include_winre`, `update_boot_files` | .NET 3.5 inclusion, WinRE inclusion and boot-file update booleans |
+| `conversion.boot_wim_engine` | `auto`, `wimlib`, `dism` |
+| `conversion.reference_images` | `auto`, `reuse`, `export` |
+| `conversion.cumulative_msu` | `auto`, `expand`, `keep` |
+| `conversion.keep_reference_esds` | Retain reference ESDs boolean |
+| `conversion.drivers.enabled`, `source`, `targets` | Boolean, source directory, unique targets from `os`, `winpe`, `winre`, `shared`; enabled integration requires a source and at least one target. |
+| `conversion.editions.derived`, `strategy`, `preserve_required_bases` | Unique requested derived editions; `auto`/`per-edition`/`shared-base` servicing; retain necessary bases temporarily even when excluded from final output. |
+| `apps.mode` | `default`, `custom`, `none` |
+| `apps.preset`, `include` | Optional preset and unique stable package-family identities, not translated display names. |
+| `apps.stub_policy` | `auto`, `stub`, `full` |
+| `apps.edge_policy` | `default`, `include`, `exclude` |
+| `output.kind`, `image_format` | `iso`/`image`/`directory` and `wim`/`esd`/`swm` |
+| `output.split_size_mib` | Nonnegative integer; must be positive for SWM. |
+| `output.directory`, `filename`, `label`, `edition_order` | Directory, Windows-safe single filename or `auto`, label or `auto`, unique final edition order. |
+| `downloads.parallel_files`, `retries` | Positive parallel file count; nonnegative retry count. |
+| `downloads.proxy.mode`, `url` | `system`, `direct`, `explicit`; explicit mode requires an HTTP/HTTPS/SOCKS5 origin without credentials, query or fragment. Omit `url` in other modes. |
+| `storage.workspace`, `cache` | Directory or `auto`; the later storage planner resolves automatic locations. |
+| `storage.keep_downloads`, `keep_intermediates` | Retention booleans. |
+
+`auto` and all explicit source-dependent choices survive decoding and request
+creation. For example, an explicit WinRE-update request survives when WinRE is
+disabled, and custom app families survive in `none` mode. The later engine
+resolver must either support these requests or report a concrete applicability
+failure before mutation. Structural validation does not claim support for a
+particular source, host or helper.
+
+Relative driver, output, workspace and cache directories resolve against the
+configuration file's directory, independent of the process working directory.
+Parent-directory paths such as `../output` are valid user-selected directories.
+Storage `auto`, an empty disabled driver source, output filename and label remain
+policy values. Windows device names, alternate streams, control characters,
+drive-relative/root-relative paths and device namespaces are rejected. Normal
+absolute and UNC paths are accepted. Filesystem capability, containment and
+reparse-point checks remain a later privileged-I/O boundary.
+
+`Decode(data, filename)` leaves relative paths editable. `Load(path)` reads,
+decodes and resolves paths without writing anything; a missing file returns
+`os.ErrNotExist` and a malformed file remains byte-for-byte unchanged.
+`ResolvePaths(cfg, configPath)` resolves an in-memory configuration explicitly.
+`Request()` returns independent copies of every mutable selection/settings
+slice. Configuration, resolved settings and backups must never contain runtime
+proxy credentials or signed download URLs.
+
+Saving writes normalized TOML; comments and original formatting are not
+preserved in the new document. `Save(path, cfg)` validates first, then writes,
+syncs and closes a unique temporary file in the destination directory. Before
+replacing an existing file it also writes, syncs and closes an exact backup at
+`<filename>.bak-<unique suffix>`, preserving comments and bytes. Existing backups
+are never overwritten. Identical canonical bytes are a no-op. The containing
+directory must already exist; save does not initialize application directories.
+An explicit save can replace a malformed file only after making that backup;
+load never silently substitutes or saves defaults.
+
+On Windows, publication uses a single
+[`SetFileInformationByHandle(FileRenameInfo)`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileinformationbyhandle)
+operation with the architecture-aligned
+[`FILE_RENAME_INFO`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info)
+buffer. The replacement stays on the same filesystem; no copy/delete fallback
+is used. `ReplaceIfExists` is true for an existing configuration and false for
+initial creation, so an appearing file cannot be overwritten during initial
+creation. The native rename handles namespace publication; synced file contents
+do not establish a universal hardware/power-loss durability guarantee for every
+filesystem or remote server. A sharing violation or unsupported rename returns
+an error with the original and completed backup intact. This avoids
+[`ReplaceFileW`'s documented partial-failure states](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew).
+Portable development hosts use same-filesystem rename for replacement and an
+exclusive hard link for initial creation.
+
+`SaveResult.BackupPath` identifies a completed backup, including when publication
+subsequently fails. `SaveResult.Normalized` is true after a successful rewrite
+of different existing bytes, and false for new files, no-ops and failed saves.
+The TUI can use these fields to explain normalization and show the backup path.
+Save is intended for one application writer; atomic publication does not merge
+concurrent manual edits or provide a cross-process settings lock.

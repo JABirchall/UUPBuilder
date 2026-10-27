@@ -1,0 +1,67 @@
+schema_version = 1
+
+[catalog]
+endpoint = "https://api.uupdump.net"
+
+[image]
+update_id = "source-uuid_rev.2"
+architecture = "arm"
+language = "en-gb"
+editions = ["professional", "enterprise"]
+
+[conversion]
+updates = "external"
+servicing_strategy = "shared-base"
+cumulative_update_policy = "expand"
+checkpoint_updates = "preserve"
+enablement_packages = "include"
+cleanup = false
+reset_base = "on"
+netfx3 = true
+include_winre = false
+winre_updates = "include"
+update_boot_files = true
+boot_wim_engine = "dism"
+reference_images = "export"
+cumulative_msu = "keep"
+keep_reference_esds = true
+
+[conversion.drivers]
+enabled = true
+source = "drivers"
+targets = ["os", "winpe", "winre", "shared"]
+
+[conversion.editions]
+derived = ["enterprise", "future-edition"]
+strategy = "per-edition"
+preserve_required_bases = true
+
+[apps]
+mode = "custom"
+preset = "future-preset"
+stub_policy = "full"
+include = ["Microsoft.WindowsNotepad_8wekyb3d8bbwe", "Future.App_family"]
+edge_policy = "exclude"
+
+[output]
+kind = "directory"
+image_format = "swm"
+split_size_mib = 3900
+directory = "output"
+filename = "custom.iso"
+label = "CUSTOM_MEDIA"
+edition_order = ["enterprise", "professional"]
+
+[downloads]
+parallel_files = 7
+retries = 2
+
+[downloads.proxy]
+mode = "explicit"
+url = "socks5://proxy.example:1080"
+
+[storage]
+workspace = "scratch"
+cache = "cache"
+keep_downloads = false
+keep_intermediates = true
