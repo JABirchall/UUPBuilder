@@ -9,6 +9,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -28,9 +29,15 @@ type proxyPort interface {
 }
 type ProxyResolver struct{ port proxyPort }
 
+const (
+	winHTTPAutoDetectionFailed syscall.Errno = 12180
+	winHTTPLoginFailure        syscall.Errno = 12015
+)
+
 // NewProxyResolver uses the current user's Windows Internet settings and
 // WinHTTP URL-specific PAC/WPAD decisions. It does not consult environment vars.
-// PAC errors are returned, so callers never silently bypass a required proxy.
+// No-discovery falls back to configured manual settings; required PAC errors
+// are returned so callers never silently bypass a required proxy.
 func NewProxyResolver() *ProxyResolver { return &ProxyResolver{port: nativeProxy{}} }
 
 func (r *ProxyResolver) Resolve(ctx context.Context, target *url.URL) (*url.URL, error) {
@@ -53,6 +60,11 @@ func (r *ProxyResolver) Resolve(ctx context.Context, target *url.URL) (*url.URL,
 		safe.Fragment = ""
 		decision, err := p.resolve(ctx, safe.String(), c)
 		if err != nil {
+			// An optional discovery search finding no PAC is different from a
+			// configured script, authentication, download or execution failure.
+			if c.AutoDetect && c.AutoConfigURL == "" && errors.Is(err, winHTTPAutoDetectionFailed) {
+				return selectProxy(target, c.Proxy, c.Bypass)
+			}
 			return nil, fmt.Errorf("system automatic proxy: %w", err)
 		}
 		if decision.Direct {
@@ -96,7 +108,14 @@ func selectProxy(target *url.URL, proxies, bypass string) (*url.URL, error) {
 
 func bypasses(u *url.URL, list string) bool {
 	host := strings.ToLower(u.Hostname())
-	authority := strings.ToLower(u.Host)
+	port := u.Port()
+	if port == "" {
+		if u.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
 	for _, pattern := range strings.FieldsFunc(strings.ToLower(list), func(r rune) bool { return r == ';' || r == ' ' || r == '\t' }) {
 		if pattern == "<local>" {
 			if !strings.Contains(host, ".") && net.ParseIP(host) == nil {
@@ -105,11 +124,33 @@ func bypasses(u *url.URL, list string) bool {
 			continue
 		}
 		pattern = strings.TrimPrefix(strings.TrimPrefix(pattern, "http://"), "https://")
-		candidate := host
-		if strings.Contains(pattern, ":") {
-			candidate = authority
+		patternHost, patternPort := pattern, ""
+		if h, p, err := net.SplitHostPort(pattern); err == nil {
+			patternHost, patternPort = h, p
+		} else if strings.HasPrefix(pattern, "[") && strings.HasSuffix(pattern, "]") {
+			patternHost = pattern[1 : len(pattern)-1]
 		}
-		if match, _ := path.Match(pattern, candidate); match {
+		if patternPort != "" && patternPort != port {
+			continue
+		}
+		// Compare literal addresses before considering wildcard syntax. IPv6
+		// brackets delimit an address; they are never a glob character class.
+		if ip := net.ParseIP(patternHost); ip != nil {
+			if candidate := net.ParseIP(host); candidate != nil && ip.Equal(candidate) {
+				return true
+			}
+			continue
+		}
+		if !strings.ContainsAny(patternHost, "*?") {
+			if patternHost == host {
+				return true
+			}
+			continue
+		}
+		if strings.ContainsAny(patternHost, "[]") {
+			continue
+		}
+		if match, _ := path.Match(patternHost, host); match {
 			return true
 		}
 	}
@@ -160,6 +201,15 @@ type nativeProxyInfo struct {
 	Proxy, Bypass *uint16
 }
 
+type nativeAutoProxyOptions struct {
+	Flags           uint32
+	AutoDetectFlags uint32
+	AutoConfigURL   *uint16
+	Reserved        uintptr
+	ReservedDWORD   uint32
+	AutoLogon       int32
+}
+
 func (nativeProxy) resolve(ctx context.Context, target string, c proxyConfig) (proxyDecision, error) {
 	if err := ctx.Err(); err != nil {
 		return proxyDecision{}, err
@@ -191,15 +241,14 @@ func resolveNativeProxy(target string, c proxyConfig) (proxyDecision, error) {
 	if ok, _, err := winHTTPTimeouts.Call(h, 5000, 5000, 5000, 5000); ok == 0 {
 		return proxyDecision{}, err
 	}
-	type autoOptions struct {
-		Flags           uint32
-		AutoDetectFlags uint32
-		AutoConfigURL   *uint16
-		Reserved        uintptr
-		ReservedDWORD   uint32
-		AutoLogon       int32
-	}
-	var options autoOptions
+	return resolveAutoProxyOptions(target, c, func(u *uint16, options *nativeAutoProxyOptions) (proxyDecision, error) {
+		return nativeProxyLookup(h, u, options)
+	})
+}
+
+func resolveAutoProxyOptions(target string, c proxyConfig, lookup func(*uint16, *nativeAutoProxyOptions) (proxyDecision, error)) (proxyDecision, error) {
+	var options nativeAutoProxyOptions
+	var err error
 	if c.AutoDetect {
 		options.Flags |= 1
 		options.AutoDetectFlags = 3
@@ -215,10 +264,22 @@ func resolveNativeProxy(target string, c proxyConfig) (proxyDecision, error) {
 	if err != nil {
 		return proxyDecision{}, err
 	}
-	var info nativeProxyInfo
-	ok, _, callErr := winHTTPGetProxy.Call(h, uintptr(unsafe.Pointer(u)), uintptr(unsafe.Pointer(&options)), uintptr(unsafe.Pointer(&info)))
+	decision, err := lookup(u, &options)
+	// Keep the cacheable unauthenticated attempt first. Only a native PAC
+	// login challenge enables NTLM/Negotiate using the signed-in OS identity,
+	// once; no credential strings are obtained or added to product DTOs.
+	if errors.Is(err, winHTTPLoginFailure) {
+		options.AutoLogon = 1
+		decision, err = lookup(u, &options)
+	}
 	runtime.KeepAlive(options)
 	runtime.KeepAlive(u)
+	return decision, err
+}
+
+func nativeProxyLookup(h uintptr, u *uint16, options *nativeAutoProxyOptions) (proxyDecision, error) {
+	var info nativeProxyInfo
+	ok, _, callErr := winHTTPGetProxy.Call(h, uintptr(unsafe.Pointer(u)), uintptr(unsafe.Pointer(options)), uintptr(unsafe.Pointer(&info)))
 	defer freeGlobal(info.Proxy)
 	defer freeGlobal(info.Bypass)
 	if ok == 0 {
