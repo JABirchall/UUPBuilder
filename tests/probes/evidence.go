@@ -126,7 +126,6 @@ func validateRecord(c Case, e Evidence) error {
 		components[component.Artifact.ID] = component
 	}
 	invocations := map[string]Invocation{}
-	appliedAlgorithms := map[string]bool{}
 	for _, inv := range e.Invocations {
 		if textRequired("invocation.id", inv.ID) != nil || !operationValid(inv.Operation) {
 			return errors.New("evidence: invalid invocation identity/operation")
@@ -155,17 +154,7 @@ func validateRecord(c Case, e Evidence) error {
 		if err := uniqueText("invocation.algorithms", inv.Algorithms); err != nil {
 			return err
 		}
-		if inv.Operation != Inspect {
-			for _, algorithm := range inv.Algorithms {
-				appliedAlgorithms[algorithm] = true
-			}
-		}
 		invocations[inv.ID] = inv
-	}
-	for _, algorithm := range c.Algorithms {
-		if !appliedAlgorithms[algorithm] {
-			return fmt.Errorf("evidence: algorithm %s has no actual execution record", algorithm)
-		}
 	}
 	outputs := map[string]Output{}
 	for _, output := range e.Outputs {
@@ -222,6 +211,11 @@ func validateRecord(c Case, e Evidence) error {
 		for _, assertion := range expected.Assertions {
 			if !contains(v.Assertions, assertion) {
 				return fmt.Errorf("evidence: missing independent content assertion %s", assertion)
+			}
+		}
+		for _, algorithm := range expected.Algorithms {
+			if !contains(producer.Algorithms, algorithm) {
+				return fmt.Errorf("evidence: algorithm %s was not executed by the verified producer of expected %s output %s", algorithm, expected.Operation, expected.OutputID)
 			}
 		}
 	}

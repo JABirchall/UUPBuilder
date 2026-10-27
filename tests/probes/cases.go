@@ -65,6 +65,9 @@ type Expectation struct {
 	BeforeInputID string    `json:"before_input_id,omitempty"`
 	Provenance    string    `json:"provenance"`
 	Assertions    []string  `json:"assertions"`
+	// Algorithms must be executed by the producer of this independently
+	// verified output; labels on unrelated invocations cannot satisfy them.
+	Algorithms []string `json:"algorithms,omitempty"`
 }
 
 type Blocker struct {
@@ -327,6 +330,14 @@ func (c Case) Validate() error {
 		if err := uniqueText("expectation.assertions", expected.Assertions); err != nil {
 			return err
 		}
+		if err := uniqueText("expectation.algorithms", expected.Algorithms); err != nil {
+			return err
+		}
+		for _, algorithm := range expected.Algorithms {
+			if !contains(c.Algorithms, algorithm) {
+				return fmt.Errorf("case: expected output %s names undeclared algorithm %s", expected.OutputID, algorithm)
+			}
+		}
 		for _, assertion := range operationAssertions(expected.Operation) {
 			if !contains(expected.Assertions, assertion) {
 				return fmt.Errorf("case: %s needs independent assertion %s", expected.Operation, assertion)
@@ -431,6 +442,15 @@ func (c Case) ValidateReady() error {
 	}
 	if len(c.Algorithms) == 0 {
 		return errors.New("case: concrete algorithms unverified")
+	}
+	for _, algorithm := range c.Algorithms {
+		bound := false
+		for _, expected := range c.Expected {
+			bound = bound || contains(expected.Algorithms, algorithm)
+		}
+		if !bound {
+			return fmt.Errorf("case: algorithm %s has no expected operation/output binding", algorithm)
+		}
 	}
 	for _, op := range c.Operations {
 		found := false
