@@ -10,7 +10,8 @@ Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 `2026-10-27-uup-builder-multi-agent-plan.md`, engine plan
 `2026-10-27-uup-builder-engine-plan.md`, and G0 producer contracts. Research
 provenance: the coordinator's dated `provider-research.md`,
-`provider-runtime-report.md` and `source-census-research.md`. Research archives,
+`provider-runtime-report.md`, `adk-static-research.md` and
+`source-census-research.md`. Research archives,
 Microsoft payloads, legacy guidance and converter scripts are not product inputs
 and are not copied into this tree.
 
@@ -162,37 +163,103 @@ The matching source archive above is a candidate provenance input.
 
 ## Microsoft DISM/ADK and ISO mastering
 
-Official [ADK acquisition](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install)
-and [offline/silent workflow](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-offline-install)
-document vendor-direct `/layout` and `OptionId.DeploymentTools`. These commands
-were **not run**. HEAD-only redirect observations, dated 2026-10-27:
+The newer coordinator `adk-static-research.md` supersedes the earlier HEAD-only
+observations. Official pinned Microsoft packages contain native x86, amd64 and
+ARM64 **DISM and Oscdimg**, including native ARM64 Oscdimg, for both inspected
+payload sets. Bootstrappers, 133 focused deployment/imaging MSI/CAB/helper files
+(90,012,567 bytes), and a documentation MSI were inspected as data. No downloaded
+executable, installer, MSI custom action, imaging helper or driver was run.
 
-| Candidate kit | Official route | Resolved destination; reported length |
+| Exact official bootstrapper | Observed file version; bytes | Measured SHA-256 |
 | --- | --- | --- |
-| 10.1.26100.9457 | https://go.microsoft.com/fwlink/?linkid=2289980 | https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe ; 2233776 |
-| 10.1.28000.1 | https://go.microsoft.com/fwlink/?linkid=2337875 | https://download.microsoft.com/download/615540bc-be0b-433a-b91b-1f2b0642bb24/adk/adksetup.exe ; 2236280 |
-| Windows 10 2004 republished | https://go.microsoft.com/fwlink/?linkid=2120254 | https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe ; 1970056 |
+| [September 2026](https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe) | 10.1.26100.9457; 2233776 | `ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f` |
+| [Separate 28000.1 scenario](https://download.microsoft.com/download/615540bc-be0b-433a-b91b-1f2b0642bb24/adk/adksetup.exe) | 10.1.28000.1; 2236280 | `a579ea916797d32e5d0443418e3aaa70f3212911c9183d58b9997c329ecba791` |
+| [Republished Windows 10 2004 kit](https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe) | 10.1.19041.5856; 1970056 | `79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd` |
 
-No setup/package hashes, signatures, EULA/REDIST list, complete feature layout,
-native x86/amd64/ARM64 file chain, installer privilege/return/restart behavior or
-Oscdimg bytes were inspected. A kit label or HEAD length is not a helper digest.
-Moving fwlinks cannot be an unvalidated moving-latest manifest. The
-[ADK servicing page](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-servicing)
-lists version-specific patch requirements; the base kit alone is not necessarily
-the selected package closure. Version-specific rights/notices and allowed
-vendor-direct acquisition or redistribution remain gates. Download availability
-does not establish a redistribution entitlement.
+All three bootstrappers and 133 payload files returned Authenticode `Valid` on
+the research host. All payload sizes and publisher Burn-manifest SHA-1 values
+matched. `adk-static/downloads.json` retains exact versioned URLs, those SHA-1
+values, separate measured SHA-256 values, signers and thumbprints. Local
+SHA-256 identities and historical signature observations are separate evidence
+classes; neither is a fresh-machine/current-revocation check or runtime proof.
+Moving fwlinks are not used as immutable content pins.
 
-The dependency inventory still required per native provider/version/operation
-includes dism.exe/DismApi, DismCore/CorePS/Prov/Host, applicable imaging/CBS/
-edition/international/driver/Appx provider DLLs, resources, WIMGAPI, native OS
-dependencies, WIMMount/compact-image drivers/native setup when used, and
-compatible target CBS/servicing-stack/package/app dependencies. The
-[Microsoft copy procedure](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/copy-dism-to-another-computer?view=windows-11)
-demonstrates why dism.exe alone is insufficient; it is not a certified complete
-full-OS recipe for every version. Native setup may need elevation and driver/
-restart handling; none was attempted. Historical tool versions must remain
-available when required by image/operation compatibility.
+The current DISM runtime is split across OnecoreUAP and DesktopEditions MSIs.
+Oscdimg DesktopEditions supplies the executable; its OnecoreUAP package supplies
+boot resources. MSI package labels containing `x86` do not identify all embedded
+tool architectures. The historical Deployment Tools MSI combines a larger
+multi-architecture set. The focused selected packages are not the complete ADK
+DeploymentTools feature; separately inspected Imaging Tools Support packages
+belong to ImagingAndConfigurationDesigner and must not be inferred to be DISM
+prerequisites.
+
+| Kit | Native tool | Bytes / measured SHA-256 |
+| --- | --- | --- |
+| 19041.5856 | DISM x86 | 226368 / `572abf383a11d5ec8764e6e78b9c90a9b9d1c83300d4de240fca6f99c47da108` |
+| 19041.5856 | DISM amd64 | 289344 / `08d46131027599b9956aefed0ef653ee41f127ace77b48002b29e5721b58d121` |
+| 19041.5856 | DISM ARM64 | 322632 / `c5197f5645a4db30b31e64aac31bfa775af64f2145f832fda8b24c6e97d06364` |
+| 19041.5856 | Oscdimg x86 | 117824 / `59972e5867cfad380d0fe376575221fb6abb5f6b847a4d833916680e9ecce8d9` |
+| 19041.5856 | Oscdimg amd64 | 132176 / `1779ff09753a3327e66617e8eef680c7e35a428c0b0509173be356d270eb2ba4` |
+| 19041.5856 | Oscdimg ARM64 | 136752 / `e54a6077cbcedc0fd6d8b70501db527d80c296f7b3b3c21ddca88f87a17936c3` |
+| 26100.9457 | DISM x86 | 243648 / `522495f929771de1cb25e0c7f1bceaf00256d7c1e8ca295b6a4dbccbd8e17085` |
+| 26100.9457 | DISM amd64 | 334272 / `d1c3112796a419a9abb4ea6163ecfd50204c4868628f2efcb3bff74ea7f2b8c4` |
+| 26100.9457 | DISM ARM64 | 347600 / `c725948dbcb15780bd4041938141123a3992daceb9f94dd4d3837351d2bf090a` |
+| 26100.9457 | Oscdimg x86 | 120272 / `b99cf18de8006f7bec5b9618eac6d2f4ba9f1700adc78a2bc49433b55629c93b` |
+| 26100.9457 | Oscdimg amd64 | 154024 / `d2709f8099ddd202bc41bcb399ecd5638503c6466f416d1a321769af83a70c3a` |
+| 26100.9457 | Oscdimg ARM64 | 139696 / `175e8899c9925c0a91289fa8294d6969eeb88a7c753b3b9001cd63a3b3d9a8f4` |
+
+DISM file versions are `10.0.19041.5856` and `10.0.26100.9457`; kit versions
+begin `10.1`. Oscdimg reports `2.56.0.1010` in both kits while its hashes differ.
+PE machines 014C/8664/AA64 establish file architectures. All twelve front ends
+returned valid signatures during the static pass; no one was launched.
+
+The retained inventory covers 1,912 MSI file rows and 1,822 inspected PE/data
+rows. Current native DISM folders contain core/API/provider/imaging DLLs,
+WIMGAPI, WimServ, native setup helpers, resources and WIMMount/WofAdk plus newer
+CIMFS/UnionFS components. External Burn ExePackage helpers and installed
+DISM-folder helpers can share names/versions but have **different bytes**; they
+remain distinct identities. The six inspected Oscdimg front ends directly
+import only KERNEL32 and msvcrt and have no delay imports. This small static
+surface does not establish transitive OS closure or successful mastering.
+
+**Complete operation-specific dynamic closure remains unverified.** The selected
+MSI tables do not list standalone DismHost, CbsProvider, AppxProvider or
+SetupPlatform files, while native core/provider bytes contain dynamic-name
+leads. Origin/load path, compatible target CBS/servicing stack, conditional OS
+loads, drivers and servicing/app/package dependencies still need proof. Static
+tables do not certify a minimal portable DLL set. The
+[copy procedure](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/copy-dism-to-another-computer?view=windows-11)
+does not settle every full-OS host/version/operation.
+
+Actual English EULAs were obtained from bootstrapper UX cabinets and read.
+Current and 28000.1 EULA RTF SHA-256 is
+`3c0c45033614cd4882ff0195ca7f77c8077f2f4917806ada519855f7f87da595`;
+historical is
+`82acd1ca7ca2c7fb7cae8a9b843a28842bdcdc5263f665d3cdc82e318382b496`.
+Current terms describe compatible client/server versions that have not reached
+End of Support. Historical wording differs; exact edition/channel/ESU/LTSC/job
+applicability is unresolved. The observed ADK distributable category names
+sample code; historical WDK REDIST wording is not a grant for ADK DISM/Oscdimg.
+No specific DISM/Oscdimg/driver redistribution entitlement is established. The
+bounded runtime/documentation file-table scan found no named REDIST or third
+party notices file; that does not prove every uninspected component lacks one.
+Vendor-direct acquisition/use and concrete rights/notices still need review.
+
+Official [ADK acquisition](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install)
+and [offline workflow](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-offline-install)
+document vendor-direct `/layout` and `OptionId.DeploymentTools`; those commands
+were not run. Per-machine packages, native imaging-helper conditions, a .NET
+4.5 detection/prerequisite, MSI custom actions, native driver setup, and
+reboot-related exit-code metadata were inspected as data. These facts do not
+prove clean-machine installation, safe cancellation/restart, privilege/license
+acceptance, repair/conflicts/uninstall or repeat provisioning. The product must
+manage these requirements; no manual ADK prerequisite is accepted.
+
+The [servicing page](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-servicing)
+says 26100.9457 needs no additional patch; the 28000.1 required patch route was
+not inspected, so that base is not a complete provider pin. Historical provider
+choice remains necessary where exact image/operation compatibility or rights
+requires it. A newest-kit assumption does not cover every requested build.
 
 Installed, not executed: native System32 dism.exe version 10.0.19041.1, 289136
 bytes, measured SHA-256
@@ -210,8 +277,11 @@ universal full-Windows host restrictions. Microsoft's
 [ARM manufacturing workflow](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/arm64-device-manufacturing?view=windows-11)
 documents an amd64 technician-PC scenario, not nine-pair native proof.
 [Oscdimg options](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11)
-describe UDF/El Torito, not native helper availability or verified bootability.
-No concrete native ISO provider/dependency/rights closure is complete.
+describe UDF/El Torito; native helper byte availability is now established by the
+static inventories above. Mastered filesystem, target boot resources/catalog,
+bootability, host compatibility and operation/dependency/rights closure remain
+unverified. [W2 acquisition](acquisition.md) documents the candidate-only manager
+and private synthetic ZIP backend; its component tests do not open Gate P/S.
 
 ## Differential candidates, without source-family proof
 

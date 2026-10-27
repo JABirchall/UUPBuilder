@@ -1,0 +1,1328 @@
+{
+  "schema_version": 1,
+  "providers": [
+    {
+      "id": "wimlib",
+      "version": "1.14.5",
+      "native_architecture": "x86",
+      "route": "vendor-zip",
+      "publisher": "Eric Biggers",
+      "provenance": "2026-10-27 provider-research.md: official vendor HTTPS bytes, measured SHA256; unsigned native PE files; no runtime proof. Matching source https://wimlib.net/downloads/wimlib-1.14.5.tar.gz size 1073578 measured SHA256 84221a3abd5b91228f15f8e6065c335a336237b5738197b75bf419eea561a194",
+      "intent_operations": [
+        "extract",
+        "inspect"
+      ],
+      "packages": [
+        {
+          "name": "wimlib-1.14.5-windows-i686-bin.zip",
+          "url": "https://wimlib.net/downloads/wimlib-1.14.5-windows-i686-bin.zip",
+          "size": 791576,
+          "sha256": "3739eb2291b9a86d2fcc2914c4b2b53317c045de214782e46588ed8350371905",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 provider-research.md; no publisher-published archive digest found",
+          "signature_observation": "not-inspected",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "wimlib-imagex.exe",
+          "role": "executable",
+          "size": 117774,
+          "sha256": "597b1e5fe29b92cce7ab6955d4cd629eb2c070fad45aed2bde811b39edbd80af",
+          "version": "1.14.5",
+          "native_architecture": "x86",
+          "dependencies": [
+            "libwim-15.dll"
+          ],
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        },
+        {
+          "path": "libwim-15.dll",
+          "role": "dll",
+          "size": 531470,
+          "sha256": "a79b428fea9d1bded38a45eab854bd72f0a31fd878c0d3132cfdfd4899498053",
+          "version": "1.14.5",
+          "native_architecture": "x86",
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        }
+      ],
+      "notices": [
+        "COPYING.txt",
+        "COPYING.GPLv3.txt",
+        "COPYING.LGPL.txt",
+        "COPYING.libdivsufsort-lite.txt"
+      ],
+      "pending": [
+        {
+          "detail": "Automatic approval review rejected affected pinned wimlib extraction/direct execution with only blocked by policy; this route is not retried.",
+          "code": "policy-execution-stopped"
+        },
+        {
+          "detail": "No matching native clean-machine or operation-specific host/target evidence is established.",
+          "code": "runtime-unverified"
+        },
+        {
+          "detail": "Required native OS CRT/API-set resolution, filesystem privileges and operation-specific VSS/WOF prerequisites are not established by static imports.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "GPL/LGPL/libdivsufsort notices and corresponding-source or relinking obligations require the concrete product acquisition/distribution policy.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "Four notice names were observed, but this candidate inventory does not include complete measured notice file pins. No complete portable provider is declared.",
+          "code": "notice-pins-incomplete"
+        }
+      ]
+    },
+    {
+      "id": "wimlib",
+      "version": "1.14.5",
+      "native_architecture": "amd64",
+      "route": "vendor-zip",
+      "publisher": "Eric Biggers",
+      "provenance": "2026-10-27 provider-research.md: official vendor HTTPS bytes, measured SHA256; unsigned native PE files; no runtime proof. Matching source https://wimlib.net/downloads/wimlib-1.14.5.tar.gz size 1073578 measured SHA256 84221a3abd5b91228f15f8e6065c335a336237b5738197b75bf419eea561a194",
+      "intent_operations": [
+        "extract",
+        "inspect"
+      ],
+      "packages": [
+        {
+          "name": "wimlib-1.14.5-windows-x86_64-bin.zip",
+          "url": "https://wimlib.net/downloads/wimlib-1.14.5-windows-x86_64-bin.zip",
+          "size": 778747,
+          "sha256": "2f446d6fa3866582175f1a22a7be198eeee0aec7aba5b4e04ad25c99eae2d265",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 provider-research.md; no publisher-published archive digest found",
+          "signature_observation": "not-inspected",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "wimlib-imagex.exe",
+          "role": "executable",
+          "size": 112654,
+          "sha256": "34c0c4165591ad1f592837ed99d08273c58d6ed3fe0ed6360cf34e7b0739b353",
+          "version": "1.14.5",
+          "native_architecture": "amd64",
+          "dependencies": [
+            "libwim-15.dll"
+          ],
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        },
+        {
+          "path": "libwim-15.dll",
+          "role": "dll",
+          "size": 497678,
+          "sha256": "ba853ee1e3fc5f5798581f02e8e066ba07a0a2375f0bf444fe981431fd508495",
+          "version": "1.14.5",
+          "native_architecture": "amd64",
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        }
+      ],
+      "notices": [
+        "COPYING.txt",
+        "COPYING.GPLv3.txt",
+        "COPYING.LGPL.txt",
+        "COPYING.libdivsufsort-lite.txt"
+      ],
+      "pending": [
+        {
+          "detail": "Automatic approval review rejected affected pinned wimlib extraction/direct execution with only blocked by policy; this route is not retried.",
+          "code": "policy-execution-stopped"
+        },
+        {
+          "detail": "No matching native clean-machine or operation-specific host/target evidence is established.",
+          "code": "runtime-unverified"
+        },
+        {
+          "detail": "Required native OS CRT/API-set resolution, filesystem privileges and operation-specific VSS/WOF prerequisites are not established by static imports.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "GPL/LGPL/libdivsufsort notices and corresponding-source or relinking obligations require the concrete product acquisition/distribution policy.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "Four notice names were observed, but this candidate inventory does not include complete measured notice file pins. No complete portable provider is declared.",
+          "code": "notice-pins-incomplete"
+        }
+      ]
+    },
+    {
+      "id": "wimlib",
+      "version": "1.14.5",
+      "native_architecture": "arm64",
+      "route": "vendor-zip",
+      "publisher": "Eric Biggers",
+      "provenance": "2026-10-27 provider-research.md: official vendor HTTPS bytes, measured SHA256; unsigned native PE files; no runtime proof. Matching source https://wimlib.net/downloads/wimlib-1.14.5.tar.gz size 1073578 measured SHA256 84221a3abd5b91228f15f8e6065c335a336237b5738197b75bf419eea561a194",
+      "intent_operations": [
+        "extract",
+        "inspect"
+      ],
+      "packages": [
+        {
+          "name": "wimlib-1.14.5-windows-aarch64-bin.zip",
+          "url": "https://wimlib.net/downloads/wimlib-1.14.5-windows-aarch64-bin.zip",
+          "size": 767462,
+          "sha256": "2c2e3e50cf21bfdd4ffd693b5052b231aa04a10c85f218ae61eb5a031dfcdd8f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 provider-research.md; no publisher-published archive digest found",
+          "signature_observation": "not-inspected",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "wimlib-imagex.exe",
+          "role": "executable",
+          "size": 125440,
+          "sha256": "fddb8c216732ab2a0f41064a305e07947a22f20338e36f44a2ceaffd44d8f908",
+          "version": "1.14.5",
+          "native_architecture": "arm64",
+          "dependencies": [
+            "libwim-15.dll"
+          ],
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        },
+        {
+          "path": "libwim-15.dll",
+          "role": "dll",
+          "size": 432640,
+          "sha256": "b34549c6eff728a2f2fe68903a9fde28d8ac717f1b521e7f38b1e4106320c992",
+          "version": "1.14.5",
+          "native_architecture": "arm64",
+          "provenance": "2026-10-27 measured ZIP entry; file certificate table empty",
+          "signature_observation": "unsigned-observed"
+        }
+      ],
+      "notices": [
+        "COPYING.txt",
+        "COPYING.GPLv3.txt",
+        "COPYING.LGPL.txt",
+        "COPYING.libdivsufsort-lite.txt"
+      ],
+      "pending": [
+        {
+          "detail": "Automatic approval review rejected affected pinned wimlib extraction/direct execution with only blocked by policy; this route is not retried.",
+          "code": "policy-execution-stopped"
+        },
+        {
+          "detail": "No matching native clean-machine or operation-specific host/target evidence is established.",
+          "code": "runtime-unverified"
+        },
+        {
+          "detail": "Required native OS CRT/API-set resolution, filesystem privileges and operation-specific VSS/WOF prerequisites are not established by static imports.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "GPL/LGPL/libdivsufsort notices and corresponding-source or relinking obligations require the concrete product acquisition/distribution policy.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "Four notice names were observed, but this candidate inventory does not include complete measured notice file pins. No complete portable provider is declared.",
+          "code": "notice-pins-incomplete"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.19041.5856",
+      "native_architecture": "x86",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 226368,
+          "sha256": "572abf383a11d5ec8764e6e78b9c90a9b9d1c83300d4de240fca6f99c47da108",
+          "version": "10.0.19041.5856",
+          "native_architecture": "x86",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member fil1383cec7acc667d6fe43bae6cda11db3; cabinet 3b71855dfae6a44ab353293c119908b8.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/x86/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.19041.5856",
+      "native_architecture": "x86",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 117824,
+          "sha256": "59972e5867cfad380d0fe376575221fb6abb5f6b847a4d833916680e9ecce8d9",
+          "version": "2.56.0.1010",
+          "native_architecture": "x86",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member fil720cc132fbb53f3bed2e525eb77bdbc1; cabinet 5d984200acbde182fd99cbfbe9bad133.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/x86/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.19041.5856",
+      "native_architecture": "amd64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 289344,
+          "sha256": "08d46131027599b9956aefed0ef653ee41f127ace77b48002b29e5721b58d121",
+          "version": "10.0.19041.5856",
+          "native_architecture": "amd64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member fil5df4699ae9e87b34e1bba2136121ea7e; cabinet a7eb3390a15bcd2c80a978c75f2dcc4f.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/amd64/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.19041.5856",
+      "native_architecture": "amd64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 132176,
+          "sha256": "1779ff09753a3327e66617e8eef680c7e35a428c0b0509173be356d270eb2ba4",
+          "version": "2.56.0.1010",
+          "native_architecture": "amd64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member fild40c79d789d460e48dc1cbd485d6fc2e; cabinet bbf55224a0290f00676ddc410f004498.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/amd64/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.19041.5856",
+      "native_architecture": "arm64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 322632,
+          "sha256": "c5197f5645a4db30b31e64aac31bfa775af64f2145f832fda8b24c6e97d06364",
+          "version": "10.0.19041.5856",
+          "native_architecture": "arm64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member fil0d4694ca06d3b5522a3321790219f784; cabinet 7a8eaeba46cc44d02a9a46fcbb641a12.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/arm64/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.19041.5856",
+      "native_architecture": "arm64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/adksetup.exe",
+          "size": 1970056,
+          "sha256": "79ffc10e1a7e2e699083467db601d9747f71a419981b458063de1a86fd8c47dd",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/3b40cb81-ff9c-4322-aacd-c78d01b2c2ed/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 626688,
+          "sha256": "5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "03e11716cd5c47ecac9f7c1217f50532b4777fe0",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "0BD8C56733FDCC06F8CB919FF5A200E39B1ACF71",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 136752,
+          "sha256": "e54a6077cbcedc0fd6d8b70501db527d80c296f7b3b3c21ddca88f87a17936c3",
+          "version": "2.56.0.1010",
+          "native_architecture": "arm64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Tools-x86_en-us.msi; member filb3742d71928e52cc44a3f06ecca9f1c3; cabinet 9d2b092478d6cca70d5ac957368c00ba.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/arm64/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.26100.9457",
+      "native_architecture": "x86",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(DesktopEditions)-x86_en-us.msi",
+          "size": 589824,
+          "sha256": "b372e4b26eee66132f8517ebe4c7f3dc38b3b40985bcf6fe45a969e7a726c232",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "bcf1bb5c24cb11f03b01fc034c3357159eb5897a",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 679936,
+          "sha256": "d3fbd6b9d70635d45b0d295c5e4b2124de8f38c35888c64fd89cccf158eee18d",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "4f28ce5ace5d12d961a5c82994fc48d57f8666d5",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 243648,
+          "sha256": "522495f929771de1cb25e0c7f1bceaf00256d7c1e8ca295b6a4dbccbd8e17085",
+          "version": "10.0.26100.9457",
+          "native_architecture": "x86",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi; member fil1383cec7acc667d6fe43bae6cda11db3; cabinet 3b71855dfae6a44ab353293c119908b8.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/x86/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.26100.9457",
+      "native_architecture": "x86",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(DesktopEditions)-x86_en-us.msi",
+          "size": 581632,
+          "sha256": "2a6d603b51bfac8fdcb28a8db3fb474b1f7e54df0b14a6662b958a401bb178e3",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "196f82fcf0d947c25f6df6830b00d272ac7652c3",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "0a23af3f9d433160d1002cf39167a9f6161e2a490819aed6b3609c159a86bae9",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "8c8caf9aae6f468bb922ca3967cb27766bf62a26",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 120272,
+          "sha256": "b99cf18de8006f7bec5b9618eac6d2f4ba9f1700adc78a2bc49433b55629c93b",
+          "version": "2.56.0.1010",
+          "native_architecture": "x86",
+          "provenance": "2026-10-27 pe-inventory.json: Oscdimg (DesktopEditions)-x86_en-us.msi; member fil720cc132fbb53f3bed2e525eb77bdbc1; cabinet 5d984200acbde182fd99cbfbe9bad133.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/x86/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.26100.9457",
+      "native_architecture": "amd64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(DesktopEditions)-x86_en-us.msi",
+          "size": 589824,
+          "sha256": "b372e4b26eee66132f8517ebe4c7f3dc38b3b40985bcf6fe45a969e7a726c232",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "bcf1bb5c24cb11f03b01fc034c3357159eb5897a",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 679936,
+          "sha256": "d3fbd6b9d70635d45b0d295c5e4b2124de8f38c35888c64fd89cccf158eee18d",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "4f28ce5ace5d12d961a5c82994fc48d57f8666d5",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 334272,
+          "sha256": "d1c3112796a419a9abb4ea6163ecfd50204c4868628f2efcb3bff74ea7f2b8c4",
+          "version": "10.0.26100.9457",
+          "native_architecture": "amd64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi; member fil5df4699ae9e87b34e1bba2136121ea7e; cabinet a7eb3390a15bcd2c80a978c75f2dcc4f.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/amd64/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.26100.9457",
+      "native_architecture": "amd64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(DesktopEditions)-x86_en-us.msi",
+          "size": 581632,
+          "sha256": "2a6d603b51bfac8fdcb28a8db3fb474b1f7e54df0b14a6662b958a401bb178e3",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "196f82fcf0d947c25f6df6830b00d272ac7652c3",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "0a23af3f9d433160d1002cf39167a9f6161e2a490819aed6b3609c159a86bae9",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "8c8caf9aae6f468bb922ca3967cb27766bf62a26",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 154024,
+          "sha256": "d2709f8099ddd202bc41bcb399ecd5638503c6466f416d1a321769af83a70c3a",
+          "version": "2.56.0.1010",
+          "native_architecture": "amd64",
+          "provenance": "2026-10-27 pe-inventory.json: Oscdimg (DesktopEditions)-x86_en-us.msi; member fild40c79d789d460e48dc1cbd485d6fc2e; cabinet bbf55224a0290f00676ddc410f004498.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/amd64/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-dism",
+      "version": "10.1.26100.9457",
+      "native_architecture": "arm64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "extract",
+        "inspect",
+        "service"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(DesktopEditions)-x86_en-us.msi",
+          "size": 589824,
+          "sha256": "b372e4b26eee66132f8517ebe4c7f3dc38b3b40985bcf6fe45a969e7a726c232",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "bcf1bb5c24cb11f03b01fc034c3357159eb5897a",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Image%20Servicing%20and%20Management%20Tools%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 679936,
+          "sha256": "d3fbd6b9d70635d45b0d295c5e4b2124de8f38c35888c64fd89cccf158eee18d",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "4f28ce5ace5d12d961a5c82994fc48d57f8666d5",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "dism.exe",
+          "role": "executable",
+          "size": 347600,
+          "sha256": "c725948dbcb15780bd4041938141123a3992daceb9f94dd4d3837351d2bf090a",
+          "version": "10.0.26100.9457",
+          "native_architecture": "arm64",
+          "provenance": "2026-10-27 pe-inventory.json: Windows Deployment Image Servicing and Management Tools (OnecoreUAP)-x86_en-us.msi; member fil0d4694ca06d3b5522a3321790219f784; cabinet 7a8eaeba46cc44d02a9a46fcbb641a12.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/arm64/DISM/dism.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    },
+    {
+      "id": "adk-oscdimg",
+      "version": "10.1.26100.9457",
+      "native_architecture": "arm64",
+      "route": "vendor-managed-adk",
+      "publisher": "Microsoft Corporation",
+      "provenance": "2026-10-27 adk-static-research.md; native file/package facts only. No setup, rights, runtime or supported target-generation proof. Current and historical EULAs differ. 28000.1 excluded pending patch closure.",
+      "intent_operations": [
+        "master-iso"
+      ],
+      "packages": [
+        {
+          "name": "adksetup.exe",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/adksetup.exe",
+          "size": 2233776,
+          "sha256": "ac6a930fdb5c2980ba5fefe606d47edaafcf5f647b4337411500d158ea77300f",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/bootstrappers.json; static bootstrapper identity, not executed",
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (DesktopEditions)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(DesktopEditions)-x86_en-us.msi",
+          "size": 581632,
+          "sha256": "2a6d603b51bfac8fdcb28a8db3fb474b1f7e54df0b14a6662b958a401bb178e3",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "196f82fcf0d947c25f6df6830b00d272ac7652c3",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Oscdimg (OnecoreUAP)-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Oscdimg%20(OnecoreUAP)-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "0a23af3f9d433160d1002cf39167a9f6161e2a490819aed6b3609c159a86bae9",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "8c8caf9aae6f468bb922ca3967cb27766bf62a26",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        },
+        {
+          "name": "Windows Deployment Tools-x86_en-us.msi",
+          "url": "https://download.microsoft.com/download/8e0c0f5a-abb5-4358-a51b-168eb40b1590/adk/Installers/Windows%20Deployment%20Tools-x86_en-us.msi",
+          "size": 585728,
+          "sha256": "b38ea57c03fb4778d5eb314e6677395162963f9f80e2f4c3843cdcb8fca9e7c1",
+          "sha256_origin": "local-measurement",
+          "provenance": "2026-10-27 adk-static/downloads.json; focused MSI pins; companion CAB/complete feature layout not represented here",
+          "publisher_digest": {
+            "value": "d6757bb384d74e14eb347a128a9498dcc3d8cb07",
+            "algorithm": "sha1"
+          },
+          "signature_observation": "valid-observed",
+          "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+          "signer_thumbprint": "36FA8A6E7CD287169DF9977FD4F2B45D01035866",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "files": [
+        {
+          "path": "oscdimg.exe",
+          "role": "executable",
+          "size": 139696,
+          "sha256": "175e8899c9925c0a91289fa8294d6969eeb88a7c753b3b9001cd63a3b3d9a8f4",
+          "version": "2.56.0.1010",
+          "native_architecture": "arm64",
+          "provenance": "2026-10-27 pe-inventory.json: Oscdimg (DesktopEditions)-x86_en-us.msi; member filb3742d71928e52cc44a3f06ecca9f1c3; cabinet 9d2b092478d6cca70d5ac957368c00ba.cab; MSI install path Windows Kits/10/Assessment and Deployment Kit/Deployment Tools/arm64/Oscdimg/oscdimg.exe",
+          "signature_observation": "valid-observed"
+        }
+      ],
+      "notices": [
+        "eula.rtf"
+      ],
+      "pending": [
+        {
+          "detail": "Vendor-direct OptionId.DeploymentTools setup is documented; application-managed licensing, privilege, return code, restart, repair/conflict and uninstall lifecycle has not been implemented or proved. This is a product blocker, not a manual ADK prerequisite.",
+          "code": "managed-acquisition-unverified"
+        },
+        {
+          "detail": "This focused native executable/MSI inventory is not the complete CAB/layout or operation-specific OS, dynamic DismHost/CBS/Appx/SetupPlatform, driver or compatible target-stack dependency closure.",
+          "code": "dependency-closure-unverified"
+        },
+        {
+          "detail": "Actual version-specific EULA was read. Current End-of-Support wording and older terms need concrete per-job review; sample-code/WDK text is not a DISM/Oscdimg redistribution grant. Notices and entitlement remain unresolved.",
+          "code": "rights-review-pending"
+        },
+        {
+          "detail": "No provider operation, actual clean-machine acquisition, matching-host OS compatibility or native host/target/source-generation proof exists. Static native x86/amd64/ARM64 bytes are established.",
+          "code": "runtime-unverified"
+        }
+      ]
+    }
+  ]
+}
