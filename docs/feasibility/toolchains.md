@@ -5,8 +5,10 @@ passing host/target pair; Gate S has no passing family.** The internal runner
 now supports two closed, bounded observations: installed Windows CAB metadata
 extraction and one actual canonical WIM/LZMS package variant. These produce
 retained component observations, always `unverified` for the gates. All nine
-x86/amd64/ARM64 native-host/target pairs remain required; additional upstream
-targets remain valid values.
+x86/amd64/ARM64 logical host/target pairs remain required; additional upstream
+targets remain valid values. The authoritative [host proof policy](../engineering/host-proof-policy.md)
+accepts complete current-host functionality plus Windows 386/amd64/arm64 builds
+as full host-architecture coverage. Other physical host hardware is optional.
 
 Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 `2026-10-27-uup-builder-multi-agent-plan.md`, engine plan
@@ -26,8 +28,9 @@ go test -tags=providerproof ./tests/probes -run TestProviderPerformsCrossArchite
 
 The first command tests validator logic with explicitly synthetic in-memory
 records. Its success establishes no provider capability. On an actual Windows
-host the tagged command visits all nine required cases and currently **fails**
-each as `UNVERIFIED`, without running an image tool. `provider_windows_test.go`
+host the tagged command selects the current native host's applicable cases and
+assesses all nine logical pairs through `ValidateArchitectureCoverage`. It currently
+**fails** for remaining functional gaps, without running an image tool. `provider_windows_test.go`
 is Windows-only; running that test selection on another OS and seeing “no tests
 to run” is not a proof. Non-Windows `RunCase` reports the missing native host.
 
@@ -112,15 +115,22 @@ unfinished adapter and from unavailable upstream material.
 
 Historical read-only observation: Windows 10 Enterprise build 19045,
 native/process amd64, non-admin, local fixed NTFS N:. Native Windows x86 and
-ARM64 environments/fixtures remain unestablished. A 386 process under WOW64 on
-this machine is not native x86-host evidence. Cross-compilation and target
-executable emulation cannot fill these requirements.
+ARM64 execution remains unobserved, with no hardware requirement under the
+accepted portability rule. A 386 process under WOW64 on this machine is not
+native x86-host evidence. Cross-compilation and target executable emulation do
+not create observed runtime records.
 
 | Actual native Windows host | x86 target | amd64 target | ARM64 target |
 | --- | --- | --- | --- |
 | x86 | unverified | unverified | unverified |
 | amd64 | unverified | unverified | unverified |
 | ARM64 | unverified | unverified | unverified |
+
+This table reports direct full-gate observations. Portability-accepted coverage
+is also currently absent because complete current-host functional proof is
+missing. Once that proof and all three Windows builds pass, report other-host
+coverage as portability-accepted with the actual current-host witness, preserving
+the unobserved status of execution on other hardware.
 
 ## Producer contract for R1 and later runners
 
@@ -155,6 +165,17 @@ SHA-256 to a payload fixture input and the independent inspection, requires a
 different expected after-image hash plus an observed modification; reconstruction needs content
 inspection; media needs filesystem, boot catalog and target boot-resource
 inspection. WIM export alone cannot satisfy servicing.
+
+`ValidateArchitectureCoverage(required []Case, observed []Evidence)
+([]ArchitectureCoverage, error)` applies the authoritative single-host acceptance
+rule above this unchanged strict validator. It requires one complete suite with
+matching measured host facts and exact equivalent functional requirements for
+every logical pair. Each coverage entry distinguishes direct observation from
+portability acceptance and identifies the actual witness. Native component
+bytes are validated on the actual witness only; generic provider/rights/setup/
+source/output blockers cannot be waived. Successful cross-builds remain a
+separate required gate. `SourceCensus.ValidateBuildable` delegates architecture
+acceptance to this evaluator after its existing family/algorithm checks.
 
 Artifacts contain sanitized logical IDs, roles, sizes, digests and provenance.
 No signed locator, key or credentials belong in them. Runtime arguments/logs
@@ -379,8 +400,8 @@ complete provider.
 Complete image/payload extraction, servicing, reconstruction and media adapters,
 broader trustworthy fixture corpora and independent expected hashes, concrete
 complete provider decisions, rights/dependency/
-signature/acquisition/setup/restart closure, actual native x86/ARM64 hosts,
-clean-machine validation, nine real modified-image/media proofs and all
+signature/acquisition/setup/restart closure, clean-machine validation,
+complete current-host modified-image/media proof for every required target and all
 source-family algorithm proofs remain pending. The stopped policy path is a
 separate execution blocker. Future authorized work must resolve those concrete
 items and retain actual inputs, outputs, commands, host observations and

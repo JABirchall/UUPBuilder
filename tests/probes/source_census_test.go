@@ -82,3 +82,26 @@ func TestSourceCensusRejectsDetachedAlgorithmProof(t *testing.T) {
 		t.Fatal("detached invocation opened scoped family record gate")
 	}
 }
+
+func TestSourceCensusAcceptsPortableFamilyCoverage(t *testing.T) {
+	// Synthetic validator fixtures only; not actual source-family proof.
+	required, observed := unitArchitectureSuite()
+	var ids []string
+	for i := range required {
+		required[i].Gate = "S"
+		ids = append(ids, required[i].ID)
+		for j := range observed {
+			if observed[j].CaseID == required[i].ID {
+				observed[j].CaseDigest = required[i].Digest()
+			}
+		}
+	}
+	s := SourceCensus{Complete: false, Limitations: []string{"synthetic records only"}, Families: []SourceFamily{{ID: "canonical", Observation: "observed", Availability: "available", Implementation: "implemented", MediaCapability: "iso-capable", Proof: Passed, Metadata: []Artifact{unitArtifact("compdb", "metadata")}, Algorithms: []string{"unit-algorithm"}, ProofCases: ids}}}
+	if err := s.ValidateBuildable("canonical", required, observed); err != nil {
+		t.Fatal(err)
+	}
+	observed = observed[:2]
+	if s.ValidateBuildable("canonical", required, observed) == nil {
+		t.Fatal("portable family coverage inferred an unobserved target")
+	}
+}

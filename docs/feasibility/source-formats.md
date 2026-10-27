@@ -209,11 +209,20 @@ HTTP 429, research size caps, TLS-name errors, `SEARCH_NO_RESULTS` and app
 claims unavailable. A transient failure is still an error, not a successful
 support test or a permanent absence determination.
 
+The authoritative [host proof policy](../engineering/host-proof-policy.md)
+accepts successful complete current-host functionality plus Windows
+386/amd64/arm64 builds as host-architecture coverage. Other physical hardware is
+optional; actual observed hosts remain truthful and portability-accepted
+counterparts are reported separately. Existing bounded observations remain
+unverified and cannot supply the missing full functional proof.
+
 `SourceCensus.ValidateBuildable(family, required, evidence)` additionally
 requires implemented/observed/available/ISO-capable status, concrete required
-algorithms and bound Gate S cases with valid runtime evidence. A passed family
-record covers only those declared cases; it does not establish other host,
-target or generation combinations, pass Gate P, or make a sampled census
+algorithms and bound Gate S cases with valid runtime evidence, delegating host
+coverage to `ValidateArchitectureCoverage`. A passed family record covers only
+those declared functional requirements, with observed and portability-accepted
+host coverage distinguished; it does not establish unrelated target or
+generation combinations, pass Gate P, or make a sampled census
 exhaustive. A caller authorizing mutation must separately require all applicable
 Gate P evidence and the selection's own proven family/algorithm cases.
 Reference, encrypted and CIX corpus
@@ -224,6 +233,7 @@ gate can be opened by parsing metadata or passing validator unit tests.
 Still required: a stratified raw-family census, concrete algorithms and complete
 base/reference graphs, trustworthy positive/corrupt/missing-dependency fixture
 corpora with independent output hashes, safe encryption identity handling, and
-actual native-host reconstruction/servicing/media inspection records. The
+actual current-host reconstruction/servicing/media inspection records for every
+required target, plus all three Windows builds. The
 [toolchain ledger](toolchains.md) records the stopped runtime path and other
 unfinished P1 execution requirements.

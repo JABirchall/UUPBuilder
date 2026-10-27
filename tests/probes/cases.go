@@ -591,7 +591,8 @@ func (s SourceCensus) ValidateBuildable(family string, required []Case, evidence
 				return fmt.Errorf("family %s: missing bound Gate S case %s", family, id)
 			}
 		}
-		return ValidateEvidence(selected, evidence)
+		_, err := ValidateArchitectureCoverage(selected, evidence)
+		return err
 	}
 	return fmt.Errorf("family %s: unknown/unimplemented", family)
 }
