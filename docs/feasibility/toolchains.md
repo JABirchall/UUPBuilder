@@ -1,10 +1,12 @@
 # Toolchain feasibility ledger
 
-Recorded 2026-10-27. **P1 is BLOCKED. Gate P has no passing host/target pair.**
-The checked-in work is a descriptor/validator component and an unfinished,
-refusal-only execution entry point. It is not a completed provider probe or a
-conversion engine. All x86, amd64 and ARM64 targets remain required on every
-supported native Windows host. Additional upstream targets remain valid values.
+Recorded 2026-10-27. **P1 operational acceptance remains blocked. Gate P has no
+passing host/target pair; Gate S has no passing family.** The internal runner
+now supports two closed, bounded observations: installed Windows CAB metadata
+extraction and one actual canonical WIM/LZMS package variant. These produce
+retained component observations, always `unverified` for the gates. All nine
+x86/amd64/ARM64 native-host/target pairs remain required; additional upstream
+targets remain valid values.
 
 Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 `2026-10-27-uup-builder-multi-agent-plan.md`, engine plan
@@ -29,8 +31,8 @@ each as `UNVERIFIED`, without running an image tool. `provider_windows_test.go`
 is Windows-only; running that test selection on another OS and seeing “no tests
 to run” is not a proof. Non-Windows `RunCase` reports the missing native host.
 
-`RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error)` is
-unfinished execution plumbing. It reads OS-owned `RtlGetVersion` and the
+`RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error)` reads
+OS-owned `RtlGetVersion` and the
 native-machine output of dynamically resolved `IsWow64Process2` on Windows.
 Actual process architecture remains a separate `GOARCH` value. Missing/failed/
 unknown native-machine results preserve the measured build/process and return
@@ -38,12 +40,67 @@ an explicit unverified error with native architecture unset. Early Windows 10
 native-identity coverage therefore remains pending; no host/target is removed.
 `GetNativeSystemInfo` and legacy WOW64 answers cannot substitute for this native
 identity because they can expose emulated x86/x64 details on ARM64. The
-observation has no retained host-report artifact or filesystem/privilege proof.
-It returns `unverified`, no invocations, and a nonnil error. Distinct blockers
-identify host mismatch, unresolved prerequisites, **adapter-unimplemented** and
-**policy-execution-stopped**. A canceled context remains discoverable with
-`errors.Is(err, context.Canceled)`. Event delivery reports an error, not progress
-or a successful checkpoint.
+unconfigured observation has no retained workspace report. Without an explicit
+`WithRuntime` request it returns `unverified`, no invocations and a nonnil
+`runtime-unconfigured` error, preserving host mismatch and pending case blockers.
+A canceled context remains discoverable with `errors.Is(err, context.Canceled)`.
+The checked-in nine matrix cases still have no complete runnable fixtures or
+provider closure and are unchanged by the extra observation descriptors.
+
+`WithRuntime` snapshots the request's identity/path bindings; the runner copies
+the complete case before callbacks. `LoadObservation` rejects unknown fields,
+commands, trailing data and oversized descriptors. Explicit fixture/workspace
+roots locate bytes and confer no readiness. Closed recipes generate their own
+argv and fixed native API calls. Windows uses the accepted W1 owned local-NTFS
+Workspace and direct ProcessRunner; no tools/planner/jobs contract or public CLI
+was added. Native system component handles deny write/delete sharing throughout
+execution; measured size/SHA-256 and PE machine must match the case. Original
+source digest algorithms are preserved alongside locally measured SHA-256.
+
+Every direct process has a fixed 30-second deadline and W1's bounded captured
+output/tree cancellation. The native LZMS observation has a 30-second context
+and at most 1 MiB per input/output buffer. CAB preflight bounds the single named
+member, folder/data blocks and declared output to 4 MiB before launching expand.
+Bounded Go XML inspection rejects malformed, ambiguous, deeply nested, oversized
+or directive-bearing documents. Zero exit, digest width, JSON flags and declared
+algorithm names cannot supply missing content/operation evidence.
+
+Public Evidence contains logical `owned-run:` artifact references, measured
+digests, a runtime digest and separate process/native-call facts. Its in-memory
+RetainedWorkspace locator is excluded from JSON/TOML. The private W1 workspace
+retains source/component copies, host/filesystem facts, full process/API logs,
+outputs, semantic reports and run.json with frozen case/runtime, custody map and
+private ownership identity. Public records omit that ownership token and private
+root. Retained files are the evidence; handwritten or edited run.json is not an
+attestation. `ValidateEvidence` remains a structural validator and rejects both
+`component-runtime` and explicitly synthetic test observations.
+
+For an explicitly reviewed local run, set `P1_OBSERVATION_ROOT` to the retained
+own-plan fixture workspace and `P1_OBSERVATION_WORKSPACE_PARENT` to an existing
+local NTFS parent, then run the separately named providerproof observation test.
+Missing roots, bytes, exact host or pins fail instead of skipping. The tests
+`TestProviderObservesCompDBExtraction` and `TestProviderObservesFoundationLZMS`
+check only their narrow observations and explicitly assert gate rejection.
+
+The actual CAB observation on native amd64 Windows build 19045 retained two
+successful process invocations, one 43,914-byte output and independent hash/XML
+inspection. Its SHA-256 is
+`9b597e01c646d7ad93ba6f9108beeb420affebd8a4e89f9b4860a59a145f6c4b`;
+actual CompDB namespace, arm64 target, Baseless type, BuildID and OSVersion
+matched the frozen descriptor. expand receives fixed owned-relative
+`inputs\0.cab`, `-F:DesktopBaselessCompDB_en-us.CompDB.xml`, `outputs` under W1's
+locked cwd. This installed version writes fixed `outputs/0.cab`; its physical
+suffix supplies no semantic role. Certutil separately hashes that exact file
+using the original absolute path. Prior failed extended-prefix/path/naming
+diagnostics remain retained; there is no prefix stripping, arbitrary output
+search, output renaming or zero-exit acceptance.
+
+The canonical observation retained one native invocation with two actual RAW
+LZMS decompression calls, one separate certutil invocation, one 916-byte
+normalized update.mum and actual ARM64 CBS package identity inspection. The
+expected SHA-256 comes from the source's explicit `[sha256]` hash manifest;
+all nine WIM content SHA-1 identities were checked. This is positive bounded
+source/algorithm evidence, not complete canonical-family or Gate P/S acceptance.
 
 Automatic approval review rejected extraction/direct execution of the pinned
 downloaded wimlib with only `blocked by policy`, before the orchestration
@@ -319,8 +376,9 @@ complete provider.
 
 ## Unfinished P1 scope
 
-The execution/inspection adapter, trustworthy fixture corpus and independent
-expected hashes, concrete complete provider decisions, rights/dependency/
+Complete image/payload extraction, servicing, reconstruction and media adapters,
+broader trustworthy fixture corpora and independent expected hashes, concrete
+complete provider decisions, rights/dependency/
 signature/acquisition/setup/restart closure, actual native x86/ARM64 hosts,
 clean-machine validation, nine real modified-image/media proofs and all
 source-family algorithm proofs remain pending. The stopped policy path is a

@@ -1,0 +1,33 @@
+{
+  "case": {
+    "id": "observation-compdb-baseless-22000-arm64-on-amd64",
+    "gate": "S",
+    "host": {"os":"windows","minimum_build":10240,"native_architecture":"amd64","process_architecture":"amd64"},
+    "target": "arm64",
+    "source_family": "compdb-metadata-observation",
+    "source": {"update_id":"a1b78728-530f-443f-b672-d742e7c14bcb","build_label":"22000.1","architecture":"arm64","language":"en-us"},
+    "revision_provenance": "Resolver default revision 1 was requested; no echoed Microsoft revision. This is a bounded metadata observation, not payload/source-family support.",
+    "inputs": [{"id":"baseless-compdb-cab","role":"metadata","digest":{"algorithm":"sha256","value":"f3bb47f14ad089aefe894443356eedf1b8ddbe063686c25a88560034d0b46608"},"size":14281,"provenance":"Retained nested Microsoft CAB member from original CompDB acquisition; HTTP delivery with API expected SHA1, no signature validation."}],
+    "components": [
+      {"artifact":{"id":"system-expand","role":"executable","digest":{"algorithm":"sha256","value":"210a43646b58a60035cedc30281f3414dd6a551a62255aac7ef828c5d7ea46ce"},"size":67584,"provenance":"Freshly measured installed Windows System32 expand.exe; host-specific pin, no redistribution claim."},"native_architecture":"amd64","dependencies":["system-cabinet"]},
+      {"artifact":{"id":"system-certutil","role":"executable","digest":{"algorithm":"sha256","value":"78b46729dc86c96c008a30f6b1a3eac72b5fcfa88cd8d182e1b118b45a7d3088"},"size":1709568,"provenance":"Freshly measured installed Windows System32 certutil.exe, internal byte-inspection probe only."},"native_architecture":"amd64","dependencies":[]},
+      {"artifact":{"id":"system-cabinet","role":"dll","digest":{"algorithm":"sha256","value":"382b026e091d6e63c36ad386b632dadae2b321492362a039000de42fa28b0885"},"size":164680,"provenance":"Freshly measured installed Windows System32 cabinet.dll; full loaded dependency/API-set closure remains unverified."},"native_architecture":"amd64","dependencies":[]}
+    ],
+    "dependency_closure_complete": false,
+    "operations": ["extract"],
+    "algorithms": [],
+    "expected": [{"id":"expanded-compdb-xml","operation":"extract","output_id":"baseless-compdb-xml","sha256":"9b597e01c646d7ad93ba6f9108beeb420affebd8a4e89f9b4860a59a145f6c4b","provenance":"Pre-existing retained XML observation, independently rehashed before implementation. This is not a publisher output digest or independent CAB-decoder oracle.","assertions":["files-and-metadata-inspected"]}],
+    "pending": [
+      {"code":"metadata-only-observation","detail":"CompDB metadata extraction cannot prove canonical payload extraction, reconstruction, Windows servicing or bootable media."},
+      {"code":"dependency-closure-unverified","detail":"Measured installed files and static imports do not establish the complete dynamic loaded closure or clean-host rights/setup compatibility."},
+      {"code":"required-host-source-evidence-missing","detail":"All nine native host/target provider cases and source-family payload algorithms remain independently required."}
+    ]
+  },
+  "runtime": {
+    "case_digest": "3b42f81883c0f2aff442cb855a545e4b6598d73b3b871dcf0f17635840c87ccb",
+    "inputs": [{"id":"baseless-compdb-cab","path":"corpus/22000-arm64-members/DesktopBaselessCompDB_en-us.CompDB.xml.cab"}],
+    "components": [{"id":"system-expand","path":"expand.exe"},{"id":"system-certutil","path":"certutil.exe"},{"id":"system-cabinet","path":"cabinet.dll"}],
+    "recipe": "expand-compdb-cab-v1",
+    "extraction": {"input_id":"baseless-compdb-cab","expectation_id":"expanded-compdb-xml","expand_id":"system-expand","certutil_id":"system-certutil","member":"DesktopBaselessCompDB_en-us.CompDB.xml","identity":{"architecture":"arm64","type":"Baseless","build_id":"b5347a24-b65f-7c51-ac95-8bdd36d866a1","os_version":"10.0.22000.1"}}
+  }
+}

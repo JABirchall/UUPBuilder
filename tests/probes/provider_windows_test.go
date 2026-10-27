@@ -9,10 +9,9 @@ import (
 	"testing"
 )
 
-// This is an intentionally nonpassing real-proof entry point while RunCase's
-// concrete execution/inspection adapter is unfinished. It never skips missing
-// prerequisites, launches a downloaded binary, or calls the synthetic records
-// used by the validator unit tests.
+// The required gate matrix remains nonpassing until concrete cases supply full
+// native provider/source/image evidence. The separate bounded observation tests
+// never substitute for these requirements or use synthetic validator records.
 func TestProviderPerformsCrossArchitectureServicing(t *testing.T) {
 	f, err := os.Open("../../testdata/compatibility/required-cases.json")
 	if err != nil {

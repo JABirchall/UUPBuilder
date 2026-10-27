@@ -46,17 +46,43 @@ type Verification struct {
 }
 
 type Evidence struct {
-	CaseID        string         `json:"case_id"`
-	CaseDigest    string         `json:"case_digest"`
-	Status        Status         `json:"status"`
-	ExecutionKind string         `json:"execution_kind"`
-	Host          ObservedHost   `json:"host"`
-	Inputs        []Artifact     `json:"inputs"`
-	Components    []Component    `json:"components"`
-	Invocations   []Invocation   `json:"invocations"`
-	Outputs       []Output       `json:"outputs"`
-	Verifications []Verification `json:"verifications"`
-	Blockers      []Blocker      `json:"blockers"`
+	CaseID            string             `json:"case_id"`
+	CaseDigest        string             `json:"case_digest"`
+	Status            Status             `json:"status"`
+	ExecutionKind     string             `json:"execution_kind"`
+	Host              ObservedHost       `json:"host"`
+	Inputs            []Artifact         `json:"inputs"`
+	Components        []Component        `json:"components"`
+	Invocations       []Invocation       `json:"invocations"`
+	Outputs           []Output           `json:"outputs"`
+	Verifications     []Verification     `json:"verifications"`
+	Blockers          []Blocker          `json:"blockers"`
+	RuntimeDigest     string             `json:"runtime_digest,omitempty"`
+	RetainedWorkspace string             `json:"-" toml:"-"`
+	NativeInvocations []NativeInvocation `json:"native_invocations,omitempty"`
+}
+
+type NativeInvocation struct {
+	ID          string       `json:"id"`
+	Operation   Operation    `json:"operation"`
+	ComponentID string       `json:"component_id"`
+	APIs        []string     `json:"apis"`
+	Algorithms  []string     `json:"algorithms,omitempty"`
+	StartedAt   time.Time    `json:"started_at"`
+	FinishedAt  time.Time    `json:"finished_at"`
+	Calls       []NativeCall `json:"calls"`
+	Log         Artifact     `json:"log"`
+}
+
+type NativeCall struct {
+	InputSHA256         string    `json:"input_sha256"`
+	InputBytes          int       `json:"input_bytes"`
+	OutputSHA256        string    `json:"output_sha256,omitempty"`
+	OutputBytes         int       `json:"output_bytes"`
+	ExpectedOutputBytes int       `json:"expected_output_bytes"`
+	StartedAt           time.Time `json:"started_at"`
+	FinishedAt          time.Time `json:"finished_at"`
+	Error               string    `json:"error,omitempty"`
 }
 
 // ValidateEvidence validates records, not an attestation of external facts.
@@ -96,6 +122,9 @@ func ValidateEvidence(required []Case, evidence []Evidence) error {
 }
 
 func validateRecord(c Case, e Evidence) error {
+	if len(e.NativeInvocations) != 0 {
+		return errors.New("evidence: native API gate validation is unimplemented; bounded observations cannot authorize Gate P/S")
+	}
 	if e.CaseDigest != c.Digest() {
 		return errors.New("evidence: descriptor digest mismatch")
 	}
@@ -236,6 +265,11 @@ func RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error) {
 }
 
 func runCase(ctx context.Context, c Case, emit model.Emit, observe func() (ObservedHost, error)) (Evidence, error) {
+	if ctx != nil {
+		if config, ok := ctx.Value(runtimeKey{}).(RuntimeConfig); ok {
+			return executeRuntime(ctx, c, emit, config, newRuntimePorts(observe))
+		}
+	}
 	e := Evidence{CaseID: c.ID, CaseDigest: c.Digest(), Status: Unverified, ExecutionKind: "not-executed"}
 	var failures []error
 	if ctx == nil {
@@ -256,9 +290,7 @@ func runCase(ctx context.Context, c Case, emit model.Emit, observe func() (Obser
 		failures = append(failures, err)
 	}
 	e.Blockers = append(e.Blockers, c.Pending...)
-	// This is deliberately unfinished execution plumbing. Never route a request
-	// to another shell/API to bypass the stopped downloaded-helper path.
-	e.Blockers = append(e.Blockers, Blocker{"adapter-unimplemented", "No authorized concrete provider execution and independent inspection adapter is implemented."}, Blocker{"policy-execution-stopped", "Automatic approval review rejected pinned downloaded-helper extraction/direct execution with: blocked by policy. This path remains stopped; no alternative launch route is permitted."})
+	e.Blockers = append(e.Blockers, Blocker{"runtime-unconfigured", "No explicit case-bound runtime recipe/fixture request supplied. Unsupported operations and stopped downloaded-helper routes remain unverified."})
 	seenBlockers := map[string]bool{}
 	uniqueBlockers := make([]Blocker, 0, len(e.Blockers))
 	for _, b := range e.Blockers {
@@ -272,7 +304,7 @@ func runCase(ctx context.Context, c Case, emit model.Emit, observe func() (Obser
 		failures = append(failures, fmt.Errorf("%s: %s", b.Code, b.Detail))
 	}
 	if emit != nil {
-		emit(model.Event{JobID: c.ID, StageID: "provider-proof", Kind: model.EventError, Message: "unverified: provider execution adapter unfinished; real feasibility gates remain pending", Timestamp: time.Now().UTC()})
+		emit(model.Event{JobID: c.ID, StageID: "provider-proof", Kind: model.EventError, Message: "unverified: no case-bound concrete runtime supplied; real feasibility gates remain pending", Timestamp: time.Now().UTC()})
 	}
 	return e, errors.Join(failures...)
 }

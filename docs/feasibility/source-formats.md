@@ -109,6 +109,60 @@ Those values decode to 32 bytes; length alone does not establish the schema's
 hash-algorithm binding. They are not inserted as trusted `model.Digest` values
 and are not output fixtures. No referenced package body was reconstructed.
 
+## Bounded canonical package observation
+
+The resumed research acquired an actual 21,506-byte canonical ARM64 Foundation
+package ESD for 22000.1, source BuildID
+`b5347a24-b65f-7c51-ac95-8bdd36d866a1`, from the same professional/en-us selection.
+It matched the API's explicit SHA-1
+`4004898a7fd7f2521fb2a8069a599ecf1fa6bbe3`; locally measured SHA-256 is
+`34f8b978fd963d787b2c9cd0e05a981e0679c8d35ff4776cc691bf0987ac5581`.
+Delivery used the API-declared Microsoft HTTP locator; no catalog/signature
+authentication or redistribution rights were established. An individual matching
+CompDB PayloadHash does not bind that schema's algorithm globally.
+
+The source is a single-part/single-image WIM `0xe00`, flags `0x80002`, with one
+single-chunk metadata resource and one single-chunk LZMS solid resource. The
+probe parses bounded resource descriptors, the alternate chunk table and actual
+flat dentry names rather than selecting fixed byte offsets. It checks metadata
+and every content blob against the WIM lookup's SHA-1 identities, then resolves
+the selected name through that verified metadata. The format interpretation is
+based on the author's pinned
+[resource layout](https://github.com/ebiggers/wimlib/blob/cd5e231c348c255ae5088873b5a66ee0eb96fa07/include/wimlib/resource.h)
+and [blob descriptors](https://github.com/ebiggers/wimlib/blob/cd5e231c348c255ae5088873b5a66ee0eb96fa07/include/wimlib/blob_table.h),
+not a hash-width guess. Other versions, compression shapes, split resources,
+directories/reparse points/streams, nonempty security tables or missing resource
+closure fail explicitly in this observation adapter.
+
+The verified `$filehashes$.dat` is UTF-16LE with explicit `[sha1]` and `[sha256]`
+sections and hexadecimal file lengths. Its `update.mum` record independently
+expects 916 bytes and SHA-256
+`b7025d5086ea128d3af5fbe8148d3d0d5c6555cd4e0acd9c6db869be52d4b508`.
+The WIM metadata binds the same member to SHA-1
+`01c1b33cc46f133a9427abc308bf7cf25e7b90e2`. This is an explicit source digest
+oracle; it is stronger than a locally invented expected hash while retaining
+the source's authentication limits.
+
+An actual native amd64 Windows 19045 harness run used the pinned OS-owned
+cabinet.dll RAW LZMS API for metadata (708 to 2,712 bytes) and the solid chunk
+(10,394 to 26,897 bytes), checking all nine content blobs. A separate pinned
+certutil invocation hashed the normalized member; bounded Go CBS inspection
+observed `Microsoft-Windows-Foundation-Package`, version `10.0.22000.1`, ARM64,
+public-key token `31bf3856ad364e35`, language `neutral`. The private W1 run
+retains real inputs/components/native-call hashes/logs/output/reports.
+`foundation-observation.json` binds these exact expectations. No foreign-target
+executable, downloaded helper, image servicing or host installation was used.
+
+This evidence remains `component-runtime` / `unverified`. It demonstrates this
+specific data/algorithm path and does not establish complete canonical-family,
+file metadata preservation, image roles, reference closure, other generations,
+Windows servicing or ISO support. A separate source-reference replay test uses
+the researcher's retained decoded buffers through an explicitly synthetic
+decompression port; that replay is parser/custody validation, not native evidence.
+Synthetic corrupt/framing tests never count toward Gate P/S. Optional x86/amd64
+fixture attempts returned HTTP 500/429 and remain research gaps, not permanent
+upstream absence. PSF/CIX/base-dependent/reference/encrypted cases remain pending.
+
 ## Family/algorithm requirements
 
 The JSON census's `algorithms` are **requirements to establish**, not supported
@@ -116,7 +170,7 @@ algorithm claims. Every family remains unimplemented or unknown and unverified.
 
 | Family | Actual evidence | Missing before Gate S |
 | --- | --- | --- |
-| Canonical CAB/ESD | Real Canonical CompDB records and legacy/modern selections | Actual CAB compression/WIM resources, OS/setup roles, metadata preservation, independently expected extracted hashes |
+| Canonical CAB/ESD | Real Canonical CompDB records, legacy/modern selections, and one actually normalized ARM64 WIM/LZMS Foundation package with explicit source hashes | Broader compression/image variants, OS/setup roles, metadata preservation, complete independently expected fixture corpus |
 | Reference/non-standalone WIM/ESD | [wimlib reference resource API](https://github.com/ebiggers/wimlib/blob/v1.14.5/include/wimlib.h) documents a mechanism; no instance inspected | Content-addressed reference closure, actual bodies, correct/missing/wrong-reference fixtures |
 | Baseless express CAB+PSF | Actual Baseless ExpressCab/ExpressPSF pairs | Actual CIX/index/container versions, RAW/PA19/PA30 and relevant newer variants, trustworthy normalized results |
 | Forward/base-dependent express | Actual source/target graph and DeltaForge records | Exact base identities and availability, base-relative forward/reverse/null behavior, verified reconstructed hashes |

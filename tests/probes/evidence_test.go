@@ -77,6 +77,14 @@ func TestEvidenceAcceptsCompleteRecordShape(t *testing.T) {
 	}
 }
 
+func TestEvidenceRejectsUnvalidatedNativeInvocationRecords(t *testing.T) {
+	c, e := unitRecord()
+	e.NativeInvocations = []NativeInvocation{{ID: "unvalidated-native-call", ComponentID: "runtime"}}
+	if ValidateEvidence([]Case{c}, []Evidence{e}) == nil {
+		t.Fatal("otherwise valid legacy record silently admitted unvalidated native API facts")
+	}
+}
+
 func TestEvidenceRejectsCrossCompileOnly(t *testing.T) {
 	c, e := unitRecord()
 	e.ExecutionKind = "cross-compile"
@@ -162,8 +170,8 @@ func TestEvidenceRunCaseRefusesWithoutExecuting(t *testing.T) {
 	if err == nil || e.Status != Unverified || len(e.Invocations) != 0 {
 		t.Fatalf("unfinished adapter must refuse, got %+v / %v", e, err)
 	}
-	if !strings.Contains(err.Error(), "adapter-unimplemented") {
-		t.Fatalf("unfinished implementation not identified: %v", err)
+	if !strings.Contains(err.Error(), "runtime-unconfigured") {
+		t.Fatalf("missing concrete runtime configuration not identified: %v", err)
 	}
 	if len(events) == 0 || events[len(events)-1].Kind != model.EventError {
 		t.Fatal("refusal did not emit an error")

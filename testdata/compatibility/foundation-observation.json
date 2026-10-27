@@ -1,0 +1,32 @@
+{
+  "case": {
+    "id": "observation-foundation-lzms-22000-arm64-on-amd64",
+    "gate": "S",
+    "host": {"os":"windows","minimum_build":10240,"native_architecture":"amd64","process_architecture":"amd64"},
+    "target": "arm64",
+    "source_family": "canonical-wim-lzms-observation",
+    "source": {"update_id":"a1b78728-530f-443f-b672-d742e7c14bcb","build_label":"22000.1","architecture":"arm64","language":"en-us"},
+    "revision_provenance": "Resolver default revision 1 requested, not echoed Microsoft revision; professional/en-us selection. Canonical Foundation package record explicitly has target build 10.0.22000.1 and BuildID b5347a24-b65f-7c51-ac95-8bdd36d866a1.",
+    "inputs": [{"id":"foundation-esd","role":"payload","digest":{"algorithm":"sha1","value":"4004898a7fd7f2521fb2a8069a599ecf1fa6bbe3"},"size":21506,"provenance":"Actual Microsoft canonical Foundation ESD body acquired 2026-10-27 from API-declared HTTP delivery locator and matched explicit API SHA1. Locally measured SHA256 34f8b978fd963d787b2c9cd0e05a981e0679c8d35ff4776cc691bf0987ac5581; no catalog/signature authentication or redistribution right established."}],
+    "components": [
+      {"artifact":{"id":"system-cabinet","role":"dll","digest":{"algorithm":"sha256","value":"382b026e091d6e63c36ad386b632dadae2b321492362a039000de42fa28b0885"},"size":164680,"provenance":"Freshly measured installed native System32 cabinet.dll; fixed documented CreateDecompressor/Decompress/CloseDecompressor API, algorithm LZMS plus RAW. Full loaded dependency closure unverified."},"native_architecture":"amd64","dependencies":[]},
+      {"artifact":{"id":"system-certutil","role":"executable","digest":{"algorithm":"sha256","value":"78b46729dc86c96c008a30f6b1a3eac72b5fcfa88cd8d182e1b118b45a7d3088"},"size":1709568,"provenance":"Freshly measured installed native System32 certutil.exe; separate internal byte inspection only."},"native_architecture":"amd64","dependencies":[]}
+    ],
+    "dependency_closure_complete": false,
+    "operations": ["extract"],
+    "algorithms": ["wim-v0xe00-lzms-solid"],
+    "expected": [{"id":"normalized-foundation-mum","operation":"extract","output_id":"foundation-update-mum","sha256":"b7025d5086ea128d3af5fbe8148d3d0d5c6555cd4e0acd9c6db869be52d4b508","provenance":"Source-embedded UTF16LE $filehashes$.dat [sha256] explicit update.mum hash and hex length 394 (916 bytes), independently inspected before implementation. WIM lookup/dentry explicitly bind the same content SHA1 01c1b33cc46f133a9427abc308bf7cf25e7b90e2. Source authentication limits persist.","assertions":["files-and-metadata-inspected"],"algorithms":["wim-v0xe00-lzms-solid"]}],
+    "pending": [
+      {"code":"bounded-source-observation-only","detail":"One canonical package normalization variant is not a complete canonical-family, image-role, metadata-preservation or all-generation proof."},
+      {"code":"dependency-closure-unverified","detail":"Pinned native installed DLL/EXE do not establish full dynamic dependencies, clean-host setup, rights or restart compatibility."},
+      {"code":"provider-source-gates-unverified","detail":"Genuine image servicing, reconstruction, ISO mastering, all nine host-target providers, reference/base-dependent/encrypted and other source families remain independently required."}
+    ]
+  },
+  "runtime": {
+    "case_digest": "f6b6b9011ee0b762d4df27bb8e3707a199fd9ed60d5c5b205af2bff573549abf",
+    "inputs": [{"id":"foundation-esd","path":"p1-source-research/raw/microsoft-windows-foundation-package.esd"}],
+    "components": [{"id":"system-cabinet","path":"cabinet.dll"},{"id":"system-certutil","path":"certutil.exe"}],
+    "recipe": "observe-wim-lzms-solid-v1",
+    "wim": {"input_id":"foundation-esd","expectation_id":"normalized-foundation-mum","cabinet_id":"system-cabinet","certutil_id":"system-certutil","member":"update.mum","identity":{"name":"Microsoft-Windows-Foundation-Package","version":"10.0.22000.1","architecture":"arm64","public_key_token":"31bf3856ad364e35","language":"neutral"}}
+  }
+}
