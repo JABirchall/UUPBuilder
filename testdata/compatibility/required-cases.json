@@ -1,0 +1,1057 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "P-windows-x86-to-x86",
+      "gate": "P",
+      "host": {
+        "native_architecture": "x86",
+        "os": "windows",
+        "process_architecture": "x86",
+        "minimum_build": 10240
+      },
+      "target": "x86",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "x86",
+        "build_label": "19041.1",
+        "language": "all",
+        "update_id": "3b507ad4-99b0-4630-b979-7c220b37a002"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 19041-x86-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "dafa97b8d39f4e3962523cdab2089f0fb464e597241a4c496d2c6ed15551effd",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 530430
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-x86-to-amd64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "x86",
+        "os": "windows",
+        "process_architecture": "x86",
+        "minimum_build": 10240
+      },
+      "target": "amd64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "amd64",
+        "build_label": "26100.1",
+        "language": "all",
+        "update_id": "3d68645c-e4c6-4d51-8858-6421e46cb0bb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 26100-amd64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "950238143f417e47e802ccf3e592ea0344544b410336d3f8da60ce6bcf12a126",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 1915140
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-x86-to-arm64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "x86",
+        "os": "windows",
+        "process_architecture": "x86",
+        "minimum_build": 10240
+      },
+      "target": "arm64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "arm64",
+        "build_label": "22000.1",
+        "language": "all",
+        "update_id": "a1b78728-530f-443f-b672-d742e7c14bcb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 22000-arm64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "0feebe279dbd4b6c55ddee75b022ff583e4e6369a2b2c32813865363da07feaa",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 442284
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-amd64-to-x86",
+      "gate": "P",
+      "host": {
+        "native_architecture": "amd64",
+        "os": "windows",
+        "process_architecture": "amd64",
+        "minimum_build": 10240
+      },
+      "target": "x86",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "x86",
+        "build_label": "19041.1",
+        "language": "all",
+        "update_id": "3b507ad4-99b0-4630-b979-7c220b37a002"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 19041-x86-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "dafa97b8d39f4e3962523cdab2089f0fb464e597241a4c496d2c6ed15551effd",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 530430
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "clean-host-unverified",
+          "detail": "Historical observation is Windows 10 Enterprise build 19045 native/process amd64, non-admin, local NTFS; clean-machine provisioning and servicing are unverified."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-amd64-to-amd64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "amd64",
+        "os": "windows",
+        "process_architecture": "amd64",
+        "minimum_build": 10240
+      },
+      "target": "amd64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "amd64",
+        "build_label": "26100.1",
+        "language": "all",
+        "update_id": "3d68645c-e4c6-4d51-8858-6421e46cb0bb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 26100-amd64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "950238143f417e47e802ccf3e592ea0344544b410336d3f8da60ce6bcf12a126",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 1915140
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "clean-host-unverified",
+          "detail": "Historical observation is Windows 10 Enterprise build 19045 native/process amd64, non-admin, local NTFS; clean-machine provisioning and servicing are unverified."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-amd64-to-arm64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "amd64",
+        "os": "windows",
+        "process_architecture": "amd64",
+        "minimum_build": 10240
+      },
+      "target": "arm64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "arm64",
+        "build_label": "22000.1",
+        "language": "all",
+        "update_id": "a1b78728-530f-443f-b672-d742e7c14bcb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 22000-arm64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "0feebe279dbd4b6c55ddee75b022ff583e4e6369a2b2c32813865363da07feaa",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 442284
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "clean-host-unverified",
+          "detail": "Historical observation is Windows 10 Enterprise build 19045 native/process amd64, non-admin, local NTFS; clean-machine provisioning and servicing are unverified."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-arm64-to-x86",
+      "gate": "P",
+      "host": {
+        "native_architecture": "arm64",
+        "os": "windows",
+        "process_architecture": "arm64",
+        "minimum_build": 10240
+      },
+      "target": "x86",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "x86",
+        "build_label": "19041.1",
+        "language": "all",
+        "update_id": "3b507ad4-99b0-4630-b979-7c220b37a002"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 19041-x86-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "dafa97b8d39f4e3962523cdab2089f0fb464e597241a4c496d2c6ed15551effd",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 530430
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-arm64-to-amd64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "arm64",
+        "os": "windows",
+        "process_architecture": "arm64",
+        "minimum_build": 10240
+      },
+      "target": "amd64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "amd64",
+        "build_label": "26100.1",
+        "language": "all",
+        "update_id": "3d68645c-e4c6-4d51-8858-6421e46cb0bb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 26100-amd64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "950238143f417e47e802ccf3e592ea0344544b410336d3f8da60ce6bcf12a126",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 1915140
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    },
+    {
+      "id": "P-windows-arm64-to-arm64",
+      "gate": "P",
+      "host": {
+        "native_architecture": "arm64",
+        "os": "windows",
+        "process_architecture": "arm64",
+        "minimum_build": 10240
+      },
+      "target": "arm64",
+      "source_family": "canonical-cab-esd",
+      "source": {
+        "architecture": "arm64",
+        "build_label": "22000.1",
+        "language": "all",
+        "update_id": "a1b78728-530f-443f-b672-d742e7c14bcb"
+      },
+      "revision_provenance": "Unsuffixed resolver request defaults to revision 1 in resolver commit 7386a277aa8656fb6f8210d4b5731a44acaac30b; not an independently echoed Microsoft revision.",
+      "inputs": [
+        {
+          "role": "metadata",
+          "provenance": "2026-10-27 HTTPS api.uupdump.net noLinks=1 response 22000-arm64-nolinks.json; selection unfiltered; resolver-filtered snapshot only, payload availability unknown.",
+          "digest": {
+            "value": "0feebe279dbd4b6c55ddee75b022ff583e4e6369a2b2c32813865363da07feaa",
+            "algorithm": "sha256"
+          },
+          "id": "resolver-selection",
+          "size": 442284
+        }
+      ],
+      "components": [],
+      "dependency_closure_complete": false,
+      "operations": [
+        "extract",
+        "service",
+        "reconstruct",
+        "master-iso"
+      ],
+      "algorithms": [],
+      "expected": [],
+      "pending": [
+        {
+          "code": "policy-execution-stopped",
+          "detail": "Automatic approval review rejected pinned downloaded-helper extraction/direct execution: blocked by policy. The path remains stopped."
+        },
+        {
+          "code": "adapter-unimplemented",
+          "detail": "Concrete provider execution and independent result inspection adapter is unfinished."
+        },
+        {
+          "code": "provider-closure-unverified",
+          "detail": "No complete native extraction/servicing/reconstruction/ISO executable, DLL, driver and OS dependency closure is proven."
+        },
+        {
+          "code": "provider-rights-unresolved",
+          "detail": "Microsoft package terms, native ADK contents, signatures, setup/restart behavior and any permitted redistribution remain unverified."
+        },
+        {
+          "code": "payload-fixture-missing",
+          "detail": "Only metadata was retained; no trusted matching OS/setup/base/payload fixture was acquired."
+        },
+        {
+          "code": "expected-output-unavailable",
+          "detail": "No independently expected reconstructed image/file/modified-image/ISO SHA-256 exists. Metadata hashes are not output hashes."
+        },
+        {
+          "code": "source-algorithm-unverified",
+          "detail": "Source family algorithms, reference/base graph and materialized resource closure have no runtime proof."
+        },
+        {
+          "code": "servicing-prerequisites-unverified",
+          "detail": "Actual offline modification, required privileges, filesystem preservation and boot output inspection are not proven."
+        },
+        {
+          "code": "native-host-not-established",
+          "detail": "No genuine matching native Windows host/fixture is established. WOW64, emulation and cross-compilation do not count."
+        }
+      ]
+    }
+  ],
+  "source_census": {
+    "complete": false,
+    "limitations": [
+      "Ten sampled noLinks selections, not an exhaustive upstream catalog census.",
+      "Pinned resolver filters/renames express, forward and other raw forms; raw CompDB records are independent evidence.",
+      "noLinks successes do not prove current Microsoft payload availability.",
+      "No actual missing upstream material or global source unavailability was established.",
+      "Metadata snapshot and XML hashes are not reconstructed-output or image fixture hashes."
+    ],
+    "families": [
+      {
+        "id": "canonical-cab-esd",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "Actual 22000.1 ARM64 CompDB schema 1.2 Type=Build, 44 Canonical payload records, Microsoft metadata CAB source a1b78728-530f-443f-b672-d742e7c14bcb; expanded XML SHA-256 only.",
+            "digest": {
+              "value": "3f1705c8ed1b8a2ff5b52899929536acebe760810561de4a16877ba41343cb90",
+              "algorithm": "sha256"
+            },
+            "id": "compdb-canonical",
+            "size": 24048
+          }
+        ],
+        "algorithms": [
+          "cab-decoding",
+          "wim-resource-extraction"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No actual source payload/header/resource closure or independent reconstructed-output fixture.",
+          "CompDB PayloadHash encoding is preserved in documentation; its algorithm attribute was absent."
+        ]
+      },
+      {
+        "id": "reference-wim-esd",
+        "observation": "documented",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [],
+        "algorithms": [
+          "wim-reference-resource-resolution"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No actual non-standalone WIM/ESD body, content-addressed reference set or missing/wrong-reference fixture."
+        ]
+      },
+      {
+        "id": "baseless-express",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "Actual 22000.1 ARM64 CompDB Type=Baseless, 40 ExpressCab and 40 ExpressPSF records; expanded XML SHA-256 only.",
+            "digest": {
+              "value": "9b597e01c646d7ad93ba6f9108beeb420affebd8a4e89f9b4860a59a145f6c4b",
+              "algorithm": "sha256"
+            },
+            "id": "compdb-baseless",
+            "size": 43914
+          }
+        ],
+        "algorithms": [
+          "psf-container-validation",
+          "cix-index-validation",
+          "raw-pa19-pa30-variant-identification"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No CAB/CIX/PSF body or independent normalized output hash.",
+          "Baseless metadata does not establish complete PSF variants or target algorithms."
+        ]
+      },
+      {
+        "id": "forward-express",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "Actual ARM64 CompDB Type=Update, source OSVersion=10.0.19041.1 TargetOSVersion=10.0.22000.1; 384 ExpressCab plus 384 ExpressPSF records; source BuildID f9e033e8-a66e-de80-132f-8c8218cd941a, target b5347a24-b65f-7c51-ac95-8bdd36d866a1.",
+            "digest": {
+              "value": "e3e5b55aaba55ecf3185a49a005d55ee2997e63cd014833612310288da1b8397",
+              "algorithm": "sha256"
+            },
+            "id": "compdb-forward",
+            "size": 393743
+          }
+        ],
+        "algorithms": [
+          "source-base-graph-validation",
+          "base-relative-delta-reconstruction"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No exact base-file identity closure, delta body, variant proof or expected reconstructed hash.",
+          "Actual source and target BuildIDs differ; an empty-base implementation is insufficient."
+        ]
+      },
+      {
+        "id": "cix-psf",
+        "observation": "documented",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [],
+        "algorithms": [
+          "cix-bounds-and-path-validation",
+          "raw-copy",
+          "pa19",
+          "pa30",
+          "newer-variant-identification"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No actual CIX inspected.",
+          "Null-base PSFExtractor and generic MSDelta do not prove all base-dependent or PA31 cases."
+        ]
+      },
+      {
+        "id": "encrypted-esd",
+        "observation": "documented",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [],
+        "algorithms": [
+          "encrypted-esd-variant-identification",
+          "pre-wim-decryption"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No encrypted source instance, key identity/fingerprint or trusted plaintext fixture; distinct from ESRP."
+        ]
+      },
+      {
+        "id": "esrp-delivery",
+        "observation": "documented",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [],
+        "algorithms": [
+          "esrp-metadata-validation",
+          "offset-derived-iv-aes-cbc-variant-verification"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No real encryption contract, ciphertext, safely acquired key fingerprint or trusted plaintext expected result."
+        ]
+      },
+      {
+        "id": "traditional-express-psfx-update",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "2026-10-27 noLinks selection db8ec987-d136-4421-afb8-2ef109396b00 / en-us / updateonly, resolver revision default 1; 5 CAB, 1 PSF; whole-source media capability unknown.",
+            "digest": {
+              "value": "f777b31d9a645c502a4f0445195232ad9380d705cd875b43d6fb2842cb5267aa",
+              "algorithm": "sha256"
+            },
+            "id": "update-selection",
+            "size": 1269
+          }
+        ],
+        "algorithms": [
+          "express-container-validation",
+          "forward-reverse-null-differential-identification",
+          "generation-specific-reconstruction"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No update body/CIX/base or reconstructed package fixture; concept/API documentation is insufficient."
+        ]
+      },
+      {
+        "id": "checkpoint-combined-msu",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "2026-10-27 noLinks 89da9278-1ece-4c82-b791-d624d229924d / en-us / professional, resolver revision default 1; KB5043080 and KB5043178 MSU descriptors only.",
+            "digest": {
+              "value": "9680ac93b8d578ce62d99b2ded21a2bcef1007ca3148faed700c54e8719a3e54",
+              "algorithm": "sha256"
+            },
+            "id": "checkpoint-selection",
+            "size": 24177
+          }
+        ],
+        "algorithms": [
+          "msu-inner-package-inventory",
+          "checkpoint-dependency-ordering",
+          "compatible-offline-servicing"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No MSU body/inner-package identities or independently inspected image change; filename sorting is insufficient."
+        ]
+      },
+      {
+        "id": "app-fod-separate-wim",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "2026-10-27 noLinks 3d68645c-e4c6-4d51-8858-6421e46cb0bb, resolver revision default 1; APPX/MSIX families and separate WIM identities observed; no package bodies inspected.",
+            "digest": {
+              "value": "950238143f417e47e802ccf3e592ea0344544b410336d3f8da60ce6bcf12a126",
+              "algorithm": "sha256"
+            },
+            "id": "modern-selection",
+            "size": 1915140
+          }
+        ],
+        "algorithms": [
+          "app-manifest-license-dependency-resolution",
+          "wim-role-inspection",
+          "fod-composition-resolution"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No semantic app/edition/license/FoD closure; edition=app request returned UNSUPPORTED_COMBINATION.",
+          "appxPresent/hasUpdates flags are not semantic support or media capability evidence."
+        ]
+      },
+      {
+        "id": "legacy-compdb",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "2026-10-27 noLinks fd9add47-948f-4017-9571-01c6cbbf4ad7, resolver revision default 1, 15063.0 x86; legacy updatedb/CompDB logical members, CAB/ESD descriptors only.",
+            "digest": {
+              "value": "b62369a62b7d2bca672d656e171dafd905453ef22f3de80b2f88eef91e98d603",
+              "algorithm": "sha256"
+            },
+            "id": "legacy-selection",
+            "size": 177177
+          }
+        ],
+        "algorithms": [
+          "generation-specific-composition-inventory",
+          "legacy-image-role-resolution"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "No legacy package/image materialization or historical servicing-provider proof."
+        ]
+      },
+      {
+        "id": "update-only-selection",
+        "observation": "observed",
+        "availability": "unknown",
+        "implementation": "unimplemented",
+        "media_capability": "update-selection-only",
+        "proof": "unverified",
+        "metadata": [
+          {
+            "role": "metadata",
+            "provenance": "2026-10-27 noLinks selection db8ec987-d136-4421-afb8-2ef109396b00 / en-us / updateonly, resolver revision default 1; 5 CAB, 1 PSF; whole-source media capability unknown.",
+            "digest": {
+              "value": "f777b31d9a645c502a4f0445195232ad9380d705cd875b43d6fb2842cb5267aa",
+              "algorithm": "sha256"
+            },
+            "id": "update-selection",
+            "size": 1269
+          }
+        ],
+        "algorithms": [
+          "setup-boot-os-media-closure-inspection"
+        ],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "Selector is update-only; whole UUID cannot be classified non-ISO-capable without media closure inspection."
+        ]
+      },
+      {
+        "id": "unknown-future-specialized",
+        "observation": "unknown",
+        "availability": "unknown",
+        "implementation": "unknown",
+        "media_capability": "unknown",
+        "proof": "unverified",
+        "metadata": [],
+        "algorithms": [],
+        "missing_upstream": [],
+        "proof_cases": [],
+        "gaps": [
+          "Unknown generations/architectures and specialized products remain visible; this sample is not exhaustive."
+        ]
+      }
+    ]
+  }
+}
