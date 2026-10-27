@@ -426,10 +426,11 @@ func decodeMetadata(ctx context.Context, original []byte, compressed bool, limit
 // xmlNode is a bounded tree. Namespace comparisons are explicit in format
 // parsers; a foreign extension with a familiar local name cannot supply facts.
 type xmlNode struct {
-	Name     xml.Name
-	Attr     []xml.Attr
-	Text     string
-	Children []*xmlNode
+	Name       xml.Name
+	Attr       []xml.Attr
+	Text       string
+	Children   []*xmlNode
+	textBuffer strings.Builder
 }
 
 func (n *xmlNode) attr(name string) string {
@@ -519,6 +520,12 @@ func parseXML(ctx context.Context, data []byte, limits Limits) (*xmlNode, error)
 			}
 			stack = append(stack, node)
 		case xml.EndElement:
+			// Comments and other tokens can split one element's character data
+			// many times. Grow its buffer amortized-linearly, then expose the
+			// immutable text once the element is complete.
+			node := stack[len(stack)-1]
+			node.Text = node.textBuffer.String()
+			node.textBuffer.Reset()
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
 			if len(stack) == 0 {
@@ -526,7 +533,7 @@ func parseXML(ctx context.Context, data []byte, limits Limits) (*xmlNode, error)
 					return nil, ErrMalformedMetadata
 				}
 			} else {
-				stack[len(stack)-1].Text += string(token)
+				stack[len(stack)-1].textBuffer.Write(token)
 			}
 		case xml.Directive:
 			return nil, ErrMalformedMetadata
