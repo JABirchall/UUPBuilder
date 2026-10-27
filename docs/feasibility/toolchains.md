@@ -29,9 +29,14 @@ is Windows-only; running that test selection on another OS and seeing “no test
 to run” is not a proof. Non-Windows `RunCase` reports the missing native host.
 
 `RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error)` is
-unfinished execution plumbing. It reads OS-owned `RtlGetVersion` and
-`GetNativeSystemInfo` on Windows to distinguish OS build, process architecture
-and native architecture; it does not infer the native CPU from `GOARCH`. That
+unfinished execution plumbing. It reads OS-owned `RtlGetVersion` and the
+native-machine output of dynamically resolved `IsWow64Process2` on Windows.
+Actual process architecture remains a separate `GOARCH` value. Missing/failed/
+unknown native-machine results preserve the measured build/process and return
+an explicit unverified error with native architecture unset. Early Windows 10
+native-identity coverage therefore remains pending; no host/target is removed.
+`GetNativeSystemInfo` and legacy WOW64 answers cannot substitute for this native
+identity because they can expose emulated x86/x64 details on ARM64. The
 observation has no retained host-report artifact or filesystem/privilege proof.
 It returns `unverified`, no invocations, and a nonnil error. Distinct blockers
 identify host mismatch, unresolved prerequisites, **adapter-unimplemented** and
