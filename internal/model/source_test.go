@@ -172,6 +172,53 @@ func TestPayloadManifestDeterministicAndDetectsMutation(t *testing.T) {
 	}
 }
 
+func TestPayloadManifestRejectsFileDirectoryConflicts(t *testing.T) {
+	source, err := NewSourceIdentity("update_rev.1", "build", "amd64", "en-us")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name         string
+		destinations []string
+	}{
+		{"parent-first", []string{"sources/a.esd", "sources/a.esd/child.esd"}},
+		{"child-first", []string{"sources/a.esd/child.esd", "sources/a.esd"}},
+		{"mixed-case-parent-first", []string{"Sources/A.ESD", "sources/a.esd/child.esd"}},
+		{"mixed-case-child-first", []string{"sources/A.ESD/child.esd", "SOURCES/a.esd"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payloads := []Payload{testPayload(t, tc.destinations[0]), testPayload(t, tc.destinations[1])}
+			if _, err := NewPayloadManifest(source, payloads); err == nil || !strings.Contains(err.Error(), "manifest.payloads") {
+				t.Errorf("constructor must reject conflicting file/directory destinations, got %v", err)
+			}
+			// Validate must identify the structural conflict before checking the
+			// digest, including when a manifest is restored rather than constructed.
+			manifest := PayloadManifest{Source: source, Payloads: payloads}
+			if err := manifest.Validate(); err == nil || !strings.Contains(err.Error(), "manifest.payloads") {
+				t.Errorf("validation must reject conflicting file/directory destinations, got %v", err)
+			}
+		})
+	}
+}
+
+func TestPayloadManifestAllowsSharedDirectoriesAndDistinctPrefixes(t *testing.T) {
+	source, err := NewSourceIdentity("update_rev.1", "build", "amd64", "en-us")
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := NewPayloadManifest(source, []Payload{
+		testPayload(t, "sources/a.esd"),
+		testPayload(t, "SOURCES/b.esd"),
+		testPayload(t, "sources/a.esd.other/child.esd"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := manifest.Validate(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func testPayload(t *testing.T, destination string) Payload {
 	t.Helper()
 	digest, err := NewDigest(DigestSHA1, strings.Repeat("a", 40))

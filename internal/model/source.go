@@ -234,6 +234,7 @@ func (m PayloadManifest) validateInputs() error {
 		return errors.New("manifest.payloads: at least one payload is required")
 	}
 	seen := make(map[string]bool)
+	directories := make(map[string]bool)
 	for _, payload := range m.Payloads {
 		if err := payload.Validate(); err != nil {
 			return err
@@ -241,6 +242,20 @@ func (m PayloadManifest) validateInputs() error {
 		key := strings.ToLower(payload.Destination)
 		if seen[key] {
 			return fmt.Errorf("manifest.payloads: duplicate Windows destination %q", payload.Destination)
+		}
+		if directories[key] {
+			return fmt.Errorf("manifest.payloads: file/directory destination conflict at %q", payload.Destination)
+		}
+		for parent := key; ; {
+			slash := strings.LastIndexByte(parent, '/')
+			if slash < 0 {
+				break
+			}
+			parent = parent[:slash]
+			if seen[parent] {
+				return fmt.Errorf("manifest.payloads: destination %q requires file path %q to be a directory", payload.Destination, parent)
+			}
+			directories[parent] = true
 		}
 		seen[key] = true
 	}
