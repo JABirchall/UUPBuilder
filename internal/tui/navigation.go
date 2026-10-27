@@ -1,0 +1,189 @@
+package tui
+
+import tea "charm.land/bubbletea/v2"
+
+type Area int
+
+const (
+	Builds Area = iota
+	Image
+	Apps
+	Conversion
+	Review
+	Progress
+)
+
+var areaNames = [...]string{"Builds", "Image", "Apps", "Conversion", "Review", "Progress"}
+
+func (a Area) String() string {
+	if a < Builds || a > Progress {
+		return "Unknown"
+	}
+	return areaNames[a]
+}
+func (m Model) ActiveArea() Area { return m.area }
+func (m *Model) navigate(area Area) {
+	if area < Builds || area > Progress {
+		return
+	}
+	m.area = area
+	m.builds.search.Blur()
+	m.builds.filter.Blur()
+}
+func (m Model) editing() bool { return m.builds.search.Focused() || m.builds.filter.Focused() }
+func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	if key == "ctrl+c" {
+		m.Close()
+		return m, tea.Quit
+	}
+	if key == "f1" {
+		m.showHelp = !m.showHelp
+		return m, nil
+	}
+	if m.showHelp {
+		if key == "esc" || key == "?" {
+			m.showHelp = false
+		}
+		return m, nil
+	}
+	if m.editing() {
+		if key == "esc" || key == "enter" {
+			m.builds.search.Blur()
+			m.builds.filter.Blur()
+			if key == "enter" && m.builds.pending {
+				cmd := m.beginSearch(false)
+				return m, cmd
+			}
+			return m, nil
+		}
+		return m.updateInput(msg)
+	}
+	if key == "?" {
+		m.showHelp = true
+		return m, nil
+	}
+	if len(key) == 1 && key[0] >= '1' && key[0] <= '6' {
+		m.navigate(Area(key[0] - '1'))
+		return m, nil
+	}
+	switch key {
+	case "ctrl+right":
+		m.navigate((m.area + 1) % 6)
+	case "ctrl+left", "shift+tab":
+		m.navigate((m.area + 5) % 6)
+	case "esc":
+		if m.area > Builds {
+			m.navigate(m.area - 1)
+		}
+	case "r":
+		return m.Update(RefreshMsg{})
+	case "up", "k":
+		m.move(-1)
+	case "down", "j":
+		m.move(1)
+	case "tab":
+		if m.area == Image {
+			m.image.focus = (m.image.focus + 1) % 3
+		} else {
+			m.navigate((m.area + 1) % 6)
+		}
+	case "/":
+		if m.area == Builds {
+			cmd := m.builds.search.Focus()
+			return m, cmd
+		}
+	case "f":
+		if m.area == Builds {
+			cmd := m.builds.filter.Focus()
+			return m, cmd
+		}
+	case "a":
+		if m.area == Builds {
+			m.cycleFilter()
+		}
+	case "enter":
+		return m.activate()
+	case "space", " ":
+		if m.area == Image && m.image.focus == 2 {
+			choices := m.editionChoices()
+			if len(choices) > m.image.editionCursor {
+				m.toggleEdition(choices[m.image.editionCursor].ID)
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.builds.search.Focused() {
+		var cmd tea.Cmd
+		m.builds.search, cmd = m.builds.search.Update(msg)
+		if m.builds.search.Value() != m.builds.query {
+			return m.changeQuery(m.builds.search.Value())
+		}
+		return m, cmd
+	}
+	var cmd tea.Cmd
+	m.builds.filter, cmd = m.builds.filter.Update(msg)
+	m.builds.cursor = 0
+	return m, cmd
+}
+func (m *Model) move(delta int) {
+	if m.area == Builds {
+		m.builds.cursor = max(0, min(m.builds.cursor+delta, len(m.builds.visible())-1))
+	}
+	if m.area == Image {
+		switch m.image.focus {
+		case 0:
+			m.image.archCursor = max(0, min(m.image.archCursor+delta, len(m.Architectures())-1))
+		case 1:
+			m.image.languageCursor = max(0, min(m.image.languageCursor+delta, len(m.image.languages)-1))
+		case 2:
+			m.image.editionCursor = max(0, min(m.image.editionCursor+delta, len(m.editionChoices())-1))
+		}
+	}
+}
+func (m Model) activate() (tea.Model, tea.Cmd) {
+	if m.area == Builds {
+		rows := m.builds.visible()
+		if len(rows) > m.builds.cursor {
+			return m.Update(SelectBuildMsg{UpdateID: rows[m.builds.cursor].UpdateID})
+		}
+	}
+	if m.area == Image {
+		switch m.image.focus {
+		case 0:
+			choices := m.Architectures()
+			if len(choices) > m.image.archCursor {
+				return m.Update(ChangeArchitectureMsg{Architecture: choices[m.image.archCursor]})
+			}
+		case 1:
+			if len(m.image.languages) > m.image.languageCursor {
+				return m.Update(SelectLanguageMsg{Language: m.image.languages[m.image.languageCursor].ID})
+			}
+		case 2:
+			if m.image.ready(m.cfg.Image) {
+				m.navigate(Apps)
+			} else {
+				m.notice = "Choose an available language and at least one available edition before continuing."
+			}
+		}
+	}
+	return m, nil
+}
+func (m *Model) cycleFilter() {
+	choices := m.Architectures()
+	index := -1
+	for i, arch := range choices {
+		if arch == m.builds.archFilter {
+			index = i
+			break
+		}
+	}
+	m.builds.archFilter = ""
+	if index+1 < len(choices) {
+		m.builds.archFilter = choices[index+1]
+	}
+	m.builds.cursor = 0
+}

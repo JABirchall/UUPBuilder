@@ -1,0 +1,17 @@
+UUP / IMAGE BUILDER | Workspace
+1 Builds | Configure the image
+>2 Image | One target, one language, one or more editions
+3 Apps | Target: amd64 arm64 future x86
+4 Conversion | Available (cache or network) | checked 12:30Z | r refresh
+5 Review | Language: en-us - English [1/2] (selected)
+6 Progress | Available (cache or network) | checked 12:30Z | r refresh
+| Editions (space): catalogue choices; derivations need metadata
+| > [x] Pro (professional)
+| [ ] Home (core)
+| Enter from editions: continue to Apps
+Source: Windows example | 26100.1 | Draft r4
+ID: 11111111-1111-1111-1111-111111111111_rev.2
+Target: amd64 | Language: en-us | Editions: professional
+Apps: unchecked; requested policies retained.
+! Edition selection changed; app applicability must be checked again.
+tab field | up/down move | space toggle | enter choose/next | r retry | esc back | ? help
