@@ -257,8 +257,19 @@ func TestEvidenceRunCaseMeasuresHostWithoutHelpers(t *testing.T) {
 	if e.Host.OS != runtime.GOOS || e.Host.Host.ProcessArchitecture != model.ArchitectureFromGo(runtime.GOARCH) {
 		t.Fatalf("actual host not observed: %+v", e.Host)
 	}
-	if runtime.GOOS == "windows" && (e.Host.Host.WindowsBuild < 10240 || e.Host.Host.NativeArchitecture == "") {
-		t.Fatalf("native OS/build not measured: %+v", e.Host)
+	if runtime.GOOS == "windows" {
+		if e.Host.Host.WindowsBuild < 10240 {
+			t.Fatalf("Windows build not measured: %+v", e.Host)
+		}
+		if e.Host.Host.NativeArchitecture == "" {
+			unverified := false
+			for _, b := range e.Blockers {
+				unverified = unverified || b.Code == "host-observation-unverified"
+			}
+			if !unverified {
+				t.Fatalf("unknown native host lacks explicit observation error: %+v", e)
+			}
+		}
 	}
 }
 

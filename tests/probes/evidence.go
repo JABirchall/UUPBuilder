@@ -232,6 +232,10 @@ func contains(values []string, value string) bool {
 }
 
 func RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error) {
+	return runCase(ctx, c, emit, observeHost)
+}
+
+func runCase(ctx context.Context, c Case, emit model.Emit, observe func() (ObservedHost, error)) (Evidence, error) {
 	e := Evidence{CaseID: c.ID, CaseDigest: c.Digest(), Status: Unverified, ExecutionKind: "not-executed"}
 	var failures []error
 	if ctx == nil {
@@ -239,7 +243,7 @@ func RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error) {
 	} else if err := ctx.Err(); err != nil {
 		failures = append(failures, err)
 	} else {
-		host, err := observeHost()
+		host, err := observe()
 		e.Host = host
 		if err != nil {
 			e.Blockers = append(e.Blockers, Blocker{"host-observation-unverified", err.Error()})
