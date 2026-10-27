@@ -15,6 +15,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/config"
+	"uupbuilder/internal/model"
 )
 
 func TestSelectionRejectsStaleLanguageAndEditionGenerations(t *testing.T) {
@@ -161,5 +162,94 @@ func TestSelectionFailedRefreshDoesNotClaimImageChoicesReady(t *testing.T) {
 	}
 	if !strings.Contains(m.View().Content, "Failed") {
 		t.Fatal("failed refresh was hidden")
+	}
+}
+
+func TestSelectionSavedSourceTargetMismatchInvalidatesSelectors(t *testing.T) {
+	for _, order := range []string{"search-first", "language-first", "editions-first"} {
+		t.Run(order, func(t *testing.T) {
+			cfg := config.Defaults()
+			cfg.Image.UpdateID = firstID
+			cfg.Image.Architecture = model.ArchitectureARM64 // This exact UUID is amd64.
+			cfg.Apps.Mode = model.AppsCustom
+			cfg.Apps.Include = []string{"Requested.Family"}
+			m := New(Dependencies{Catalog: testCatalog{}}, cfg)
+			defer m.Close()
+			m, cmd := step(m, m.Init()())
+			var search searchResultMsg
+			var language languagesResultMsg
+			for _, result := range runCommands(cmd) {
+				switch result := result.(type) {
+				case searchResultMsg:
+					search = result
+				case languagesResultMsg:
+					language = result
+				}
+			}
+			var oldEdition tea.Msg
+			if order != "search-first" {
+				m, cmd = step(m, language)
+				if cmd == nil {
+					t.Fatal("saved language did not request editions")
+				}
+				oldEdition = cmd()
+				if order == "editions-first" {
+					m = send(m, oldEdition)
+				}
+			}
+			revision := m.Snapshot().Revision
+			m = send(m, search)
+			snapshot := m.Snapshot()
+			if snapshot.Config.Image.UpdateID != "" || snapshot.Config.Image.Language != "" || len(snapshot.Config.Image.Editions) != 0 || snapshot.ImageReady {
+				t.Fatalf("known source/target mismatch retained a usable selection: %+v", snapshot.Config.Image)
+			}
+			if snapshot.Config.Image.Architecture != "arm64" || snapshot.HasCatalogRecord || snapshot.Revision <= revision {
+				t.Fatalf("mismatch silently changed target/source or failed to revise the draft: %+v", snapshot)
+			}
+			if m.image.languageChecked || m.image.editionsChecked || len(m.image.languages) != 0 || len(m.image.editions) != 0 {
+				t.Fatal("mismatch retained dependent selector data/validation")
+			}
+			for _, detail := range []string{firstID, "amd64", "arm64", "exact"} {
+				if !strings.Contains(snapshot.Notice, detail) || !strings.Contains(m.View().Content, detail) {
+					t.Errorf("mismatch notice lacks %q: %s", detail, snapshot.Notice)
+				}
+			}
+			if snapshot.AppsApplicable || snapshot.AppsNotice == "" || !reflect.DeepEqual(snapshot.Config.Apps.Include, []string{"Requested.Family"}) {
+				t.Fatal("mismatch lost app intent or its applicability invalidation")
+			}
+			m = send(m, NavigateMsg{Area: Image})
+			m.image.focus = 2
+			m = send(m, key(tea.KeyEnter, ""))
+			if m.ActiveArea() != Image {
+				t.Fatal("mismatched saved selection continued from Image")
+			}
+
+			// Reselect the same exact record, never the apparent arm64 sibling.
+			m, cmd = step(m, SelectBuildMsg{UpdateID: firstID})
+			currentLanguage := cmd()
+			if order == "search-first" {
+				var next tea.Cmd
+				m, next = step(m, language)
+				if next != nil || !m.image.languageStatus.loading || len(m.image.languages) != 0 {
+					t.Fatal("late old language response validated the reselected UUID")
+				}
+			}
+			m = send(m, currentLanguage)
+			m, cmd = step(m, SelectLanguageMsg{Language: "en-us"})
+			if cmd == nil {
+				t.Fatal("reselected source did not request current editions")
+			}
+			if order == "language-first" {
+				m = send(m, oldEdition)
+				if !m.image.editionStatus.loading || m.image.editionsChecked || len(m.image.editions) != 0 {
+					t.Fatal("late old edition response validated the reselected UUID/language")
+				}
+			}
+			m = send(m, cmd())
+			m = send(m, ToggleEditionMsg{Edition: "professional"})
+			if got := m.Snapshot(); !got.ImageReady || got.Config.Image.UpdateID != firstID || got.Config.Image.Architecture != "amd64" {
+				t.Fatalf("explicit exact-record reselection did not recover: %+v", got.Config.Image)
+			}
+		})
 	}
 }
