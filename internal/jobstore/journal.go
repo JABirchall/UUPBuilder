@@ -169,9 +169,14 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// Publication is one W1 handle-relative native rename after sync and close.
-// Even errors after replacement leave the in-memory state at the new record.
-func (s *Store) writeJournal(next journal) error {
+// Publication is one W1 handle-relative native rename bracketed by file flushes.
+// Keep the exact write-capable file object open until after its renamed metadata
+// is flushed. On Windows File.Sync calls FlushFileBuffers; Microsoft's File
+// Caching contract requires flushing metadata after a namespace change:
+// https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching
+// Even barrier/close errors after replacement retain the new in-memory record
+// while withholding success (and therefore any subsequent mutation grant).
+func (s *Store) writeJournal(next journal) (resultErr error) {
 	next.Generation = s.state.Generation + 1
 	b, err := json.Marshal(next)
 	if err != nil {
@@ -197,6 +202,7 @@ func (s *Store) writeJournal(next journal) error {
 		return err
 	}
 	defer s.w.Remove(tmp)
+	defer func() { resultErr = errors.Join(resultErr, f.Close()) }()
 	n, err := f.Write(data)
 	if err == nil && n != len(data) {
 		err = io.ErrShortWrite
@@ -204,7 +210,6 @@ func (s *Store) writeJournal(next journal) error {
 	if err == nil {
 		err = f.Sync()
 	}
-	err = errors.Join(err, f.Close())
 	if err != nil {
 		return err
 	}
@@ -218,5 +223,19 @@ func (s *Store) writeJournal(next journal) error {
 		return err
 	}
 	s.state = next
-	return s.interrupt("journal-after-replace")
+	if err := s.interrupt("journal-after-replace"); err != nil {
+		return err
+	}
+	// The handle came from rooted W1 O_WRONLY creation (GENERIC_WRITE), not
+	// from a path reopen or a directory/volume flush. It still identifies the
+	// published object even though its original temporary name no longer does.
+	if s.flushPublished != nil {
+		err = s.flushPublished(f)
+	} else {
+		err = f.Sync()
+	}
+	if err != nil {
+		return fmt.Errorf("flush published journal metadata: %w", err)
+	}
+	return nil
 }

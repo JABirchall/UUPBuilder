@@ -113,6 +113,8 @@ type Store struct {
 	closed    bool
 	// Unexported, nil in production; tests inject one bounded interruption.
 	fail func(string) error
+	// Unexported barrier dependency; nil uses the real post-rename file flush.
+	flushPublished func(*os.File) error
 }
 type Transaction struct {
 	store       *Store
