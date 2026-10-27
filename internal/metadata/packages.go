@@ -31,6 +31,9 @@ func (inv *Inventory) parseCBS(root *xmlNode, doc DocumentReference) error {
 	if len(root.children("assemblyIdentity")) != 1 {
 		return fmt.Errorf("%w: CBS identity", ErrMalformedMetadata)
 	}
+	if err := singletonChildren(root, "package"); err != nil {
+		return err
+	}
 	identity := assemblyIdentity(root.child("assemblyIdentity"))
 	if identity.Name == "" || identity.Version == "" {
 		return fmt.Errorf("%w: CBS identity", ErrMalformedMetadata)
@@ -39,6 +42,9 @@ func (inv *Inventory) parseCBS(root *xmlNode, doc DocumentReference) error {
 	result := Package{Identity: identity, Identifier: pack.attr("identifier"), ReleaseType: pack.attr("releaseType"), Evidence: inv.evidence(doc, "/assembly/assemblyIdentity")}
 	for _, dependency := range root.children("dependency") {
 		for _, dependent := range dependency.children("dependentAssembly") {
+			if err := singletonChildren(dependent, "assemblyIdentity"); err != nil {
+				return err
+			}
 			id := assemblyIdentity(dependent.child("assemblyIdentity"))
 			if id.Name == "" {
 				return fmt.Errorf("%w: CBS dependency identity", ErrMalformedMetadata)

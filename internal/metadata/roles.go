@@ -59,6 +59,12 @@ func (inv *Inventory) applyEvidence(result ProviderResult, known map[model.Paylo
 			found := false
 			for _, image := range inv.Images {
 				if image.Resource == role.Resource && image.Index == role.ImageIndex {
+					if err := inv.architecture(image.Architecture); err != nil {
+						return err
+					}
+					if image.Architecture == "" {
+						inv.gap("image-architecture-unresolved", string(role.Role)+" image has no architecture", &image.Evidence.Document)
+					}
 					found = true
 					break
 				}

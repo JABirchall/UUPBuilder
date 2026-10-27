@@ -106,3 +106,51 @@ func TestExplicitWinREAbsenceDoesNotBlanketClassifySourceUnavailable(t *testing.
 		t.Fatalf("optional WinRE absence overclaimed: %s", inv.Classification)
 	}
 }
+
+// A semantic setup/recovery role must not bypass the same target-architecture
+// checks as an OS image. Missing architecture remains an explicit, source-bound
+// gap; a matching architecture must not receive that gap.
+func TestExplicitImageRoleValidatesArchitecture(t *testing.T) {
+	for _, role := range []Role{RoleSetup, RoleWinRE} {
+		for _, tc := range []struct {
+			name, architectureXML string
+			wantConflict, wantGap bool
+		}{
+			{"mismatch", "<ARCH>0</ARCH>", true, false},
+			{"missing", "", false, true},
+			{"matching", "<ARCH>12</ARCH>", false, false},
+		} {
+			t.Run(string(role)+"/"+tc.name, func(t *testing.T) {
+				file := inputFile(t, "opaque.xml", `<WIM><IMAGE INDEX="8"><WINDOWS>`+tc.architectureXML+`<INSTALLATIONTYPE>WindowsPE</INSTALLATIONTYPE></WINDOWS></IMAGE></WIM>`, FormatWIMXML)
+				req := requestFor(t, file)
+				evidence := evidenceFor(file)
+				req.Inspections = []Inspection{{Resource: file.Resource, Provider: syntheticProvider{ProviderResult{Roles: []RoleEvidence{{Role: role, Resource: evidence.Document.Resource, ImageIndex: 8, Evidence: evidence}}}}}}
+				inv, err := Inspect(context.Background(), req)
+				if tc.wantConflict {
+					if !errors.Is(err, ErrConflictingMetadata) {
+						t.Fatalf("want architecture conflict for %s, got %v", role, err)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(inv.Roles) != 1 || inv.Roles[0].Role != role {
+					t.Fatalf("semantic role lost: %#v", inv.Roles)
+				}
+				gotGap := false
+				for _, gap := range inv.Gaps {
+					if gap.Code == "image-architecture-unresolved" {
+						gotGap = true
+						if gap.Document == nil || *gap.Document != evidence.Document {
+							t.Fatal("architecture gap lost original image metadata reference")
+						}
+					}
+				}
+				if gotGap != tc.wantGap {
+					t.Fatalf("architecture gap: got %v, want %v", gotGap, tc.wantGap)
+				}
+			})
+		}
+	}
+}
