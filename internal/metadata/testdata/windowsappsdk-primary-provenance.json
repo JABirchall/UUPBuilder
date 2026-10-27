@@ -1,0 +1,35 @@
+[
+  {
+    "localFile": "windowsappsdk-LICENSE.txt",
+    "originalRepositoryPath": "LICENSE",
+    "url": "https://raw.githubusercontent.com/microsoft/WindowsAppSDK/186154b3df20207c6f3398a6dec5de12a4cecd44/LICENSE",
+    "commit": "186154b3df20207c6f3398a6dec5de12a4cecd44",
+    "bytes": 1141,
+    "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "acquiredUtc": "2026-10-27T10:16:55.9621631Z",
+    "license": "MIT, see windowsappsdk-LICENSE.txt",
+    "kind": "Microsoft-authored source test manifest, not captured UUP inbox metadata"
+  },
+  {
+    "localFile": "windowsappsdk-framework-arm64-AppxManifest.xml",
+    "originalRepositoryPath": "installer/test/CreateTestPackages/TestPackage_Framework/appxmanifest-arm64.xml",
+    "url": "https://raw.githubusercontent.com/microsoft/WindowsAppSDK/186154b3df20207c6f3398a6dec5de12a4cecd44/installer/test/CreateTestPackages/TestPackage_Framework/appxmanifest-arm64.xml",
+    "commit": "186154b3df20207c6f3398a6dec5de12a4cecd44",
+    "bytes": 920,
+    "sha256": "61a5b588f1a0f463a2aa5767401c6810016acff3d48001b4c16bb7a7049d0dce",
+    "acquiredUtc": "2026-10-27T10:16:56.1803043Z",
+    "license": "MIT, see windowsappsdk-LICENSE.txt",
+    "kind": "Microsoft-authored source test manifest, not captured UUP inbox metadata"
+  },
+  {
+    "localFile": "windowsappsdk-ddlm-arm64-AppxManifest.xml",
+    "originalRepositoryPath": "test/DynamicDependency/data/DynamicDependencyLifetimeManager.Msix/appxmanifest-arm64.xml",
+    "url": "https://raw.githubusercontent.com/microsoft/WindowsAppSDK/186154b3df20207c6f3398a6dec5de12a4cecd44/test/DynamicDependency/data/DynamicDependencyLifetimeManager.Msix/appxmanifest-arm64.xml",
+    "commit": "186154b3df20207c6f3398a6dec5de12a4cecd44",
+    "bytes": 4537,
+    "sha256": "76b43af75d15b2907469619e18305fef9d137be474d162d4571109b6f95addb4",
+    "acquiredUtc": "2026-10-27T10:16:56.4288818Z",
+    "license": "MIT, see windowsappsdk-LICENSE.txt",
+    "kind": "Microsoft-authored source test manifest, not captured UUP inbox metadata"
+  }
+]

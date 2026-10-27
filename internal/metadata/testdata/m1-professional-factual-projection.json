@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "notice": "Authored factual projection from authentic Microsoft metadata; not an upstream schema and not a redistribution license for the original CompDB",
+  "sourceFile": "DesktopTargetCompDB_professional_en-us.xml",
+  "originalBytes": 24048,
+  "originalSha256": "3f1705c8ed1b8a2ff5b52899929536acebe760810561de4a16877ba41343cb90",
+  "namespace": "http://schemas.microsoft.com/embedded/2004/10/ImageUpdate",
+  "composition": {
+    "type": "Build",
+    "version": "10.0.22000.1",
+    "buildId": "b5347a24-b65f-7c51-ac95-8bdd36d866a1",
+    "tags": [
+      {
+        "value": "professional",
+        "name": "Edition"
+      },
+      {
+        "value": "en-us",
+        "name": "Language"
+      },
+      {
+        "value": "Canonical",
+        "name": "UpdateType"
+      }
+    ],
+    "architecture": "arm64"
+  },
+  "feature": {
+    "id": "professional_en-us",
+    "type": "DesktopMedia",
+    "family": "Client",
+    "dependencies": [
+      "Windows.Client.ShellComponents~~1.0",
+      "Language.Basic~en-us~1.0",
+      "Language.Handwriting~en-us~1.0",
+      "Language.Speech~en-us~1.0",
+      "Language.TextToSpeech~en-us~1.0",
+      "Language.OCR~en-us~1.0",
+      "Hello.Face.20134~~1.0",
+      "OneCoreUAP.OneSync~~1.0",
+      "Microsoft.Windows.WordPad~~1.0",
+      "App.StepsRecorder~~1.0",
+      "MathRecognizer~~1.0",
+      "Microsoft.Windows.PowerShell.ISE~~1.0",
+      "App.Support.QuickAssist~~1.0",
+      "Browser.InternetExplorer~~11.0",
+      "Media.WindowsMediaPlayer~~12.0",
+      "Microsoft.Windows.Notepad.System~~1.0",
+      "OpenSSH.Client~~1.0",
+      "Print.Management.Console~~1.0"
+    ],
+    "packageRefs": [
+      {
+        "id": "Microsoft-Windows-Client-LanguagePack-Package_en-us~31bf3856ad364e35~arm64~en-us~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Foundation-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-EditionSpecific-Professional-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Desktop-Required-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Desktop-Required-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Desktop-Required-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Features-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Features-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Client-Features-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-CHPE-Binaries-arm64x86-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-WowPack-CoreARM-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-EditionPack-Professional-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-EditionPack-Professional-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-EditionPack-Professional-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-RegulatedPackages-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-RegulatedPackages-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-RegulatedPackages-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Not-Supported-On-LTSB-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Not-Supported-On-LTSB-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Not-Supported-On-LTSB-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Required-ShellExperiences-Desktop-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Required-ShellExperiences-Desktop-WOW64-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Required-ShellExperiences-Desktop-arm64arm-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft.ModernApps.Client.All",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft.ModernApps.Client.professional",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-UserExperience-Desktop-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-LanguageFeatures-Basic-en-us-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-LanguageFeatures-Speech-en-us-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-LanguageFeatures-TextToSpeech-en-us-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-LanguageFeatures-OCR-en-us-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-Hello-Face-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-WordPad-FoD-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-TabletPCMath-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-QuickAssist-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_Microsoft-Windows-MediaPlayer-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "arm64_OpenSSH-Client-Package",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~arm64~~",
+        "packageType": "FeaturePackage"
+      },
+      {
+        "id": "professional_en-us_esd",
+        "packageType": "MetadataESD"
+      }
+    ]
+  },
+  "selectedPackages": [
+    {
+      "id": "Microsoft-Windows-Client-LanguagePack-Package_en-us~31bf3856ad364e35~arm64~en-us~",
+      "version": "10.0.22000.1",
+      "payloads": [
+        {
+          "path": "UUP\\Desktop\\editionpackages\\en-us\\Client\\Microsoft-Windows-Client-LanguagePack-Package_en-us~31bf3856ad364e35~arm64~en-us~.esd",
+          "type": "Canonical",
+          "size": "15669800",
+          "opaquePayloadHash": "JRCT0IiX/BEesT5qBKuJ6f8yXxJdkHqNMRy2yXFjM4Q=",
+          "hashAlgorithmBound": false
+        }
+      ]
+    },
+    {
+      "id": "arm64_Microsoft-Windows-Foundation-Package",
+      "version": "10.0.22000.1",
+      "payloads": [
+        {
+          "path": "UUP\\Desktop\\editionPackages\\neutral\\Microsoft-Windows-Foundation-Package.ESD",
+          "type": "Canonical",
+          "size": "21506",
+          "opaquePayloadHash": "NPi5eP2WPXh7LJzQ4FqYHgZ5yNNf9HdsxpG/CYesVYE=",
+          "hashAlgorithmBound": false
+        }
+      ]
+    }
+  ],
+  "roles": {
+    "recovery": "unknown",
+    "os": "unknown",
+    "setup": "unknown"
+  },
+  "derivedEditionBase": "unknown",
+  "appCustomizationPhase": "unknown"
+}

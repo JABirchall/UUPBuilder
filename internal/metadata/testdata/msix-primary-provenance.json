@@ -1,0 +1,46 @@
+[
+  {
+    "localFile": "msix-packaging-LICENSE.txt",
+    "originalRepositoryPath": "LICENSE",
+    "url": "https://raw.githubusercontent.com/microsoft/msix-packaging/25a65f5c1690930813bcc10cdf1d59fa865f2bb1/LICENSE",
+    "commit": "25a65f5c1690930813bcc10cdf1d59fa865f2bb1",
+    "bytes": 1119,
+    "sha256": "d2a45116709136462ee7a1c42f0e75f0efa258fe959b1504dc8ea4573451b759",
+    "acquiredUtc": "2026-10-27T10:16:08.9743236Z",
+    "license": "MIT, see msix-packaging-LICENSE.txt",
+    "kind": "Microsoft source file"
+  },
+  {
+    "localFile": "msix-Sample_AppxManifest.xml",
+    "originalRepositoryPath": "src/test/testData/manifest/Sample_AppxManifest.xml",
+    "url": "https://raw.githubusercontent.com/microsoft/msix-packaging/25a65f5c1690930813bcc10cdf1d59fa865f2bb1/src/test/testData/manifest/Sample_AppxManifest.xml",
+    "commit": "25a65f5c1690930813bcc10cdf1d59fa865f2bb1",
+    "bytes": 4998,
+    "sha256": "fdf6492f3834a67ed9c6b9eab5d877e9d53a1b1f10d5a36376b045da28404777",
+    "acquiredUtc": "2026-10-27T10:16:09.1650902Z",
+    "license": "MIT, see msix-packaging-LICENSE.txt",
+    "kind": "Microsoft-authored source test sample, not a captured inbox UUP app"
+  },
+  {
+    "localFile": "msix-BundleManifestSchema2018.xsd",
+    "originalRepositoryPath": "resources/AppxPackaging/Manifest/Schema/2018/BundleManifestSchema2018.xsd",
+    "url": "https://raw.githubusercontent.com/microsoft/msix-packaging/25a65f5c1690930813bcc10cdf1d59fa865f2bb1/resources/AppxPackaging/Manifest/Schema/2018/BundleManifestSchema2018.xsd",
+    "commit": "25a65f5c1690930813bcc10cdf1d59fa865f2bb1",
+    "bytes": 4956,
+    "sha256": "eb31415a6054e0e68e6b6d02e327efe673317f5287476d7dc3cfe4fdfd96594d",
+    "acquiredUtc": "2026-10-27T10:16:09.3592898Z",
+    "license": "MIT, see msix-packaging-LICENSE.txt",
+    "kind": "Microsoft source file"
+  },
+  {
+    "localFile": "msix-pack-input-AppxManifest.xml",
+    "originalRepositoryPath": "src/test/testData/pack/input/AppxManifest.xml",
+    "url": "https://raw.githubusercontent.com/microsoft/msix-packaging/25a65f5c1690930813bcc10cdf1d59fa865f2bb1/src/test/testData/pack/input/AppxManifest.xml",
+    "commit": "25a65f5c1690930813bcc10cdf1d59fa865f2bb1",
+    "bytes": 3203,
+    "sha256": "36bc3a6df19da41349df87cb7816f0181455a3f1b33bb67b3b478c6b55afb64c",
+    "acquiredUtc": "2026-10-27T10:16:09.5738417Z",
+    "license": "MIT, see msix-packaging-LICENSE.txt",
+    "kind": "Microsoft source file"
+  }
+]
