@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -98,11 +99,21 @@ func (m *Model) acceptSearch(msg searchResultMsg) {
 	m.builds.records = slices.Clone(msg.builds)
 	m.builds.cursor = min(m.builds.cursor, max(0, len(m.builds.visible())-1))
 	for _, b := range m.builds.records {
-		if b.UpdateID == m.cfg.Image.UpdateID && b.Architecture == m.cfg.Image.Architecture {
+		if b.UpdateID != m.cfg.Image.UpdateID {
+			continue
+		}
+		if b.Architecture != m.cfg.Image.Architecture {
+			requested := m.cfg.Image.Architecture
+			m.invalidateSource()
+			m.cfg.Image = model.Selection{Architecture: requested}
+			m.source = nil
+			m.revision++
+			m.notice = fmt.Sprintf("Target mismatch: source %s reports %s; requested %s. Select an exact source record again; dependent choices cleared.", b.UpdateID, b.Architecture, requested)
+		} else {
 			copy := b
 			m.source = &copy
-			break
 		}
+		break
 	}
 	m.syncArchitectureCursor()
 }
