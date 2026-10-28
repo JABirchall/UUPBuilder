@@ -45,6 +45,13 @@ func validateInvocation(inv Invocation) error {
 }
 
 func (r *Runner) Run(ctx context.Context, inv Invocation, emit model.Emit) (RunResult, error) {
+	return runOwnedProcess(ctx, inv, emit, 0)
+}
+
+// A zero job creates the isolated per-invocation lifetime. A borrowed nonzero
+// job is retained by SessionRunner; this function never closes that handle.
+func runOwnedProcess(ctx context.Context, inv Invocation, emit model.Emit, job windows.Handle) (RunResult, error) {
+	retained := job != 0
 	if err := ctx.Err(); err != nil {
 		return RunResult{}, err
 	}
@@ -56,12 +63,14 @@ func (r *Runner) Run(ctx context.Context, inv Invocation, emit model.Emit) (RunR
 		return RunResult{}, err
 	}
 	defer dir.Close()
-	job, err := newOwnedJob()
-	if err != nil {
-		return RunResult{}, err
+	if !retained {
+		job, err = newOwnedJob()
+		if err != nil {
+			return RunResult{}, err
+		}
 	}
 	defer func() {
-		if job != 0 {
+		if !retained && job != 0 {
 			windows.CloseHandle(job)
 		}
 	}()
@@ -162,13 +171,30 @@ func (r *Runner) Run(ctx context.Context, inv Invocation, emit model.Emit) (RunR
 	var wg sync.WaitGroup
 	var stdout, stderr string
 	wg.Add(2)
-	go func() { defer wg.Done(); stdout = captureOutput(outR, inv, emit) }()
-	go func() { defer wg.Done(); stderr = captureOutput(errR, inv, emit) }()
+	var captureDone chan struct{}
+	var outReader, errReader io.Reader = outR, errR
+	if retained {
+		captureDone = make(chan struct{})
+		outReader = &sessionPipeReader{file: outR, parentDone: captureDone}
+		errReader = &sessionPipeReader{file: errR, parentDone: captureDone}
+	}
+	go func() { defer wg.Done(); stdout = captureOutput(outReader, inv, emit) }()
+	go func() { defer wg.Done(); stderr = captureOutput(errReader, inv, emit) }()
 	if _, err := windows.ResumeThread(process.Thread); err != nil {
-		windows.TerminateJobObject(job, 1)
+		// A suspended failed launch cannot have descendants. Do not destroy
+		// helpers retained by earlier commands in the borrowed session job.
+		if retained {
+			windows.TerminateProcess(process.Process, 1)
+		} else {
+			windows.TerminateJobObject(job, 1)
+		}
 		windows.WaitForSingleObject(process.Process, windows.INFINITE)
-		windows.CloseHandle(job)
-		job = 0
+		if retained {
+			close(captureDone)
+		} else {
+			windows.CloseHandle(job)
+			job = 0
+		}
 		wg.Wait()
 		return result, err
 	}
@@ -187,10 +213,15 @@ func (r *Runner) Run(ctx context.Context, inv Invocation, emit model.Emit) (RunR
 		}
 		waitErr = errors.Join(waitErr, <-done)
 	}
-	// Successful parents cannot leave background children holding output open.
-	// Closing this invocation's job kills only its remaining descendants.
-	closeErr := windows.CloseHandle(job)
-	job = 0
+	// Isolated invocations kill remaining descendants before reading to EOF.
+	// Sessions keep their job and finish capture without requiring descendant EOF.
+	var closeErr error
+	if retained {
+		close(captureDone)
+	} else {
+		closeErr = windows.CloseHandle(job)
+		job = 0
+	}
 	exitErr := windows.GetExitCodeProcess(process.Process, &result.ExitCode)
 	wg.Wait()
 	result.Stdout = stdout
