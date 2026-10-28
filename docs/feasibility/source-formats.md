@@ -341,16 +341,41 @@ mounted query. Expected host-file pins, including WimServ, do not establish
 actual process membership or loaded-module identity. The
 [toolchain ledger](toolchains.md) binds the receipts and session-lifetime limits.
 
-The healthy projection still supplied no new selected-source snapshot,
-source-provider authentication or Get-Intl result: the generic reader rejected
+That healthy projection supplied no new selected-source snapshot,
+source-provider authentication or Get-Intl result: the V6 generic reader rejected
 `FILE_ATTRIBUTE_REPARSE_POINT` on its first selected file,
 `Windows\System32\config\DEFAULT`. Actual tag, name-surrogate and provider
-identity were not captured. The source archive's zero reparse declarations do
-not prove a reparse-free mount view or authorize a general reader exception.
-A metadata-only tag census remains a proposal, without implementation or
-execution. Servicing, configuration, CBS/package, full-family reconstruction,
-Setup/boot, security and module/network proof remain unresolved; no source
-family or Gate P/S readiness is promoted.
+identity were not captured in that case; its reader failure remains preserved.
+
+The later actual metadata-only census in
+`native-winre-x86-readonly-mount-19041-v4` observed all 45 literal paths in 8 ms:
+16 directories without reparse-point attributes and 29 fixed files (five
+selected source members, 23 provider-store files and one CAT). All files had
+tag `0x80000008`, Microsoft bit true and name-surrogate bit false; all 45 native
+search handles were checked closed and all 29 sizes matched source declarations.
+Microsoft identifies that tag as `IO_REPARSE_TAG_WIM` for the WIM Mount filter,
+distinct from WOF `0x80000017`, as sourced in the [toolchain ledger](toolchains.md).
+This explains the generic guard's stop; original archive declarations and
+mounted projection attributes remain different layers.
+
+Worker and supervisor exited zero and all six native phases exited zero. The
+unique owned index-1 row was read-only with `Status: Ok`; the retained session
+finalized naturally after owned discard and confirmed absence. Cleanup and
+postchecks passed, source bytes and unrelated inventory were unchanged, final
+inventory was empty and no recovery was required or run. The 54/54-check
+`projection-tag-census-v2-actual-observer.json` and the
+[toolchain ledger](toolchains.md) bind the exact receipts, source identity,
+session accounting and host-code/driver attribution limits.
+
+The census's name-based, potentially stale metadata grants no mounted-content
+reader permission or atomic current-handle proof. Microsoft ownership and a
+false name-surrogate bit supply no blanket reparse waiver or unknown-tag
+allowance. No mounted selected bytes, mounted provider authentication or
+Get-Intl ran in this census; preflight rehashed pre-existing source-evidence
+blobs as data. A separately reviewed and executed current-handle/source/trust
+contract remains required. Servicing, configuration, CBS/package, full-family
+reconstruction, Setup/boot, security and module/network proof remain unresolved;
+no source family or Gate P/S readiness is promoted.
 
 The existing ARM64 acquisition remains 46 frozen source bodies totalling
 3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for

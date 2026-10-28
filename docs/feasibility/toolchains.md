@@ -660,17 +660,72 @@ inventory was empty and `RecoveryRequired` was false. No new driver installation
 or explicit driver start/stop was requested. Normal existing-driver demand load
 and mount bookkeeping remain possible; loaded driver state was not queried.
 
-The healthy registered projection exposed a separate reader blocker:
+That healthy registered projection exposed a separate V6 reader blocker:
 `Assert-PlainPath` rejected `FILE_ATTRIBUTE_REPARSE_POINT` on the first selected
 file, `Windows\System32\config\DEFAULT`, before the five-member snapshot,
-source-provider authentication or Get-Intl. The actual tag, name-surrogate bit
-and provider identity were not captured. Zero source-archive reparses do not
-establish zero reparses in the projected mount view; no WIM tag or general
-reparse exception is inferred. A finite metadata-only tag census is proposed,
-not implemented or executed.
+source-provider authentication or Get-Intl. That case did not capture the actual
+tag, name-surrogate bit or provider identity; its failed result remains intact.
+
+The fourth physical case, `native-winre-x86-readonly-mount-19041-v4`, completed
+the finite metadata-only tag census. Supervisor PID 14648 exited zero, observed
+by the parent in 33,840 ms; worker PID 21080 exited zero in 31,437 ms. All six
+DISM phases exited zero: inventory-before PID 28144, mount PID 31604,
+inventory-mounted PID 22568, inventory-cleanup PID 31632, discard PID 27428 and
+inventory-after PID 27540. The unique owned source/mount/index-1 row had
+`ReadWrite: No` and `Status: Ok`.
+
+All 45 literal paths were observed in 8 ms: 16 directories without
+`FILE_ATTRIBUTE_REPARSE_POINT` and 29 fixed files (five selected source members,
+23 provider-store files and one CAT). Every file reported tag `0x80000008`,
+Microsoft bit true and name-surrogate bit false. All 45 native search handles
+were checked closed; all 29 file sizes matched frozen source declarations.
+Microsoft's [MS-FSCC Reparse Tags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/c8e77b37-3909-4fe6-a4ea-2b9d423b1ee4)
+maps that value to `IO_REPARSE_TAG_WIM`, used by the WIM Mount filter;
+`IO_REPARSE_TAG_WOF` is the distinct `0x80000017` value. The measured metadata
+explains the generic all-reparse guard's stop. Zero source-archive reparse
+declarations and mounted projection attributes describe different layers.
+
+Primary mount completion retained 48-byte job accounting with one active
+process. After owned discard and confirmed absence, natural finalization
+returned 48-byte accounting with zero active processes, checked job close,
+both pipe EOFs and no overflow, read failure or forced termination. Session,
+cleanup, source, unrelated-inventory and postchecks passed; final inventory was
+empty, `RecoveryRequired` was false and no recovery ran. The independent
+observer rehashed the unchanged 304,934,622-byte source to SHA-256
+`a69934cbb6e222e4b581cddaab5b5ad6928b8b34fc62cc3f8639c8e38744c1ac`.
+All 36 expected host-code files had fresh Valid Microsoft checks, including
+WimServ. Logged WimServ PID 32128 is log-only evidence; actual PID membership
+and loaded path remain unmeasured. No explicit driver installation/start/stop
+was requested; demand load/bookkeeping remained possible and loaded driver
+state was not queried. Recorded final control bounds were 173,506 bytes,
+32 files and four directories, including 115,969 log bytes; the mounted tree
+was not scanned.
+
+The retained `projection-tag-census-v2-actual-observer.json` is 124,921 bytes,
+SHA-256 `62d792f0d0d1a2a8e8c4f000da7870160424dd8928ffe37d502ecd544a04e97a`,
+with 54/54 checks passed. Its named v4 receipt bindings are:
+
+| Receipt | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `result.json` | 75,066 | `4d13252f647e8b2f828032435a5e8f30385dc78d42ab11d907f3374022203d96` |
+| `supervisor-main-result.json` | 81,080 | `220f7b373f5423b79e0e2f7e5a9d01efea71fdeb15fb207fe86cb21201e90e58` |
+| `projection-tag-census.json` | 39,971 | `93ceb3f492ad6cb559ccd28daa99a5b4fc2f1ee686f4480a29292ba543024ead` |
+| `mount-session-final.json` | 3,501 | `332799d25d5ed63532414811b0d04dbab76c73a90ebce22a50bc6dad62e5438b` |
+
+The standalone census exactly matches the worker's Census. Seven
+supervisor-embedded UTC strings omit a trailing fractional zero while denoting
+identical instants; the observer records that serialization qualification.
+
+These name-based, potentially stale observations supply no atomic path or
+current-handle proof and grant no mounted-content-reader permission. Tag
+ownership/non-name-surrogate bits authorize neither a blanket reparse waiver
+nor unknown tags. No mounted selected-file bytes, mounted provider
+authentication or Get-Intl ran in this census; preflight rehashed pre-existing
+source-evidence blobs as data. A separately reviewed and executed
+current-handle/source/trust contract remains required.
 
 These observations establish healthy read-only projection and session lifetime,
-not a successful mounted query or servicing witness. All three physical
+not a successful mounted query or servicing witness. All four physical
 comparison cases and earlier query/trust failures remain preserved. Full P1,
 Gate P/S, configuration, CBS/package, full-source-family, Setup/boot, security
 fidelity and actual module/network closure remain unpassed; source-family rows
