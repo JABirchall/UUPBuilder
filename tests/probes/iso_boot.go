@@ -70,8 +70,22 @@ func (r *isoReader) boot(catalog uint32, files map[string]isoFile, e ISOExpectat
 	return embedded, direct, err
 }
 
+func isoEFIBinding(machine uint16) (path string, magic uint16) {
+	switch machine {
+	case 0x014c:
+		return "EFI/BOOT/BOOTIA32.EFI", 0x010b
+	case 0x8664:
+		return "EFI/BOOT/BOOTX64.EFI", 0x020b
+	case 0xaa64:
+		return "EFI/BOOT/BOOTAA64.EFI", 0x020b
+	default:
+		return "", 0
+	}
+}
+
 func inspectEFIPE(reader io.ReaderAt, size int64, want uint16) (uint16, error) {
-	if size < 256 {
+	_, magic := isoEFIBinding(want)
+	if reader == nil || size < 256 || magic == 0 {
 		return 0, errors.New("short EFI PE")
 	}
 	head := make([]byte, 64)
@@ -88,7 +102,7 @@ func inspectEFIPE(reader io.ReaderAt, size int64, want uint16) (uint16, error) {
 	}
 	machine := le16(p[4:])
 	optional := int64(le16(p[20:]))
-	if string(p[:4]) != "PE\x00\x00" || machine != want || le16(p[6:]) == 0 || le16(p[6:]) > 96 || optional < 72 || optional > size-pe-24 || le16(p[24:]) != 0x20b || le16(p[92:]) != 10 {
+	if string(p[:4]) != "PE\x00\x00" || machine != want || le16(p[6:]) == 0 || le16(p[6:]) > 96 || optional < 72 || optional > size-pe-24 || le16(p[24:]) != magic || le16(p[92:]) != 10 {
 		return 0, errors.New("EFI PE target/optional header/subsystem differs")
 	}
 	return machine, nil
@@ -98,7 +112,8 @@ func inspectEFIPE(reader io.ReaderAt, size int64, want uint16) (uint16, error) {
 // chains. It verifies the complete selected loader separately from the direct
 // media loader, whose original bytes can legitimately be different.
 func inspectEFIFAT(reader io.ReaderAt, size int64, expected ISOExpectedFile, machine uint16) (uint16, error) {
-	if reader == nil || size < 4096 || size > 8<<20 || size%512 != 0 || !isoHash(expected.SHA256) || expected.Size <= 0 || expected.Size > size || expected.Path != "EFI/BOOT/BOOTAA64.EFI" {
+	path, _ := isoEFIBinding(machine)
+	if reader == nil || path == "" || size < 4096 || size > 8<<20 || size%512 != 0 || !isoHash(expected.SHA256) || expected.Size <= 0 || expected.Size > size || expected.Path != path {
 		return 0, errors.New("bounded source EFI FAT expectations required")
 	}
 	bpb := make([]byte, 512)

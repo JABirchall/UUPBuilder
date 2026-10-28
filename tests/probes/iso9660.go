@@ -144,8 +144,9 @@ func InspectISO(reader io.ReaderAt, size int64, expected ISOExpectations) (ISOIn
 	return result, nil
 }
 func validateISOExpectations(e ISOExpectations) (map[string]ISOExpectedFile, error) {
-	if e.Volume == "" || len(e.Volume) > 32 || len(e.Files) == 0 || len(e.Files) > 512 || e.TargetMachine != 0xaa64 {
-		return nil, errors.New("closed ARM64 ISO expectations required")
+	loaderPath, _ := isoEFIBinding(e.TargetMachine)
+	if e.Volume == "" || len(e.Volume) > 32 || len(e.Files) == 0 || len(e.Files) > 512 || loaderPath == "" {
+		return nil, errors.New("closed x86/amd64/ARM64 ISO expectations required")
 	}
 	w := map[string]ISOExpectedFile{}
 	for _, f := range e.Files {
@@ -154,8 +155,8 @@ func validateISOExpectations(e ISOExpectations) (map[string]ISOExpectedFile, err
 		}
 		w[f.Path] = f
 	}
-	if e.DirectLoaderPath != "EFI/BOOT/BOOTAA64.EFI" || w[e.DirectLoaderPath].Path == "" || w[e.BootImagePath].Path == "" || e.EmbeddedLoader.Path != "EFI/BOOT/BOOTAA64.EFI" || e.EmbeddedLoader.Size <= 0 || e.EmbeddedLoader.Size > 8<<20 || !isoHash(e.EmbeddedLoader.SHA256) {
-		return nil, errors.New("source-bound ARM64 boot roles required")
+	if e.DirectLoaderPath != loaderPath || w[e.DirectLoaderPath].Path == "" || w[e.BootImagePath].Path == "" || e.EmbeddedLoader.Path != loaderPath || e.EmbeddedLoader.Size <= 0 || e.EmbeddedLoader.Size > 8<<20 || !isoHash(e.EmbeddedLoader.SHA256) {
+		return nil, errors.New("source-bound target EFI boot roles required")
 	}
 	return w, nil
 }
