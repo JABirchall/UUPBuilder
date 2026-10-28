@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"uupbuilder/internal/catalog"
+	"uupbuilder/internal/config"
 	"uupbuilder/internal/model"
 )
 
@@ -16,6 +17,19 @@ type ChangeArchitectureMsg struct{ Architecture model.Architecture }
 type SelectLanguageMsg struct{ Language string }
 type ToggleEditionMsg struct{ Edition string }
 type RefreshMsg struct{}
+type ConversionFieldChangedMsg struct{ Key, Value string }
+type ConfigPathChangedMsg struct{ Path string }
+type LoadConfigMsg struct{}
+type SaveConfigMsg struct{}
+type conversionFocusMsg struct{ index int }
+type configActionResultMsg struct {
+	generation, revision uint64
+	path                 string
+	save                 bool
+	cfg                  config.Config
+	result               config.SaveResult
+	err                  error
+}
 type initializeMsg struct{}
 type imageFocusMsg struct{ field int }
 type editionClickMsg struct {

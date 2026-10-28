@@ -1,0 +1,30 @@
+UUP / IMAGE BUILDER | Workspace
+1 Builds | Conversion and TOML settings
+2 Image | Output | output.directory
+3 Apps | requested: C:\very-long-output-
+>4 Conversion | name\directorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirec
+5 Review | torydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydir...
+6 Progress | Updates | Reset component base: off
+| Updates | Cumulative MSU: auto
+| Updates | Reference images: auto
+| Updates | Keep reference ESDs: false
+| Editions | Derived editions (comma separated):
+| Editions | Edition servicing: auto
+| Editions | Preserve temporary required bases: true
+| Boot / recovery | .NET Framework 3: false
+| Boot / recovery | Include WinRE: true
+| Boot / recovery | WinRE updates: auto
+| Boot / recovery | Update boot files: false
+| Boot / recovery | Boot WIM engine: auto
+| Drivers | Integrate drivers: false
+| Drivers | Driver source directory:
+| Drivers | Targets (os, winpe, winre, shared):
+| Output | Output kind: iso
+| Output | Image format: wim
+| Output | SWM split size (MiB): 3800
+| > Output | Output directory: C:\very-long-output-name\directorydirectorydirectorydirectorydirecto...
+Source: none selected | Draft r2
+ID: select an exact catalogue record
+Target: amd64 | Language: choose | Editions: choose
+! output.directory: must be nonempty UTF-8 without surrounding whitespace or controls
+up/down / tab field | enter / space edit or run | esc back | ? help | ctrl+c quit

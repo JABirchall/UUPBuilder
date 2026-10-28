@@ -26,6 +26,7 @@ func runInteractive(ctx context.Context, opts Options, programOptions ...tea.Pro
 		return err
 	}
 	opts.Dependencies.Context = ctx
+	opts.Dependencies.ConfigPath = opts.ConfigPath
 	workspace := tui.New(opts.Dependencies, opts.Config)
 	defer workspace.Close()
 	programOptions = append(programOptions, tea.WithContext(ctx), tea.WithoutSignalHandler())

@@ -208,7 +208,7 @@ func (m Model) areaRows(width, height int) []row {
 	case Apps:
 		return []row{{text: "Choose included apps"}, {text: "App inventory has not been resolved for this image."}, {text: "Requested app policies are retained; applicability is unchecked."}}
 	case Conversion:
-		return []row{{text: "Conversion settings"}, {text: "The conversion settings editor is not yet available."}}
+		return m.conversionRows(width, height)
 	case Review:
 		return []row{{text: "Review build"}, {text: "Source metadata, settings and preflight must be resolved first."}, {text: "No build can be started from this browsing view."}}
 	case Progress:

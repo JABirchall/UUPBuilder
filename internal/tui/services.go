@@ -20,8 +20,12 @@ type Catalog interface {
 }
 type Dependencies struct {
 	Catalog Catalog
-	Context context.Context
-	Host    model.Host // Informational only; never restricts targets.
+	// CatalogFactory recomposes the existing discovery port after a loaded
+	// endpoint change. A fixed injected Catalog can omit it and reject changes.
+	CatalogFactory func(endpoint string) Catalog
+	ConfigPath     string
+	Context        context.Context
+	Host           model.Host // Informational only; never restricts targets.
 }
 
 var _ Catalog = (*catalog.Client)(nil)

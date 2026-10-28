@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,6 +13,21 @@ import (
 	"uupbuilder/internal/config"
 	"uupbuilder/internal/tui"
 )
+
+func TestInteractiveUsesExactSelectedConfigPath(t *testing.T) {
+	want := filepath.Join(t.TempDir(), "explicit", "selected.toml")
+	seen := ""
+	options := append(headlessProgramOptions(), tea.WithFilter(func(workspace tea.Model, _ tea.Msg) tea.Msg {
+		seen = workspace.(tui.Model).Snapshot().ConfigPath
+		return tea.Quit()
+	}))
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := runInteractive(ctx, Options{ConfigPath: want, Config: config.Defaults(), Dependencies: tui.Dependencies{ConfigPath: "wrong.toml", Catalog: startupCatalog{search: func(context.Context, string) ([]catalog.Build, error) { return nil, nil }}}}, options...)
+	if err != nil || seen != want {
+		t.Fatalf("selected config path = %q, want %q; error = %v", seen, want, err)
+	}
+}
 
 func TestInteractiveCancellationClosesDiscovery(t *testing.T) {
 	started := make(chan struct{})

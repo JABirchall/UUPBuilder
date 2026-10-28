@@ -1,0 +1,21 @@
+UUP / IMAGE BUILDER | Workspace
+1 Builds 2 Image 3 Apps [4 Conversion] 5 Review 6 Progress
+Conversion and TOML settings
+Downloads | downloads.parallel_files
+requested: 0 | effective: unchecked (source applicability
+unresolved)
+Output | Image format: wim
+Output | SWM split size (MiB): 3800
+Output | Output directory: .
+Output | Filename (auto or name): auto
+Output | Volume label (auto or label): auto
+Output | Edition order (comma separated):
+Downloads | Proxy mode: system
+Downloads | Proxy origin (no credentials):
+> Downloads | Parallel files: 0
+Source: none selected | Draft r2
+ID: select an exact catalogue record
+Target: amd64 | Language: choose | Editions: choose
+! downloads.parallel_files: must be positive
+up/down / tab field | enter / space edit or run | esc back | ? help
+| ctrl+c quit

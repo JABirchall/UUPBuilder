@@ -29,8 +29,11 @@ func (m *Model) navigate(area Area) {
 	m.area = area
 	m.builds.search.Blur()
 	m.builds.filter.Blur()
+	m.conversion.input.Blur()
 }
-func (m Model) editing() bool { return m.builds.search.Focused() || m.builds.filter.Focused() }
+func (m Model) editing() bool {
+	return m.builds.search.Focused() || m.builds.filter.Focused() || m.conversion.input.Focused()
+}
 func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	if key == "ctrl+c" {
@@ -48,6 +51,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if m.editing() {
+		if m.conversion.input.Focused() {
+			return m.updateConversionInput(msg)
+		}
 		if key == "esc" || key == "enter" {
 			m.builds.search.Blur()
 			m.builds.filter.Blur()
@@ -85,6 +91,8 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		if m.area == Image {
 			m.image.focus = (m.image.focus + 1) % 3
+		} else if m.area == Conversion {
+			m.move(1)
 		} else {
 			m.navigate((m.area + 1) % 6)
 		}
@@ -105,6 +113,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		return m.activate()
 	case "space", " ":
+		if m.area == Conversion {
+			return m.activate()
+		}
 		if m.area == Image && m.image.focus == 2 {
 			choices := m.editionChoices()
 			if len(choices) > m.image.editionCursor {
@@ -116,6 +127,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.conversion.input.Focused() {
+		return m.updateConversionInput(msg)
+	}
 	if m.builds.search.Focused() {
 		var cmd tea.Cmd
 		m.builds.search, cmd = m.builds.search.Update(msg)
@@ -130,6 +144,9 @@ func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 func (m *Model) move(delta int) {
+	if m.area == Conversion {
+		m.conversion.cursor = max(0, min(m.conversion.cursor+delta, configControlCount+len(m.conversion.fields)-1))
+	}
 	if m.area == Builds {
 		m.builds.cursor = max(0, min(m.builds.cursor+delta, len(m.builds.visible())-1))
 	}
@@ -145,6 +162,9 @@ func (m *Model) move(delta int) {
 	}
 }
 func (m Model) activate() (tea.Model, tea.Cmd) {
+	if m.area == Conversion {
+		return m.activateConversion()
+	}
 	if m.area == Builds {
 		rows := m.builds.visible()
 		if len(rows) > m.builds.cursor {

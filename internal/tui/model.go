@@ -21,6 +21,7 @@ import (
 // this is browsing state, not a frozen manifest/source-validation guarantee.
 type DraftSnapshot struct {
 	Revision         uint64
+	ConfigPath       string
 	Config           config.Config
 	Source           model.SourceIdentity
 	HasCatalogRecord bool
@@ -42,6 +43,8 @@ type Model struct {
 	width, height int
 	builds        buildsState
 	image         imageState
+	conversion    ConversionModel
+	configActions configActionsState
 	notice        string
 	showHelp      bool
 	appsUnchecked bool
@@ -52,10 +55,15 @@ func New(deps Dependencies, cfg config.Config) Model {
 		deps.Context = context.Background()
 	}
 	if deps.Catalog == nil {
+		if deps.CatalogFactory == nil {
+			deps.CatalogFactory = func(endpoint string) Catalog { return catalog.New(nil, endpoint) }
+		}
 		deps.Catalog = catalog.New(nil, cfg.Catalog.Endpoint)
 	}
 	ctx, cancel := context.WithCancel(deps.Context)
 	m := Model{deps: deps, cfg: cloneConfig(cfg), ctx: ctx, close: cancel, revision: 1, width: 110, height: 30, builds: newBuildsState()}
+	m.conversion = NewConversionModel(cfg, nil)
+	m.configActions.path = deps.ConfigPath
 	if m.cfg.Image.UpdateID == "" {
 		m.cfg.Image.Language = ""
 		m.cfg.Image.Editions = nil
@@ -79,7 +87,7 @@ func (m Model) Snapshot() DraftSnapshot {
 	if m.appsUnchecked {
 		appsNotice = appsUncheckedNotice
 	}
-	return DraftSnapshot{Revision: m.revision, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.image.ready(m.cfg.Image), Notice: m.notice, AppsNotice: appsNotice}
+	return DraftSnapshot{Revision: m.revision, ConfigPath: m.configActions.path, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.image.ready(m.cfg.Image), Notice: m.notice, AppsNotice: appsNotice}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -101,6 +109,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.builds.filter.SetWidth(max(1, m.contentWidth()-14))
 	case NavigateMsg:
 		m.navigate(msg.Area)
+	case ConversionFieldChangedMsg:
+		m.changeConversion(msg.Key, msg.Value)
+	case ConfigPathChangedMsg:
+		m.changeConfigPath(msg.Path)
+	case LoadConfigMsg:
+		return m.beginConfigAction(false)
+	case SaveConfigMsg:
+		return m.beginConfigAction(true)
+	case configActionResultMsg:
+		return m.acceptConfigAction(msg)
+	case conversionFocusMsg:
+		m.conversion.cursor = max(0, min(msg.index, configControlCount+len(m.conversion.fields)-1))
+		m.conversion.input.Blur()
+		return m.activate()
 	case SearchChangedMsg:
 		return m.changeQuery(msg.Query)
 	case searchDebouncedMsg:
