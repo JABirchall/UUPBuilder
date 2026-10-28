@@ -7,6 +7,21 @@ import (
 	"testing"
 )
 
+func TestUDFRejectsExpandedFileSetSequenceExtent(t *testing.T) {
+	b, expected := syntheticBridge()
+	if _, err := InspectISO(bytes.NewReader(b), int64(len(b)), expected); err != nil {
+		t.Fatal(err)
+	}
+	for _, sector := range []int{260, 266} {
+		p := b[sector*2048 : (sector+1)*2048]
+		binary.LittleEndian.PutUint32(p[248:], 32768)
+		syntheticUDFTag(p, 6, uint32(sector), 430)
+	}
+	if _, err := InspectISO(bytes.NewReader(b), int64(len(b)), expected); err == nil {
+		t.Fatal("declared file-set metadata extent overlapping ICBs/directories accepted")
+	}
+}
+
 func TestUDFRejectsShortDeclaredICBExtents(t *testing.T) {
 	control, expected := syntheticBridge()
 	if _, err := InspectISO(bytes.NewReader(control), int64(len(control)), expected); err != nil {

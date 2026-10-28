@@ -186,7 +186,8 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	if a.fsdBytes > 64*2048 || a.fsdBytes%2048 != 0 {
+	// This producer stores one file-set descriptor and one terminator block.
+	if a.fsdBytes != 2*uint32(isoBlock) {
 		return nil, errors.New("unsupported file set sequence extent")
 	}
 	var root, rootBytes uint32
