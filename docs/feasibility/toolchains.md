@@ -42,6 +42,49 @@ configure these required cases. `provider_windows_test.go`
 is Windows-only; running that test selection on another OS and seeing “no tests
 to run” is not a proof. Non-Windows `RunCase` reports the missing native host.
 
+The tagged gate now reads the private file named by `UUP_PROVIDER_RUNTIME` and
+passes each selected exact frozen binding through `WithRuntime`. Missing
+configuration fails explicitly with `runtime-unconfigured`, measured host facts
+and zero invocations. Before any case runs, the preflight checks every supplied
+binding against the loaded ledger, rejects unknown or altered cases, requires a
+binding for every selected case and applies the existing runtime validation.
+No full provider recipe is implemented by this checkpoint; the current P cases
+still lack expected outputs and provider/source closure.
+
+`LoadRuntimeBindings(io.Reader) (map[string]RuntimeConfig, error)` accepts one
+private UTF-8 JSON object with exactly `schema_version: 1` and `bindings`.
+`bindings` is an array of 1..128 objects, each carrying `case_id`, `fixture_root`,
+`workspace_parent` and `runtime`. The roots are explicit absolute native paths;
+they are copied into the excluded RuntimeConfig fields, never inferred from its
+public JSON. `runtime` contains the existing typed `case_digest`, `inputs`,
+`components`, `recipe`, `extraction` and optional `wim` fields. IDs use 1..128
+ASCII letters/digits/dot/underscore/hyphen (excluding `.` and `..`); case digests
+are lowercase SHA-256. Artifact paths use the existing relative Windows rules.
+Roots locate existing private material; loading does not open or attest it.
+
+The loader limits input to 1 MiB and nesting to 32 levels, rejects unknown
+fields, duplicate/noncanonical JSON keys, null values, trailing data,
+case-insensitive identity/path collisions, malformed identities and unknown
+recipes. Only `expand-compdb-cab-v1` and `observe-wim-lzms-solid-v1` can bind;
+both retain their component-only limitations. There is no command text,
+argument-vector, readiness or success field. The case digest freezes source
+generation, provider artifacts, expectations and pending blockers together.
+Fixture bytes, component pins/native identity, output inspection, evidence and
+architecture validation remain required after parsing. This private probe
+format does not change application TOML configuration.
+
+For the next servicing control, a complete Windows 10 desktop image with the
+installed Windows 10 provider is the first candidate, subject to exact fixture,
+operation and rights checks. Microsoft's [platform table](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
+supports Windows 10 hosts servicing Windows 10 images; the [22H2 tooling note](https://techcommunity.microsoft.com/blog/windows-itpro-blog/it-tools-to-support-windows-10-version-22h2/3655750)
+explains the shared 2004-generation tools. This supports a control hypothesis,
+not a passed operation. Fresh inspection found installed DISM 10.0.19041.1 on
+the 19045 host, no default ADK Deployment Tools directory, and mixed serviced
+versions among installed companion files. Source-selected remote providers and
+actual loaded dependencies must still be measured. The retained Get-Intl exit
+87/`0x80070057` and all earlier stops below remain unresolved. A new ADK is not
+assumed necessary for this control or sufficient for all target generations.
+
 `RunCase(ctx context.Context, c Case, emit model.Emit) (Evidence, error)` reads
 OS-owned `RtlGetVersion` and the
 native-machine output of dynamically resolved `IsWow64Process2` on Windows.

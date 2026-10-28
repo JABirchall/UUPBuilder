@@ -36,10 +36,30 @@ func TestProviderPerformsCrossArchitectureServicing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	runtimePath := os.Getenv("UUP_PROVIDER_RUNTIME")
+	if runtimePath == "" {
+		t.Fatalf("UNVERIFIED: runtime-unconfigured: UUP_PROVIDER_RUNTIME must name a private runtime binding file; observed OS=%s build=%d native/process=%s/%s; selected=%d; invocations=0", host.OS, host.Host.WindowsBuild, host.Host.NativeArchitecture, host.Host.ProcessArchitecture, len(selected))
+	}
+	runtimeFile, err := os.Open(runtimePath)
+	if err != nil {
+		t.Fatalf("UNVERIFIED: runtime-binding-unavailable: %v", err)
+	}
+	bindings, loadErr := LoadRuntimeBindings(runtimeFile)
+	closeErr := runtimeFile.Close()
+	if loadErr != nil {
+		t.Fatalf("UNVERIFIED: runtime-binding-invalid: %v", loadErr)
+	}
+	if closeErr != nil {
+		t.Fatalf("UNVERIFIED: runtime-binding-close: %v", closeErr)
+	}
+	bound, err := bindProviderRuntimes(ledger.Cases, selected, bindings)
+	if err != nil {
+		t.Fatalf("UNVERIFIED: runtime-binding-invalid: %v; invocations=0", err)
+	}
 	var observed []Evidence
 	for _, c := range selected {
 		t.Run(c.ID, func(t *testing.T) {
-			e, err := RunCase(context.Background(), c, nil)
+			e, err := RunCase(WithRuntime(context.Background(), bound[c.ID]), c, nil)
 			observed = append(observed, e)
 			t.Logf("requested native/process=%s/%s target=%s; observed OS=%s build=%d native/process=%s/%s; invocations=%d", c.Host.NativeArchitecture, c.Host.ProcessArchitecture, c.Target, e.Host.OS, e.Host.Host.WindowsBuild, e.Host.Host.NativeArchitecture, e.Host.Host.ProcessArchitecture, len(e.Invocations))
 			if err != nil {

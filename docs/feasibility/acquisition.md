@@ -173,3 +173,28 @@ complete pinned provider readiness, managed prerequisites, current signature
 verification and all nine native host/target operation proofs remain unfulfilled.
 Passing `go test ./internal/tools -count=1` proves only component behavior with
 synthetic safe data and refusal boundaries.
+
+### R3a1 desktop-control acquisition preparation (2026-10-28)
+
+The next candidate control uses the installed system DISM against complete
+Windows 10 desktop media, rather than assuming a new ADK is necessary. The
+live [Microsoft Windows 10 ISO page](https://www.microsoft.com/en-us/software-download/windows10ISO)
+offers 22H2 Home/Pro media and publishes these independent ISO SHA-256 values:
+English 64-bit `a6f470ca6d331eb353b815c043e327a347f594f37ff525f17764738fe812852e`
+and English 32-bit `ac0b7045b6c3a72a4d46daab0944e109a55d9ede3a11b775fdb57c2dd3fca2ef`.
+Select the exact edition/language/architecture on that page and retain the
+vendor response; generated links expire after 24 hours. These ISO pins do not
+provide install-image/index/member or modified-image expectations.
+
+That page directs Enterprise users to Microsoft 365 admin center and also
+links Visual Studio subscription downloads. The former public Enterprise
+evaluation URL redirected to a Windows end-of-support article during this
+inspection; cached evaluation links are not an established acquisition route.
+The [Windows media-creation route](https://www.microsoft.com/en-us/software-download/windows10)
+requires administrator execution and license acceptance. It was not run. No
+license/entitlement for the selected control or distribution of its bytes has
+been established by public availability. The exact source/index/servicing-stack
+pins, independent semantic expectations and loaded provider closure remain
+pending before a concrete elevated control can run. No installer, image mount,
+mutation, host-policy change or historical rejected helper route was executed
+by this checkpoint.
