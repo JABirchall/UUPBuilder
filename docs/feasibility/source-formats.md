@@ -323,9 +323,34 @@ reapply of a changed image. Read-only post-failure inspection confirmed all five
 source byte hashes/typed US state, all 23 source-store hashes, source CAT and
 input WIM unchanged. The compatible Windows 10 x86 baseline's visible
 failure does not establish a common cause with ARM64 or a cause confined to one
-architecture or Windows version. The exact cause, servicing witness and wider proof remain
-unresolved; the [toolchain ledger](toolchains.md) binds the actual result and
-preserved earlier outcomes.
+architecture or Windows version. A later level-4 diagnostic also exited 87;
+its trace contract completed, while the query failed and the selected source
+bytes, typed state and code remained unchanged. FIO/unmarshalling and
+not-a-WIM-mount messages also occur in the older level-3 log, so the logs do not
+establish an unmounted-image cause. The rejected internal parameter remains
+unknown.
+
+A subsequent comparison observed index 1 of the exact x86 export above as an
+owned read-only mount with `Status: Ok`. All six native phases exited zero;
+the retained mount session finalized naturally after owned discard and
+confirmed absence. Source bytes and unrelated inventory were unchanged,
+cleanup was confirmed and final inventory was empty. The earlier comparison
+that stopped in its own lease-hashing code before mount, and the later
+`Needs Remount` / RPC-unavailable case, remain preserved. Neither reached a
+mounted query. Expected host-file pins, including WimServ, do not establish
+actual process membership or loaded-module identity. The
+[toolchain ledger](toolchains.md) binds the receipts and session-lifetime limits.
+
+The healthy projection still supplied no new selected-source snapshot,
+source-provider authentication or Get-Intl result: the generic reader rejected
+`FILE_ATTRIBUTE_REPARSE_POINT` on its first selected file,
+`Windows\System32\config\DEFAULT`. Actual tag, name-surrogate and provider
+identity were not captured. The source archive's zero reparse declarations do
+not prove a reparse-free mount view or authorize a general reader exception.
+A metadata-only tag census remains a proposal, without implementation or
+execution. Servicing, configuration, CBS/package, full-family reconstruction,
+Setup/boot, security and module/network proof remain unresolved; no source
+family or Gate P/S readiness is promoted.
 
 The existing ARM64 acquisition remains 46 frozen source bodies totalling
 3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for

@@ -613,8 +613,68 @@ zero failures and unchanged complete privilege vectors. The read-only
 `native-winre-locale-x86-v2-actual-result.json` confirms all five original byte
 hashes/typed US state, all 23 source-store hashes, source CAT and input WIM
 unchanged after failure. The original first-run `NotSigned` stop and separate
-read-only catalogue pass remain preserved. No further comparison outcome or
-established fix is inferred.
+read-only catalogue pass remain preserved.
+
+A later level-4 Get-Intl diagnostic also exited 87, in 583 ms. Its trace
+contract completed and the trace was retained, but the query failed; selected
+source bytes, typed state and source-provider code remained unchanged. The
+observer `native-x86-getintl-debug-actual-result.json`, SHA-256
+`5649226e657827e60d61202cd2ccf342875901d8a114e2ced984261674ed7991`,
+compares both complete logs. `FIOReadFileIntoBuffer`,
+`UnmarshallImageHandleFromDirectory` and not-a-WIM-mount messages already occur
+in the older level-3 log. They do not establish missing mount registration as
+the cause; the rejected internal PE-attach parameter/state remains unknown.
+
+The first read-only comparison stopped in its own lease-hashing code after
+only the initial inventory exited zero, before any mount. The next comparison
+completed all six native phases with exit zero, including read-only mount and
+owned discard, but the mounted row reported `Needs Remount` and inventory logs
+reported RPC unavailable. Its status guard blocked source-view reads, provider
+authentication and Get-Intl. Per-command job teardown could have killed the
+persistent WimServ backend; this is a strong lifetime hypothesis, without
+captured process membership or loaded-path attribution. Neither comparison
+records a new Get-Intl failure.
+
+With the mount session retained, the third physical case,
+`native-winre-x86-readonly-mount-19041-v3`, used index 1 of the exact
+304,934,622-byte x86 export above. Four inventories, read-only mount and owned
+discard all exited zero. The exact owned row had `ReadWrite: No` and
+`Status: Ok`. Its `result.json`, SHA-256
+`439637a53756af6de11340216387cc256102b865a717397e58b1a5d9832456a1`,
+and `supervisor-main-result.json`, SHA-256
+`8ea793da59ee01ce497cf1737ddea0dce85e8ad841f3f9d0d08c3d83718bf324`,
+retain the overall worker/supervisor exit 1 separately from those native exits.
+After primary exit and checked reference release, class-1 job accounting
+returned 48 bytes with one active process; the session was retained without
+killing it. After owned discard and confirmed mount absence,
+`mount-session-final.json` records natural finalization without forced
+termination, 48-byte accounting with zero active processes, checked job close,
+both pipe EOFs and no overflow/read failure. `MountSessionFinalized` and
+`MountSessionSucceeded` are true.
+
+All 36 held host-code files had fresh Valid Microsoft results, including the
+expected inbox WimServ. That file pin does not prove the actual backing
+process's loaded path or PID membership; both remain unmeasured. Source bytes
+and unrelated inventory remained unchanged, cleanup was confirmed, final
+inventory was empty and `RecoveryRequired` was false. No new driver installation
+or explicit driver start/stop was requested. Normal existing-driver demand load
+and mount bookkeeping remain possible; loaded driver state was not queried.
+
+The healthy registered projection exposed a separate reader blocker:
+`Assert-PlainPath` rejected `FILE_ATTRIBUTE_REPARSE_POINT` on the first selected
+file, `Windows\System32\config\DEFAULT`, before the five-member snapshot,
+source-provider authentication or Get-Intl. The actual tag, name-surrogate bit
+and provider identity were not captured. Zero source-archive reparses do not
+establish zero reparses in the projected mount view; no WIM tag or general
+reparse exception is inferred. A finite metadata-only tag census is proposed,
+not implemented or executed.
+
+These observations establish healthy read-only projection and session lifetime,
+not a successful mounted query or servicing witness. All three physical
+comparison cases and earlier query/trust failures remain preserved. Full P1,
+Gate P/S, configuration, CBS/package, full-source-family, Setup/boot, security
+fidelity and actual module/network closure remain unpassed; source-family rows
+and `RunCase` readiness are unchanged.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not
