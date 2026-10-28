@@ -21,6 +21,9 @@ Later `p1-additional-image-inputs-report.md` and
 `additional-final-verification.json` record the source recovery below;
 `additional-exported-winre-inspection-summary.json` and
 `additional-export-final-verification.json` record the later export inspections.
+Accepted `task-P1j-report.md` records the separate source-data ISO observations;
+`source-catalog-summary.json` and `x86-ffu-catalog-actual-result.json` distinguish
+source catalogue data from the subsequent exact native trust check.
 [Official JSON API](https://git.uupdump.net/uup-dump/json-api) reference commit:
 `c82a95ae6377743f2712ac0bd060e673f4478b0c`. Pinned resolver
 [get.php](https://git.uupdump.net/uup-dump/api/src/commit/7386a277aa8656fb6f8210d4b5731a44acaac30b/get.php)
@@ -214,9 +217,9 @@ Provider-store data inventories cover x86's 23 files / 6,094,120 logical bytes
 and amd64's 44 files / 15,468,592 logical bytes, including the applicable
 System32 and SysWOW64 sets. Seven native code files per source were retained
 with additional SHA-256/PE/version/security data. Embedded PKCS7 certificate
-names are parsed claims, not cryptographic Authenticode trust: signature,
-signing-time, catalog and chain verification were not performed. The source
-research loaded or executed no target provider code. These inventories do not
+names are parsed claims, not cryptographic Authenticode trust: this source
+inventory performed no signature, signing-time, catalog or chain verification.
+The source research loaded or executed no target provider code. These inventories do not
 establish host compatibility, runtime readiness or transitive dependency closure.
 
 Payload delivery used the API-declared Microsoft HTTP host. Agreement with API
@@ -258,6 +261,71 @@ native/helper/network operation or target-provider execution. Native zero exits
 alone do not establish content proof, servicing, capture/reapply, ISO/boot or
 Gate P/S readiness. The [toolchain ledger](toolchains.md) records the separate
 export-only runtime scope and its cooperative monitoring/module-closure limits.
+
+The later accepted native ISO observations preserved those ESD/WIM bodies in
+two five-file source-data capsules. Each namespace's five payload lengths and
+SHA-256 values matched independently in ISO9660 and UDF 1.02:
+
+| Target | Actual ISO bytes | Measured outer SHA-256 | Files per namespace / EFI PE machine |
+| --- | ---: | --- | --- |
+| x86 | 649,068,544 | `9409238fd634ae9f75852d801b58f6ff74e2768089d5e783b29d416ca44f78b3` | 5 / `0x014c` |
+| amd64 | 1,047,134,208 | `93aa601fb8a05f8557402c007415898b99f3af33bb1b976aa95edb4e4430d8db` | 5 / `0x8664` |
+
+The other three payloads are the exact 1,474,560-byte source outer EFI disk,
+separate direct target EFI loader and source BIOS `etfsboot.com` as data. The
+single EFI El Torito/FAT check binds distinct embedded/direct loader identities;
+there is no BIOS catalogue or actual firmware boot proof. Setup index-1 XML
+architecture/version fields are absent. Actual EFI PE machines and the same
+body's WinRE 19041.1/26100.1 identities remain separate from catalogue patch
+titles. Opaque LZX WIM preservation proves no additional semantic decoding,
+Setup/desktop/servicing/CBS closure or full resolver selection. The earlier
+ARM64 capsule contains all 46 frozen resolver bodies plus two EFI files, a
+different 48-file content set. Every capsule remains a component observation,
+unverified for Gate P/S, with zero `MasterISO` verifications.
+
+The first x86 native apply subsequently passed with an independent five-member
+source-exact typed baseline, retaining WindowsPE 19041.1/x86 and the original
+US input configuration. Its own fresh trust assertion stopped at FFU
+`NotSigned` before any Get-Intl / Image command; no mutation/capture/reapply
+followed. This is a different boundary from the preserved ARM64 PE-attach error.
+
+Data-only catalogue diagnosis matched all 1,204 original catalogue paths /
+430 distinct bodies totalling 7,571,489 bytes and all 23 provider-store files to
+their original WIM SHA-1/lengths. Of 22 code files, 21 contain embedded
+certificate data; FFU alone lacks it. The separate MUI resource also has none.
+The original FFU is 473,088 bytes, raw SHA-256
+`8abc5b0f56a6996293e2fcd3d06d77a264a991e2eec5b4820557eab986b4dc53`;
+its original Servicing Core CAT is 82,209 bytes, raw SHA-256
+`c5160ff88c98f1c5a7ef684db5d38a9bb603e24953f69b04f3b527d0f90d817c`.
+The declared SHA-256 PE/SIP member identity
+`d9e52c29fb14bdf9f62025443848c059d8aa859d58c6ba8a31e19e58b94f9e8c`
+is distinct from the raw FFU hash. Pure DER names/member declarations alone
+prove no cryptographic catalogue membership or trust.
+
+The later reviewed read-only native check computed that exact SIP identity,
+passed the fixed CAT and explicit FFU-member policies, and checked the verified
+Microsoft leaf. This establishes only that exact member/catalogue trust path on
+the current host, as detailed in the [toolchain ledger](toolchains.md).
+Whole-WIM publisher authentication, trust for all providers, runtime
+compatibility, redistribution rights and servicing success are still separate.
+The original trust-stop receipt is unchanged.
+
+The later actual x86 locale v2 run freshly applied the source and passed
+independent five-member byte and typed-hive checks for WindowsPE 19041.1/x86
+with the original US input state. Its
+complete 23-member source-store check passed, including a newly executed exact
+FFU catalogue proof; the old read-only pass was supporting evidence, never the
+current proof. Get-Intl then failed with exit 87 at PE attachment / OSVersion
+initialization (`0x80070057`), after the source System32 DISM store was copied
+for a remote session. These source-store identities/trust checks do not prove
+the exact scratch-loaded module graph. There was no locale mutation, capture or
+reapply of a changed image. Read-only post-failure inspection confirmed all five
+source byte hashes/typed US state, all 23 source-store hashes, source CAT and
+input WIM unchanged. The compatible Windows 10 x86 baseline's visible
+failure does not establish a common cause with ARM64 or a cause confined to one
+architecture or Windows version. The exact cause, servicing witness and wider proof remain
+unresolved; the [toolchain ledger](toolchains.md) binds the actual result and
+preserved earlier outcomes.
 
 The existing ARM64 acquisition remains 46 frozen source bodies totalling
 3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for

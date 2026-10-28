@@ -2,7 +2,7 @@
 
 Reconciled 2026-10-28. **P1 operational acceptance remains blocked. Gate P has no
 passing host/target pair; Gate S has no passing family.** The probe layer now
-supports three closed component observations: installed Windows CAB metadata
+supports three kinds of closed component observation: installed Windows CAB metadata
 extraction, one actual canonical WIM/LZMS package variant, and native IMAPI2FS
 source-capsule ISO mastering. These produce retained `component-runtime`
 observations, always `unverified` for the gates. All nine
@@ -17,7 +17,8 @@ Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 provenance: the coordinator's dated `provider-research.md`,
 `provider-runtime-report.md`, `adk-static-research.md` and
 `source-census-research.md`, accepted `task-P1i-report.md` and
-`task-P1i-quality-rereview.md`, plus `p1-servicing-provider-report.md`,
+`task-P1i-quality-rereview.md`, accepted `task-P1j-report.md` and its fresh
+specification/quality reviews, plus `p1-servicing-provider-report.md`,
 `native-winre-locale-v3-diagnosis.md`, `p1-additional-image-inputs-report.md`
 and their retained native/source-comparison receipts. Research archives,
 Microsoft payloads, legacy guidance and converter scripts are not product inputs
@@ -72,10 +73,11 @@ has a 30-second context and at most 1 MiB per input/output buffer. CAB preflight
 bounds the single named member, folder/data blocks and declared output to 4 MiB
 before launching expand.
 Bounded Go XML inspection rejects malformed, ambiguous, deeply nested, oversized
-or directive-bearing documents. The separate native ISO recipe has a five-minute
-process deadline and a 5 GiB ISO output cap; its raw inspector streams outer
-bytes and hashes bounded file extents. The earlier 1 MiB buffer limit does not
-describe this larger recipe. Zero exit, digest width, JSON flags and declared
+or directive-bearing documents. The native ISO recipes have a five-minute
+process deadline per case, with a 5 GiB output cap for the ARM64 capsule and
+2 GiB per x86/amd64 capsule. Their raw inspector streams outer bytes and hashes
+bounded file extents. The earlier 1 MiB buffer limit does not describe these
+larger recipes. Zero exit, digest width, JSON flags and declared
 algorithm names cannot supply missing content/operation evidence.
 
 Public Evidence contains logical `owned-run:` artifact references, measured
@@ -101,6 +103,11 @@ source members and owned workspace parent. `TestISOInspectRetainedARM64Capsule`
 instead requires `P1_ISO_RETAINED_RUN` and reinspects the unchanged retained ISO
 without rerunning its producer. Missing fixtures or changed identities fail;
 neither test configures the required `RunCase` matrix or supplies full-gate proof.
+The additional providerproof tests `TestAdditionalISOObserveX86SourceCapsule`
+and `TestAdditionalISOObserveAMD64SourceCapsule` use
+`P1_ADDITIONAL_ISO_PLAN` for their own retained plan's fixed five-file inputs and
+fresh W1 workspaces. Their successful operational completion is separate from
+the unchanged required full-gate rejection.
 
 The actual CAB observation on native amd64 Windows build 19045 retained two
 successful process invocations, one 43,914-byte output and independent hash/XML
@@ -125,7 +132,7 @@ source/algorithm evidence, not complete canonical-family or Gate P/S acceptance.
 Native IMAPI2FS on the current native amd64 host created a 3,241,803,776-byte
 source-capsule ISO, SHA-256
 `f82c4b242f2a3da7dbbb04cbf082e2ae3c96c80f7ecb7882a00327109a9106fe`.
-The accepted current independent Go inspector, SHA-256
+The retained independent Go inspector for that ARM64 run, SHA-256
 `e3e33e2aa8038086845f60a9c130423082208413ace4eac9b56ab609f040774d`,
 checked 48 files in ISO9660 and 48 in UDF 1.02, matching every expected size and
 SHA-256, plus the El Torito catalog/FAT layout and embedded and direct ARM64
@@ -134,7 +141,48 @@ ISO/content/EFI-data mastering.
 It is not complete Windows Setup media or a booted image: serviced image/setup
 tree closure and actual boot proof remain pending. The retained Evidence stays
 `component-runtime` / `unverified`, with zero `MasterISO` verifications; strict
-Gate P/S validation still rejects it.
+Gate P/S validation still rejects it. Its 48-file set contains the complete
+46-body frozen ARM64 resolver input selection plus two EFI resources.
+
+Later native IMAPI2FS observations on the same amd64 host created two fresh
+source-data capsules. Each ISO9660 and UDF 1.02 namespace contains exactly five
+files, all independently checked against expected lengths and SHA-256 values:
+the original metadata ESD, exact native exported WinRE WIM, source outer EFI
+disk, separate direct target EFI loader, and source BIOS `etfsboot.com` as data.
+
+| Capsule target | ISO bytes | Measured outer SHA-256 | ISO9660 / UDF files | Embedded / direct PE machine |
+| --- | ---: | --- | --- | --- |
+| x86 | 649,068,544 | `9409238fd634ae9f75852d801b58f6ff74e2768089d5e783b29d416ca44f78b3` | 5 / 5 | `0x014c` / `0x014c` |
+| amd64 | 1,047,134,208 | `93aa601fb8a05f8557402c007415898b99f3af33bb1b976aa95edb4e4430d8db` | 5 / 5 | `0x8664` / `0x8664` |
+
+The independent reader checked the single EFI no-emulation El Torito entry,
+exact 1,474,560-byte outer FAT image, embedded loader and distinct direct loader
+identities. The BIOS file supplies no BIOS catalogue or boot proof. Exported
+LZX WIM bytes remain opaque ISO payloads; byte preservation adds no full WIM
+semantic decoding. These five-file capsules and the earlier 48-file ARM64
+capsule have different content sets, so their sizes do not compare equivalent
+media. Full resolver selection, desktop/Setup closure, servicing/CBS changes,
+actual firmware boot and full dependency closure remain unproved.
+
+The frozen two-case binary ran once with twelve review inputs held through its
+zero exit; both native PowerShell calls exited zero with empty stderr and no
+cancellation. `post-run-retention-verification.json` records seven mandatory
+JSON artifacts, nine custody bodies, the exact script, compiled raw checker and
+outer ISO digest per run. Evidence remains `component-runtime` / `unverified`,
+with zero `MasterISO` verifications and strict full-gate rejection. Fresh P1j
+specification and quality reviews accepted this bounded checkpoint with no
+Critical/Important findings. Their deferred Minor M1 is a stale filesystem field
+in the copied `host.json` (empty name, `local=false`); actual `run.json` Evidence
+records NTFS / `local=true`, and W1 enforced that workspace. The clarified
+`task-P1j-report.md` preserves the original records and reports this limit.
+
+Recorded final P1j focused checks and vet passed. The initial parallel full
+suite retained a timeout in unchanged `TestResumeWaitsForPendingPause`; one
+targeted diagnostic passed, then the authorized `go test -p 1 ./... -count=1`
+with the established `M1_COMPDB_CORPUS` passed all eleven groups. All three
+Windows CGO-disabled 386/amd64/arm64 builds passed. Timing/load remains a
+hypothesis for the original failure; no download code was changed. These
+recorded checks do not supply missing current-host functional gate proof.
 
 Automatic approval review rejected extraction/direct execution of the pinned
 downloaded wimlib with only `blocked by policy`, before the orchestration
@@ -493,9 +541,80 @@ The export probe requested no servicing, apply/capture, mount, target-provider
 execution or host setup. Its cooperative monitoring and termination mechanism
 do not establish strict quotas/deadlines, every descendant's termination or
 complete dynamic-module closure. The independent reader strengthens none of
-those runtime claims. These are bounded standard-WIM export candidates;
-x86/amd64 servicing, capture/reapply, ISO/boot and full Gate P/S proof remain
-unproved here, with no change to required `RunCase` readiness.
+those runtime claims. These are bounded standard-WIM export candidates; the
+separate ISO capsules above preserve them as opaque bytes. Servicing,
+capture/reapply, actual boot and full Gate P/S proof remain unproved here, with
+no change to required `RunCase` readiness.
+
+The separate first x86 locale probe applied the original x86 19041.1 WinRE WIM
+with exit zero in 16,201 ms. Independent baseline inspection matched all five
+source members' SHA-1/SHA-256/lengths and typed WindowsPE 19041.1/x86, original
+US input hives and SYSTEM UK-layout/KBDUK state. Its own fresh target-provider
+trust assertion then stopped at `FfuProvider.dll` / `NotSigned` before any
+`/Get-Intl` or other `/Image` command. There was no configuration change,
+capture or reapply. The original failed result, SHA-256
+`720309763f27572543e0bba6fd3451c5eef9138fd4c7cdf33b1a8adc0ad0a8f6`,
+and `native-winre-locale-x86-actual-result.json` preserve that trust-policy stop.
+It is separate from the ARM64 PE-attach exit 87 and does not resolve that cause.
+
+Subsequent source catalogue mapping was data-only; the later separately
+reviewed read-only native FFU catalogue diagnostic actually passed. Its
+`native-x86-ffu-explicit-catalog-check/result.json`, SHA-256
+`31d3e131352e87880efa0a49f63548078011a4d78eabff09a2983652b9916556`,
+and `x86-ffu-catalog-actual-result.json`, SHA-256
+`56cf448426dd4d65fa2a7f7c3a352491b7c91a9209bb55706ac49e4d2fb0ec22`,
+record a computed SHA-256 SIP digest matching the exact declared member, fixed
+CAT policy and explicit FFU-member policy statuses zero, and a verified leaf
+Organization `Microsoft Corporation`, CN `Microsoft Windows`, DER SHA-256
+`e866d202865ed3d83c35dff4cde3a2d0fc1d2b17c084e8b26dd0ca28a8c75cfb`.
+Both policy states closed with zero status, the catalogue context released and
+held-input rehashes passed. This proves that exact code/catalogue trust path on
+the current host; it establishes no whole-source publisher authentication,
+other-provider trust, compatibility, redistribution rights or servicing result.
+
+The non-elevated diagnostic used policy flags `0x1080` for cache-only revocation
+of the chain excluding root. Provider verification time/countersigners were
+recorded, without independent timestamp reconstruction. Protected installed OS
+code and the pinned runtime remain bootstrap assumptions; full actual module
+and network closure remain unverified. No explicit network/acquisition call,
+catalogue import/registration, token/image operation or source-provider code
+execution was requested. The old `NotSigned` stop remains preserved.
+
+The subsequent reviewed x86 locale v2 run actually reached native Get-Intl.
+Its `native-winre-locale-x86-19041-v2/result.json`, SHA-256
+`216d3765974f9542ba57ed48bd122c6a5d5efbc659fdaaeed8ab43182954768b`,
+records a fresh source apply with exit zero in 16,119 ms and independent
+five-member byte and typed-hive checks against the original WindowsPE
+19041.1/x86 source and US input state.
+The complete 23-member source-store gate passed: 22 code members plus one
+resource-only MUI. The other 21 code members had embedded certificate data and
+fresh Valid Microsoft signature results. FFU passed a new native SIP/CAT/member
+check on the newly applied source, with the same exact declared SIP and verified
+Microsoft leaf, zero policy/CLOSE statuses, context release and held-input
+rehashes. The earlier read-only result was not used as the current proof.
+
+Get-Intl then exited 87 in 1,604 ms at `CPEImg::Attach` and OSVersion
+initialization, both reporting `0x80070057`. Its log records copying the source
+`Windows/System32/Dism` store into the scratch remote session, PID 34768.
+Source-store hash/trust/PE/version validation does not establish actual
+scratch-loaded module identities or transitive closure; scratch/temp were empty
+after exit, with actual copied-module fingerprints uncaptured. This initialization
+failure occurred with a compatible Windows 10 x86 baseline and same-generation
+inbox DISM. The similar PE initialization failures on ARM64 and x86 do not
+establish a common internal cause or a cause exclusive to ARM64 or Windows 11
+images.
+The exact internal argument/state failure remains unresolved; the documented
+version-compatibility guidance above remains relevant.
+
+No locale set, after-query, capture or reapply followed. Configuration,
+CBS/package, full-gate, Setup/boot, security fidelity and actual module/network
+closure flags remain false. All 54 backup-scan restorations were verified with
+zero failures and unchanged complete privilege vectors. The read-only
+`native-winre-locale-x86-v2-actual-result.json` confirms all five original byte
+hashes/typed US state, all 23 source-store hashes, source CAT and input WIM
+unchanged after failure. The original first-run `NotSigned` stop and separate
+read-only catalogue pass remain preserved. No further comparison outcome or
+established fix is inferred.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not
