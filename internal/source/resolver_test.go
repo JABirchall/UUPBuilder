@@ -182,6 +182,46 @@ func TestUnknownLayoutRetainsTargetChoice(t *testing.T) {
 	}
 }
 
+// Unsupported materialized metadata must keep its schema diagnosis and explicit
+// requests through Resolve, rather than implying that upstream material is absent.
+func TestUnknownCompositionLayoutRetainsTargetChoice(t *testing.T) {
+	text := `<FutureComposition Architecture="arm64"/>`
+	plan, fetcher, evidence := bootstrap(t, text)
+	plan.Inputs[0].Format = metadata.FormatCompositionXML
+	r := &Resolver{
+		Catalog: &fixtureCatalog{
+			sets:     map[string]catalog.FileSet{"CORE": sourceSet(sourcePayload("large.esd", "d"))},
+			editions: []catalog.Edition{{ID: "CORE"}},
+		},
+		Fetcher:  fetcher,
+		Discover: func(context.Context, model.Selection) (MetadataPlan, error) { return plan, nil },
+	}
+	s, settings := selectionAndSettings(t)
+	s.Editions = []string{"CORE"}
+	settings.Apps.Mode = model.AppsCustom
+	settings.Apps.Include = []string{"Explicit.Family_123"}
+	got, err := r.Resolve(context.Background(), s, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Inventory.Classification != metadata.ClassificationImplementationGap || got.Classification != metadata.ClassificationImplementationGap || len(got.Inventory.Absences) != 0 {
+		t.Fatalf("unsupported composition misclassified: inventory=%q resolution=%q absences=%v", got.Inventory.Classification, got.Classification, got.Inventory.Absences)
+	}
+	if !hasDiagnostic(got, "metadata-unsupported-schema") {
+		t.Fatalf("unsupported-schema diagnosis lost through resolution: %v", got.Diagnostics)
+	}
+	if len(got.Inventory.Documents) != 1 {
+		t.Fatalf("materialized metadata was not inspected: %v", got.Inventory.Documents)
+	}
+	doc := got.Inventory.Documents[0]
+	if doc.Format != metadata.FormatCompositionXML || doc.Reference != evidence.Document || string(doc.Original) != text {
+		t.Fatalf("verified unsupported composition was not retained: %#v", doc)
+	}
+	if !reflect.DeepEqual(got.Selection, s) || !reflect.DeepEqual(got.Settings, settings) {
+		t.Fatal("unsupported composition discarded target choices or explicit settings")
+	}
+}
+
 // Advertised app selectors cannot establish family names or customization phase.
 func TestAppSourcesDoNotInventFamilies(t *testing.T) {
 	r, c := configuredResolver(t)
