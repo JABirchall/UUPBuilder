@@ -7,19 +7,37 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"uupbuilder/internal/config"
 )
 
-// Run currently establishes only the cancellable argument/config-path entry
-// boundary. Config loading and UI initialization are wired by their owners.
-// It performs no downloads, configuration writes, helper calls or conversions.
+// Run validates arguments, loads an existing configuration or first-run browsing
+// defaults, and launches the Workspace. Startup never saves the configuration.
 func Run(ctx context.Context, args []string) error {
+	return run(ctx, args, RunInteractive)
+}
+
+func run(ctx context.Context, args []string, launch func(context.Context, Options) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if _, err := configPath(args); err != nil {
+	path, err := configPath(args)
+	if err != nil {
 		return fmt.Errorf("initialize UUP Builder: %w", err)
 	}
-	return ctx.Err()
+	cfg, err := config.Load(path)
+	// After argument validation, a nonempty argument list always denotes an
+	// explicit --config. Only the implicit missing file permits browsing defaults.
+	if len(args) == 0 && errors.Is(err, os.ErrNotExist) {
+		cfg, err = config.ResolvePaths(config.Defaults(), path)
+	}
+	if err != nil {
+		return fmt.Errorf("initialize UUP Builder: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return launch(ctx, Options{ConfigPath: path, Config: cfg})
 }
 
 func configPath(args []string) (string, error) {
@@ -50,11 +68,7 @@ func configPath(args []string) (string, error) {
 		return "", errors.New("--config requires a nonempty path")
 	}
 	if !seen {
-		base := os.Getenv("LOCALAPPDATA")
-		if strings.TrimSpace(base) == "" {
-			return "", errors.New("LOCALAPPDATA is unavailable; specify --config PATH")
-		}
-		path = filepath.Join(base, "UUPBuilder", "config.toml")
+		return config.DefaultPath()
 	}
 	if strings.ContainsRune(path, 0) {
 		return "", errors.New("config path contains NUL")
