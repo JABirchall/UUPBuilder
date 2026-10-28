@@ -7,7 +7,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"uupbuilder/internal/model"
 )
@@ -64,6 +66,46 @@ func TestSparseKeysNeverBecomeIdentity(t *testing.T) {
 	}
 	if builds[0].CreatedAt.Unix() != 1630393455 || builds[0].Architecture != "arm64" {
 		t.Fatalf("lost build properties: %+v", builds[0])
+	}
+}
+
+func TestBuildsPreserveExplicitUnknownCreationTime(t *testing.T) {
+	s := serveJSON(t, fixture(t, "builds-null-created.json"))
+	builds, err := New(s.Client(), s.URL).Search(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Build{
+		{UpdateID: "e8706433-04f4-4a00-b58f-df8ed1bab586", Title: "Windows 11, version 26H1 (28000.3365)", Build: "28000.3365", Architecture: "arm64", CreatedAt: time.Unix(1793208203, 0).UTC()},
+		{UpdateID: "bd8d3d91-5716-4f3d-8f00-4c30bc6f6bfa_rev.2", Title: "Feature update to Windows 10, version 1709 (16299.19)", Build: "16299.19", Architecture: "x86", CreatedAt: time.Unix(1751614394, 0).UTC()},
+		{UpdateID: "f2913c3d-4ddb-43c0-a309-edb81644a540", Title: "Windows 10 Insider Preview 18343.1 (19h1_release)", Build: "18343.1", Architecture: "amd64", CreatedAt: time.Time{}},
+	}
+	if !reflect.DeepEqual(builds, want) {
+		t.Fatalf("catalog lost records, upstream order, identity, or date precision:\ngot  %+v\nwant %+v", builds, want)
+	}
+}
+
+func TestBuildsRejectMalformedOrConflictingRecordsWithUnknownDate(t *testing.T) {
+	const record = `{"title":"Legacy update","build":"18343.1","arch":"future128","created":null,"uuid":"f2913c3d-4ddb-43c0-a309-edb81644a540_rev.2"}`
+	for _, tt := range []struct{ name, records string }{
+		{"missing-created", strings.Replace(record, `"created":null,`, "", 1)},
+		{"string-created", strings.Replace(record, `"created":null`, `"created":"123"`, 1)},
+		{"boolean-created", strings.Replace(record, `"created":null`, `"created":false`, 1)},
+		{"fractional-created", strings.Replace(record, `"created":null`, `"created":1.5`, 1)},
+		{"object-created", strings.Replace(record, `"created":null`, `"created":{}`, 1)},
+		{"negative-created", strings.Replace(record, `"created":null`, `"created":-1`, 1)},
+		{"invalid-uuid", strings.Replace(record, `f2913c3d-4ddb-43c0-a309-edb81644a540_rev.2`, `invalid`, 1)},
+		{"empty-title", strings.Replace(record, `"Legacy update"`, `" "`, 1)},
+		{"empty-build", strings.Replace(record, `"18343.1"`, `""`, 1)},
+		{"invalid-architecture", strings.Replace(record, `"future128"`, `"arm 64"`, 1)},
+		{"duplicate-identity", record + "," + record},
+		{"conflicting-identity", record + "," + strings.Replace(record, `"future128"`, `"arm64"`, 1)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if builds, err := parseBuilds([]byte(`{"response":{"builds":[` + tt.records + `]}}`)); err == nil || len(builds) != 0 {
+				t.Fatalf("malformed or conflicting catalog accepted: %+v, %v", builds, err)
+			}
+		})
 	}
 }
 

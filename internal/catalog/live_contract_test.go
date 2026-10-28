@@ -18,7 +18,9 @@ func TestLiveDiscoveryContract(t *testing.T) {
 	defer cancel()
 	c := New(nil, "")
 	c.MetadataOnly = true
-	builds, err := c.Search(ctx, "22000.1 arm64")
+	// Exercise the application's default browse query, including historical
+	// records with unknown creation dates, before selecting the research source.
+	builds, err := c.Search(ctx, "")
 	if err != nil {
 		t.Fatalf("live catalog: %v", err)
 	}
@@ -69,6 +71,12 @@ func TestLiveDiscoveryContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("live manifest ingestion: %v", err)
 	}
-	t.Logf("UTC=%s origin=%s query=%q update_id=%s build=%s arch=%s language=%s edition=%s builds=%d languages=%d editions=%d metadata_payloads=%d manifest_sha256=%s noLinks=1; resolver filenames only; original composition provenance and online availability unverified",
-		time.Now().UTC().Format(time.RFC3339), DefaultBaseURL, "22000.1 arm64", chosen.UpdateID, chosen.Build, chosen.Architecture, language, edition, len(builds), len(langs), len(editions), len(set.Payloads), manifest.Digest)
+	unknownDates := 0
+	for _, build := range builds {
+		if build.CreatedAt.IsZero() {
+			unknownDates++
+		}
+	}
+	t.Logf("UTC=%s origin=%s query=%q update_id=%s build=%s arch=%s language=%s edition=%s builds=%d unknown_dates=%d languages=%d editions=%d metadata_payloads=%d manifest_sha256=%s noLinks=1; resolver filenames only; original composition provenance and online availability unverified",
+		time.Now().UTC().Format(time.RFC3339), DefaultBaseURL, "", chosen.UpdateID, chosen.Build, chosen.Architecture, language, edition, len(builds), unknownDates, len(langs), len(editions), len(set.Payloads), manifest.Digest)
 }

@@ -20,7 +20,7 @@ type Build struct {
 	Title        string             `json:"title"`
 	Build        string             `json:"build"`
 	Architecture model.Architecture `json:"architecture"`
-	CreatedAt    time.Time          `json:"created_at"`
+	CreatedAt    time.Time          `json:"created_at"` // Zero when upstream explicitly reports an unknown date.
 }
 
 func numericRecords(records map[string]json.RawMessage) ([]json.RawMessage, error) {
@@ -68,14 +68,21 @@ func parseBuilds(data []byte) ([]Build, error) {
 			Title   string             `json:"title"`
 			Build   string             `json:"build"`
 			Arch    model.Architecture `json:"arch"`
-			Created *int64             `json:"created"`
+			Created json.RawMessage    `json:"created"`
 			UUID    string             `json:"uuid"`
 		}
-		if json.Unmarshal(record, &b) != nil || validUpdateID(b.UUID) != nil || b.Created == nil || *b.Created < 0 || strings.TrimSpace(b.Title) == "" || strings.TrimSpace(b.Build) == "" || b.Arch.Validate() != nil || seen[b.UUID] {
+		// The API explicitly emits null when historical creation metadata is
+		// unavailable. A raw field distinguishes that from a missing field.
+		var created *int64
+		if json.Unmarshal(record, &b) != nil || json.Unmarshal(b.Created, &created) != nil || validUpdateID(b.UUID) != nil || (created != nil && *created < 0) || strings.TrimSpace(b.Title) == "" || strings.TrimSpace(b.Build) == "" || b.Arch.Validate() != nil || seen[b.UUID] {
 			return nil, fmt.Errorf("catalog listid.php: invalid or duplicate build record")
 		}
+		var createdAt time.Time
+		if created != nil {
+			createdAt = time.Unix(*created, 0).UTC()
+		}
 		seen[b.UUID] = true
-		out = append(out, Build{UpdateID: b.UUID, Title: b.Title, Build: b.Build, Architecture: b.Arch, CreatedAt: time.Unix(*b.Created, 0).UTC()})
+		out = append(out, Build{UpdateID: b.UUID, Title: b.Title, Build: b.Build, Architecture: b.Arch, CreatedAt: createdAt})
 	}
 	return out, nil
 }
