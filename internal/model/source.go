@@ -194,11 +194,48 @@ func (p Payload) Validate() error {
 type PayloadManifest struct {
 	Source   SourceIdentity `json:"source" toml:"source"`
 	Payloads []Payload      `json:"payloads" toml:"payloads"`
+	Queries  []SourceQuery  `json:"queries,omitempty" toml:"queries,omitempty"`
 	Digest   string         `json:"digest" toml:"digest"`
 }
 
-func NewPayloadManifest(source SourceIdentity, payloads []Payload) (PayloadManifest, error) {
-	manifest := PayloadManifest{Source: source, Payloads: slices.Clone(payloads)}
+// SourceQuery is public, frozen catalog provenance for replay after restart.
+// It contains selectors only, never endpoint URLs, credentials or signed links.
+type SourceQuery struct {
+	UpdateID string `json:"update_id" toml:"update_id"`
+	Language string `json:"language" toml:"language"`
+	Edition  string `json:"edition" toml:"edition"`
+}
+
+func (q SourceQuery) Validate() error {
+	for _, value := range []string{q.UpdateID, q.Language, q.Edition} {
+		if value == "" || len(value) > 128 {
+			return errors.New("manifest.query: selectors must contain 1 to 128 ASCII identifier characters")
+		}
+		first := value[0]
+		if !(first >= 'a' && first <= 'z' || first >= 'A' && first <= 'Z' || first >= '0' && first <= '9') {
+			return errors.New("manifest.query: selectors must start with an ASCII letter or digit")
+		}
+		for _, r := range value {
+			if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-' || r == '.') {
+				return errors.New("manifest.query: selectors must contain only ASCII identifier characters")
+			}
+		}
+	}
+	return nil
+}
+
+func compareQueries(a, b SourceQuery) int {
+	if c := strings.Compare(a.UpdateID, b.UpdateID); c != 0 {
+		return c
+	}
+	if c := strings.Compare(a.Language, b.Language); c != 0 {
+		return c
+	}
+	return strings.Compare(a.Edition, b.Edition)
+}
+
+func NewPayloadManifest(source SourceIdentity, payloads []Payload, queries ...SourceQuery) (PayloadManifest, error) {
+	manifest := PayloadManifest{Source: source, Payloads: slices.Clone(payloads), Queries: slices.Clone(queries)}
 	if err := manifest.validateInputs(); err != nil {
 		return PayloadManifest{}, err
 	}
@@ -208,6 +245,8 @@ func NewPayloadManifest(source SourceIdentity, payloads []Payload) (PayloadManif
 		}
 		return strings.Compare(a.Identity.Key(), b.Identity.Key())
 	})
+	slices.SortFunc(manifest.Queries, compareQueries)
+	manifest.Queries = slices.Compact(manifest.Queries)
 	manifest.Digest = manifest.contentDigest()
 	return manifest, nil
 }
@@ -216,7 +255,7 @@ func (m PayloadManifest) Validate() error {
 	if err := m.validateInputs(); err != nil {
 		return err
 	}
-	canonical, err := NewPayloadManifest(m.Source, m.Payloads)
+	canonical, err := NewPayloadManifest(m.Source, m.Payloads, m.Queries...)
 	if err != nil {
 		return err
 	}
@@ -232,6 +271,14 @@ func (m PayloadManifest) validateInputs() error {
 	}
 	if len(m.Payloads) == 0 {
 		return errors.New("manifest.payloads: at least one payload is required")
+	}
+	for _, query := range m.Queries {
+		if err := query.Validate(); err != nil {
+			return err
+		}
+		if query.UpdateID != m.Source.UpdateID || query.Language != m.Source.Language {
+			return errors.New("manifest.query: source revision and language must match the manifest")
+		}
 	}
 	seen := make(map[string]bool)
 	directories := make(map[string]bool)
@@ -267,7 +314,8 @@ func (m PayloadManifest) contentDigest() string {
 		Version  int            `json:"version"`
 		Source   SourceIdentity `json:"source"`
 		Payloads []Payload      `json:"payloads"`
-	}{Version: 1, Source: m.Source, Payloads: m.Payloads})
+		Queries  []SourceQuery  `json:"queries,omitempty"`
+	}{Version: 1, Source: m.Source, Payloads: m.Payloads, Queries: m.Queries})
 }
 
 // Locator is a runtime-only signed URL. Serialization fails even when a caller

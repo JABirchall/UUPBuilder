@@ -47,6 +47,25 @@ func requestFor(t *testing.T, files ...MetadataFile) InspectRequest {
 	return InspectRequest{Source: testSource(), Manifest: manifest, Files: files}
 }
 
+// Inspect's frozen inventory must not alias the caller's query provenance.
+func TestInventoryCopiesFrozenQueries(t *testing.T) {
+	file := inputFile(t, "empty.xml", `<WIM/>`, FormatWIMXML)
+	req := requestFor(t, file)
+	var err error
+	req.Manifest, err = model.NewPayloadManifest(req.Source, req.Manifest.Payloads, model.SourceQuery{UpdateID: req.Source.UpdateID, Language: req.Source.Language, Edition: "CORE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	inv, err := Inspect(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Manifest.Queries[0].Edition = "mutated"
+	if inv.Manifest.Queries[0].Edition != "CORE" || inv.Manifest.Validate() != nil {
+		t.Fatal("inventory aliases caller query provenance")
+	}
+}
+
 type syntheticProvider struct{ result ProviderResult }
 
 func (p syntheticProvider) Inspect(context.Context, LocalResource, Limits) (ProviderResult, error) {

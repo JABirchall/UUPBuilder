@@ -415,6 +415,41 @@ func TestExpiredURLRefreshPreservesManifestDigest(t *testing.T) {
 	}
 }
 
+// Caller edits made after a first transfer must not change the query snapshot
+// supplied to a later payload's refresh callback.
+func TestFetchFreezesQueriesBeforeTransfers(t *testing.T) {
+	first, second := payload(t, fixture, "first.bin"), payload(t, []byte("second"), "second.bin")
+	base := manifest(t, first, second)
+	frozen, err := model.NewPayloadManifest(base.Source, base.Payloads, model.SourceQuery{UpdateID: base.Source.UpdateID, Language: base.Source.Language, Edition: "CORE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/second" {
+			w.Write([]byte("second"))
+		} else {
+			w.Write(fixture)
+		}
+	}))
+	defer srv.Close()
+	opts := testOptions(t)
+	opts.ParallelFiles = 1
+	refreshed := false
+	opts.Refresh = func(_ context.Context, got model.PayloadManifest) (model.Locators, error) {
+		refreshed = true
+		if got.Validate() != nil || got.Queries[0].Edition != "CORE" {
+			t.Error("Fetch did not freeze caller queries")
+			return nil, ErrRefresh
+		}
+		return model.Locators{first.Identity: {URL: srv.URL}, second.Identity: {URL: srv.URL + "/second"}}, nil
+	}
+	m := manager(t, opts)
+	_, err = m.Fetch(context.Background(), frozen, model.Locators{first.Identity: {URL: srv.URL}, second.Identity: {URL: srv.URL + "/second", ExpiresAt: time.Now().Add(-time.Hour)}}, func(model.Event) { frozen.Queries[0].Edition = "mutated" })
+	if err != nil || !refreshed {
+		t.Fatalf("snapshot test did not complete refresh: %v", err)
+	}
+}
+
 func TestPauseQuiescesTransfersAndScheduling(t *testing.T) {
 	var requests atomic.Int32
 	var resumed atomic.Int32
