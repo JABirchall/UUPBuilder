@@ -7,6 +7,37 @@ import (
 	"testing"
 )
 
+func TestUDFRejectsShortDeclaredICBExtents(t *testing.T) {
+	control, expected := syntheticBridge()
+	if _, err := InspectISO(bytes.NewReader(control), int64(len(control)), expected); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name   string
+		mutate func([]byte)
+	}{
+		{"root-ICB", func(b []byte) {
+			p := b[300*2048 : 301*2048]
+			binary.LittleEndian.PutUint32(p[400:], 1)
+			syntheticUDFTag(p, 256, 0, 496)
+		}},
+		{"ordinary-child-FID", func(b []byte) {
+			// UUP/P0000.CAB's FID follows the 40-byte parent FID.
+			p := b[313*2048+40 : 313*2048+88]
+			binary.LittleEndian.PutUint32(p[20:], 1)
+			syntheticUDFTag(p, 257, 13, 32)
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			b := append([]byte(nil), control...)
+			test.mutate(b)
+			if _, err := InspectISO(bytes.NewReader(b), int64(len(b)), expected); err == nil {
+				t.Fatal("full file entry read beyond declared one-byte ICB extent")
+			}
+		})
+	}
+}
+
 // These 54 metadata bytes are copied from the actual pinned IMAPI output's
 // LVID at sector64+80, independently of the synthetic bridge author. They
 // contain tables/producer ID/counts/revisions, no Windows payload or secrets.

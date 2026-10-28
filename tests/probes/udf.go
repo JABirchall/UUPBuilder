@@ -189,7 +189,7 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 	if a.fsdBytes > 64*2048 || a.fsdBytes%2048 != 0 {
 		return nil, errors.New("unsupported file set sequence extent")
 	}
-	var root uint32
+	var root, rootBytes uint32
 	found, ended := false, false
 	for at := uint32(0); at < a.fsdBytes; at += 2048 {
 		p, err := r.read(fsdOff+int64(at), isoBlock)
@@ -217,9 +217,13 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 		if err != nil || label != volume {
 			return nil, errors.New("file set volume label differs")
 		}
-		root, _, err = udfLongAD(p[400:416])
+		root, rootBytes, err = udfLongAD(p[400:416])
 		if err != nil {
 			return nil, err
+		}
+		// This producer's ICBs each occupy one complete logical block.
+		if rootBytes != uint32(isoBlock) {
+			return nil, errors.New("unsupported root ICB extent length")
 		}
 		found = true
 	}
@@ -274,9 +278,12 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 			if le16(p[16:]) != 1 || p[18]&^byte(0x0a) != 0 {
 				return errors.New("unsupported UDF identifier flags/version")
 			}
-			target, _, err := udfLongAD(p[20:36])
+			target, targetBytes, err := udfLongAD(p[20:36])
 			if err != nil {
 				return err
+			}
+			if targetBytes != uint32(isoBlock) {
+				return errors.New("unsupported FID ICB extent length")
 			}
 			if p[18]&8 != 0 {
 				if p[18]&2 == 0 || nameLen != 0 || target != parent || parents != 0 {
