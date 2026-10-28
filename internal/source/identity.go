@@ -42,7 +42,7 @@ func upstreamUnavailable(err error) bool {
 		return false
 	}
 	switch api.Code {
-	case "MISSING_FILES", "NO_FILES", "UNSUPPORTED_COMBINATION", "UNSUPPORTED_EDITION", "UNSUPPORTED_LANG", "EMPTY_FILELIST":
+	case "MISSING_FILES", "NO_FILES", "UNKNOWN_UPDATE", "UNSUPPORTED_COMBINATION", "UNSUPPORTED_EDITION", "UNSUPPORTED_LANG", "EMPTY_FILELIST":
 		return true
 	}
 	return false

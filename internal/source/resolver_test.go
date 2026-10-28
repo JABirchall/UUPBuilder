@@ -121,6 +121,51 @@ func TestUnavailablePayloadKeepsSourceUnavailableClassification(t *testing.T) {
 	}
 }
 
+// An update removed upstream must retain the unavailable classification and its
+// safe API diagnosis whether absence is found in discovery or payload lookup.
+func TestUnknownUpdateResolutionIsSourceUnavailable(t *testing.T) {
+	for _, stage := range []string{"discovery", "payloads"} {
+		t.Run(stage, func(t *testing.T) {
+			r, c := configuredResolver(t)
+			upstream := &catalog.APIError{Endpoint: "get.php", StatusCode: 404, Code: "UNKNOWN_UPDATE"}
+			if stage == "discovery" {
+				r.Discover = func(context.Context, model.Selection) (MetadataPlan, error) { return MetadataPlan{}, upstream }
+			} else {
+				c.err = upstream
+			}
+			s, settings := selectionAndSettings(t)
+			got, err := r.Resolve(context.Background(), s, settings)
+			var api *catalog.APIError
+			if !errors.Is(err, ErrPayloadUnavailable) || got.Classification != metadata.ClassificationSourceUnavailable || !hasDiagnostic(got, "payload-unavailable") {
+				t.Fatalf("missing update not classified unavailable: classification=%q diagnostics=%v err=%v", got.Classification, got.Diagnostics, err)
+			}
+			if !errors.As(err, &api) || api.Code != "UNKNOWN_UPDATE" || api.StatusCode != 404 || api.Endpoint != "get.php" {
+				t.Fatalf("safe missing-update diagnosis lost: %v", err)
+			}
+			if !reflect.DeepEqual(got.Selection, s) || !reflect.DeepEqual(got.Settings, settings) {
+				t.Fatal("missing update discarded target choices or explicit settings")
+			}
+		})
+	}
+}
+
+func TestUnknownUpdateRefreshIsPayloadUnavailable(t *testing.T) {
+	p := sourcePayload("a.esd", "a")
+	frozen := manifestFor(t, p)
+	r := &Resolver{Catalog: &fixtureCatalog{err: &catalog.APIError{Endpoint: "get.php", StatusCode: 404, Code: "UNKNOWN_UPDATE"}}}
+	locators, err := r.RefreshLinks(context.Background(), frozen)
+	var api *catalog.APIError
+	if !errors.Is(err, ErrPayloadUnavailable) || locators != nil {
+		t.Fatalf("missing update refresh not unavailable: %v", err)
+	}
+	if !errors.As(err, &api) || api.Code != "UNKNOWN_UPDATE" || api.StatusCode != 404 || api.Endpoint != "get.php" {
+		t.Fatalf("safe missing-update diagnosis lost: %v", err)
+	}
+	if frozen.Validate() != nil {
+		t.Fatal("failed refresh mutated frozen source identity")
+	}
+}
+
 func TestUnknownLayoutRetainsTargetChoice(t *testing.T) {
 	s, settings := selectionAndSettings(t)
 	s.Architecture = "future128"
