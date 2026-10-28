@@ -17,8 +17,9 @@ Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 provenance: the coordinator's dated `provider-research.md`,
 `provider-runtime-report.md`, `adk-static-research.md` and
 `source-census-research.md`, accepted `task-P1i-report.md` and
-`task-P1i-quality-rereview.md`, plus `p1-servicing-provider-report.md` and its
-retained export/source-comparison receipts. Research archives,
+`task-P1i-quality-rereview.md`, plus `p1-servicing-provider-report.md`,
+`native-winre-locale-v3-diagnosis.md`, `p1-additional-image-inputs-report.md`
+and their retained native/source-comparison receipts. Research archives,
 Microsoft payloads, legacy guidance and converter scripts are not product inputs
 and are not copied into this tree.
 
@@ -139,9 +140,9 @@ Automatic approval review rejected extraction/direct execution of the pinned
 downloaded wimlib with only `blocked by policy`, before the orchestration
 started. No helper exit code or runtime failure was observed. This route remains
 stopped. Later independently authorized existing-OS probes, native ISO mastering
-and elevated WinRE export are separate recorded actions; they do not reopen the
-rejected downloaded-helper route. The refusal is separate from unfinished
-adapters and unavailable upstream material.
+and elevated WinRE export/apply/capture/reapply research are separate recorded
+actions; they do not reopen the rejected downloaded-helper route. The refusal is
+separate from unfinished adapters and remaining source gaps.
 
 Historical read-only observation: Windows 10 Enterprise build 19045,
 native/process amd64, non-admin, local fixed NTFS N:. Native Windows x86 and
@@ -390,11 +391,77 @@ WIM (one image, boot index 1), 384,901,017 bytes, SHA-256
 Independent comparison checked all 8,706 original stream hash/size declarations
 and the original metadata hash/size identity declaration, and actually hashed
 all 3,274 uncompressed rows totalling 3,281,618 bytes. Compressed LZX content and
-metadata were not independently decoded. Export is not image servicing,
-reconstruction, full-content or boot proof, and does not make the required
-`RunCase` cases ready. Locale/capture/reapply proof remains pending. No ADK,
-installation, driver setup, mount, online operation or restart was used for this
-export.
+metadata were not independently decoded. This export alone is not image
+servicing, reconstruction, full-content or boot proof. No ADK, installation,
+driver setup, mount, online operation or restart was used for this export.
+
+Later private native research completed an unserviced ARM64 22000.1 WinRE
+apply/capture/reapply roundtrip on the same host. The captured standard WIM is
+384,904,492 bytes, SHA-256
+`ba3628eda6cabdf49a9d6f367f535eb70b0f7032e05b090604b85ad32f6ce4d5`,
+version `0x10d00`, LZX flags `0x40082`, 32 KiB chunks, one image and boot index 1.
+
+| Actual native step | PID | Exit | Elapsed |
+| --- | ---: | ---: | ---: |
+| Original-WIM apply | 5068 | 0 | 20,365 ms |
+| Capture | 22544 | 0 | 24,805 ms |
+| Captured-WIM reapply | 11352 | 0 | 18,829 ms |
+
+Independent inspections before capture, after capture and after reapply matched
+all five selected source members' SHA-1, SHA-256 and lengths: DEFAULT,
+default-user NTUSER, SYSTEM, SOFTWARE and KBDUK.DLL. Parsed hives retained
+WindowsPE 22000.1/ARM64 identity, both original US input configurations, and the
+SYSTEM UK-layout mapping with its KBDUK payload. This is a roundtrip of the
+selected source state. The raw WIM inspector checked compressed-resource framing
+without independently decoding all compressed content; native apply/Verify and selected
+actual-file/hive inspection do not establish whole-image content or security
+metadata fidelity, servicing or boot behavior. Checks of one directory's ACL
+cannot establish whole-image fidelity.
+
+The new `native-winre-unserviced-reapply-22000/result.json`, SHA-256
+`1bccaaff70bf020809f0916a5cf8b8906dd34add501c949b1e04752ca49af1b1`,
+links the preserved earlier failed result, SHA-256
+`87ce7a6b32b8e2bc2921dc7eb9a7abc9c516d835f27516348340857182c5c3bd`.
+Its apply and capture had succeeded; the old reader incorrectly required
+factory XML EDITIONID/INSTALLATIONTYPE declarations in captured output. Those
+declarations are absent/null, with architecture, build and system root still
+checked strictly and actual WindowsPE role independently established from hives.
+No XML was patched and successful apply/capture steps were not rerun. The three
+phase logs contain no foreign-servicing-session markers; that is retained-text
+evidence, not proof of loaded-module absence or complete dependency closure.
+The existing temporary SeBackup scan monitor verified 59 of 59 restorations in
+the latest reapply run, with zero failures. No ACL/policy change, host setup or
+ADK was used. Configuration, full Gate P, CBS feature/package, boot execution and
+security-metadata-fidelity flags remain false. This private result adds no Go
+recipe and does not make the required `RunCase` cases ready.
+
+The separate servicing attempt in `native-winre-locale-22000-v3/result.json`
+failed. Apply and the original five-member/typed-hive baseline passed, but
+`/Get-Intl` exited 87 during `CPEImg::Attach` / OSVersion initialization with
+`0x80070057`. No locale-set command or serviced WIM was achieved, and the five
+selected source files remained unchanged. The diagnosis found correct documented
+arguments and ordinary paths, with no evidence-backed small correction. The
+exact internal invalid argument remains unresolved.
+
+That failure log records automatic selection of the source image's
+`Windows/SysWOW64/Dism` store, remote PID 12556 and PEProvider initialization.
+The host PEProvider is absent; the selected source store contains signed x86
+22000.1 providers. These facts strongly support source-image provider origin,
+but exact scratch-loaded hashes and the full remote dependency graph were not
+captured before tool cleanup deleted the scratch session. The attempt therefore
+cannot be described as confined to the pinned inbox provider set. Microsoft's
+[compatibility table](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
+requires appropriate Windows 11 DISM for Windows 11/WinPE 11 images on a Windows
+10 host; it does not identify this internal failure or establish permanent ARM64
+impossibility. A supported compatible provider, support/rights and dependency
+closure remain required. No provider harvesting, ADK installation, mount,
+online/reboot operation or registry-write workaround was used to resolve it.
+
+The [source ledger](source-formats.md) separately records exact original x86 and
+amd64 setup/WinRE body recovery through alternate catalogue contexts. Source
+oracles and provider-store inventories establish data identities, not runtime
+readiness. Additional x86/amd64 exports are being prepared; no outcome is
+recorded here.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not

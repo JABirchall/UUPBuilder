@@ -1,6 +1,6 @@
 # Source-format census and Gate S
 
-Recorded 2026-10-27. **Sampled census; Gate S has no passing family.** No source
+Reconciled 2026-10-28. **Sampled census; Gate S has no passing family.** No source
 was proved globally upstream-unavailable. Observed metadata, missing algorithms,
 missing fixtures, transient request errors and missing upstream material remain
 different facts. `testdata/compatibility/required-cases.json` preserves those
@@ -16,7 +16,9 @@ does not establish the whole UUID's media capability.
 ## Research origin and limits
 
 The coordinator's `source-census-research.md`, `source-research/` metadata and
-`research-evidence-digests.json` record the actual requests and retained bytes.
+`research-evidence-digests.json` record the original requests and retained bytes.
+Later `p1-additional-image-inputs-report.md` and
+`additional-final-verification.json` record the source recovery below.
 [Official JSON API](https://git.uupdump.net/uup-dump/json-api) reference commit:
 `c82a95ae6377743f2712ac0bd060e673f4478b0c`. Pinned resolver
 [get.php](https://git.uupdump.net/uup-dump/api/src/commit/7386a277aa8656fb6f8210d4b5731a44acaac30b/get.php)
@@ -159,9 +161,78 @@ file metadata preservation, image roles, reference closure, other generations,
 Windows servicing or ISO support. A separate source-reference replay test uses
 the researcher's retained decoded buffers through an explicitly synthetic
 decompression port; that replay is parser/custody validation, not native evidence.
-Synthetic corrupt/framing tests never count toward Gate P/S. Optional x86/amd64
-fixture attempts returned HTTP 500/429 and remain research gaps, not permanent
-upstream absence. PSF/CIX/base-dependent/reference/encrypted cases remain pending.
+Synthetic corrupt/framing tests never count toward Gate P/S. Earlier optional
+x86/amd64 Foundation fixture attempts returned HTTP 500/429; those responses do
+not establish permanent upstream absence. Separate setup/WinRE source recovery
+is recorded below. PSF/CIX/base-dependent/reference/encrypted cases remain pending.
+
+## Recovered x86 and amd64 setup/WinRE source bodies
+
+The original x86 UUID `3b507ad4-99b0-4630-b979-7c220b37a002` and amd64 UUID
+`3d68645c-e4c6-4d51-8858-6421e46cb0bb` had actual online `EMPTY_FILELIST`
+responses. Those exact locator gaps remain recorded. Alternate catalogue
+contexts supplied metadata ESD bodies that exactly match the original offline
+expected size, SHA-1 and SHA-256 tuples; this recovers the required baseline
+bytes without rewriting the original availability observations.
+
+| Target | Alternate UUID, default requested revision 1 | Catalogue title build | Actual WinRE image version |
+| --- | --- | --- | --- |
+| x86 | `3d12aa3e-806a-46c9-900e-bf7613959273` | Windows 10 22H2, 19045.7811 | 10.0.19041.1 |
+| amd64 | `4ef76f77-dd31-49a8-9bb5-6de3a2115eb3` | Windows 11 24H2, 26100.9725 | 10.0.26100.1 |
+
+The requested revision is not an echoed Microsoft revision. Catalogue titles
+identify locator contexts; they do not change the actual baseline image builds.
+
+| Original expected body recovered | Bytes | API expected and actual SHA-1 | API expected and actual SHA-256 |
+| --- | ---: | --- | --- |
+| x86 metadata ESD | 338,670,400 | `747b4b216dc3db281599eabf955e408bf201a961` | `edf4967f0d9f8b8703d24489f727786cd314c43a26cfdc111e5d3b8e40d13dc0` |
+| amd64 metadata ESD | 553,783,259 | `98014c58afbd29a57aed4f5eb6819f5cc5bce4a4` | `12f5944951262ffc5e15657d4e57392c54a4b505ccd2b8917c5a02456ac8e468` |
+
+Both are original three-image LZMS solid WIMs, part 1/1, boot index 2. Setup
+index 1 and WindowsPE/WinRE index 2 had their metadata and complete referenced
+stream contents independently decoded and checked against original embedded
+WIM SHA-1 identities. Stream counts below are unique referenced streams per
+index, not merely declarations or counts inferred from filenames.
+
+| Source | Setup streams decoded and hash-matched | WinRE streams decoded and hash-matched |
+| --- | ---: | ---: |
+| x86 | 875 / 875 | 8,983 / 8,983 |
+| amd64 | 934 / 934 | 11,754 / 11,754 |
+
+Typed SOFTWARE/SYSTEM/default hives, WinPE foundation MUM/CAT and
+architecture-correct payloads establish the actual WindowsPE roles. Each
+five-member source oracle binds DEFAULT, default-user NTUSER, SYSTEM, SOFTWARE
+and KBDUK.DLL to original WIM SHA-1, lengths and measured SHA-256. Both input
+hives retain effective US layout `00000409`; SYSTEM selects ControlSet001 and
+maps UK layout `00000809` to the present KBDUK.DLL. These original states support
+future comparisons; they do not prove a configuration change or successful
+servicing initialization.
+
+Provider-store data inventories cover x86's 23 files / 6,094,120 logical bytes
+and amd64's 44 files / 15,468,592 logical bytes, including the applicable
+System32 and SysWOW64 sets. Seven native code files per source were retained
+with additional SHA-256/PE/version/security data. Embedded PKCS7 certificate
+names are parsed claims, not cryptographic Authenticode trust: signature,
+signing-time, catalog and chain verification were not performed. The source
+research loaded or executed no target provider code. These inventories do not
+establish host compatibility, runtime readiness or transitive dependency closure.
+
+Payload delivery used the API-declared Microsoft HTTP host. Agreement with API
+expected hashes is an integrity bound, not Microsoft publisher/catalog
+authentication or redistribution rights. Bodies and normalized members remain
+private ignored research data. New x86/amd64 native exports are being prepared;
+their results, servicing and target-specific ISO/boot outcomes are separate work
+and are not inferred here.
+
+The existing ARM64 acquisition remains 46 frozen source bodies totalling
+3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for
+through 55,335 ESD-resource identities and 1,874 source CAB member/hash/length
+declarations. That is source identity closure, not full desktop decompression or
+materialization into a serviceable image; metadata index 3 requires the source
+graph and is not standalone. The separately observed ARM64 unserviced WinRE
+roundtrip preserves five selected source members and typed state, as detailed in
+the [toolchain ledger](toolchains.md). It does not supply full-image security
+fidelity, servicing or boot proof.
 
 ## Family/algorithm requirements
 
@@ -170,7 +241,7 @@ algorithm claims. Every family remains unimplemented or unknown and unverified.
 
 | Family | Actual evidence | Missing before Gate S |
 | --- | --- | --- |
-| Canonical CAB/ESD | Real Canonical CompDB records, legacy/modern selections, and one actually normalized ARM64 WIM/LZMS Foundation package with explicit source hashes | Broader compression/image variants, OS/setup roles, metadata preservation, complete independently expected fixture corpus |
+| Canonical CAB/ESD | Real Canonical CompDB records, legacy/modern selections, one normalized ARM64 WIM/LZMS Foundation package with explicit source hashes, and fully decoded/hash-checked x86/amd64 setup/WinRE source streams | Broader compression/image variants, complete desktop OS/setup integration, metadata preservation, complete independently expected fixture corpus |
 | Reference/non-standalone WIM/ESD | [wimlib reference resource API](https://github.com/ebiggers/wimlib/blob/v1.14.5/include/wimlib.h) documents a mechanism; no instance inspected | Content-addressed reference closure, actual bodies, correct/missing/wrong-reference fixtures |
 | Baseless express CAB+PSF | Actual Baseless ExpressCab/ExpressPSF pairs | Actual CIX/index/container versions, RAW/PA19/PA30 and relevant newer variants, trustworthy normalized results |
 | Forward/base-dependent express | Actual source/target graph and DeltaForge records | Exact base identities and availability, base-relative forward/reverse/null behavior, verified reconstructed hashes |
