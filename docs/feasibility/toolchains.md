@@ -19,10 +19,11 @@ provenance: the coordinator's dated `provider-research.md`,
 `source-census-research.md`, accepted `task-P1i-report.md` and
 `task-P1i-quality-rereview.md`, accepted `task-P1j-report.md` and its fresh
 specification/quality reviews, plus `p1-servicing-provider-report.md`,
-`native-winre-locale-v3-diagnosis.md`, `p1-additional-image-inputs-report.md`
-and their retained native/source-comparison receipts. Research archives,
-Microsoft payloads, legacy guidance and converter scripts are not product inputs
-and are not copied into this tree.
+`native-winre-locale-v3-diagnosis.md`, `p1-additional-image-inputs-report.md`,
+`mounted-view-reader-v3-actual-report.md` and
+`mounted-winre-servicing-boundary-assessment.md`, with their retained receipts.
+Research archives, Microsoft payloads, legacy guidance and converter scripts
+are not product inputs and are not copied into this tree.
 
 ## What runs, and what remains unfinished
 
@@ -716,20 +717,67 @@ The standalone census exactly matches the worker's Census. Seven
 supervisor-embedded UTC strings omit a trailing fractional zero while denoting
 identical instants; the observer records that serialization qualification.
 
-These name-based, potentially stale observations supply no atomic path or
-current-handle proof and grant no mounted-content-reader permission. Tag
-ownership/non-name-surrogate bits authorize neither a blanket reparse waiver
-nor unknown tags. No mounted selected-file bytes, mounted provider
-authentication or Get-Intl ran in this census; preflight rehashed pre-existing
-source-evidence blobs as data. A separately reviewed and executed
-current-handle/source/trust contract remains required.
+The census's name-based, potentially stale observations supplied no atomic path
+or current-handle proof, mounted selected-file bytes, provider authentication or
+Get-Intl result. Those historical limits remain; tag ownership and a false
+name-surrogate bit confer no blanket reparse waiver or unknown-tag allowance.
+Generic no-reparse guards remain strict.
 
-These observations establish healthy read-only projection and session lifetime,
-not a successful mounted query or servicing witness. All four physical
-comparison cases and earlier query/trust failures remain preserved. Full P1,
-Gate P/S, configuration, CBS/package, full-source-family, Setup/boot, security
-fidelity and actual module/network closure remain unpassed; source-family rows
-and `RunCase` readiness are unchanged.
+### Latest mounted reader and servicing boundary
+
+The separately reviewed `native-winre-x86-mounted-reader-19041-v3` case
+`10cded51-62c0-4804-beda-31cdec4d4aaf` passed the bounded mounted reader,
+source-authentication and owned-closure checks on native amd64 Windows 10
+Enterprise 19045.7807. It used the exact x86 19041.1 WIM above, index 1, in a
+healthy registered read-only mount. Its unchanged 662,694-byte `result.json` has
+SHA-256 `f09ff66796e39e468994a09cc044bf5aee2dad8a77b7548103228c904872bcfb`;
+the actual observer/report and boundary assessment bind its retained controls.
+
+All 29 literal leaves passed current metadata/data object/path/type/nondelete/
+size/volume/128-bit-ID/attribute relationships under 16 held plain ancestors.
+The private source-backed W/P model accepts W = reparse-point set
+plus exact tag `0x80000008`, P = reparse-point clear/raw-tag ignored, only in
+this closed owned context. All initial metadata W views had measured same-owner
+W-to-P transitions; initial normal-data views were P and final pairs P/P.
+Attribute comparison excludes only `0x400`; Sparse remains (three leaves at 32,
+26 at 544). Bound summaries record 3,158 observations, 74,360,963 explicit
+mounted bytes, 376 successful reported checked closes and five fresh matching
+object/attribute/source reopens. They supply no separate raw capture of every
+observation, uninterrupted query handles, atomic-path/ABA, physical on-disk
+materialization or vendor-internals proof.
+
+All five before/after original member hashes/lengths and typed WindowsPE
+19041.1/x86 state matched; DEFAULT/default-user retained US `00000409` without
+substitutes. All 23 source-store identities, versions/machines, 21 fresh Valid
+Microsoft cmdlet checks and the exact fresh FFU CAT/SIP/member proof passed,
+including zero policy/CLOSE statuses, context release, restored positions and
+post-CLOSE rehashes. Read authority and source/content authentication are
+separate checks; source-store validation does not establish actual scratch-copy
+or transitive loaded-module closure.
+
+The single actual Get-Intl PID 35752 **failed 87 in 769 ms**; worker/supervisor
+exited 1. Null `Failure`/`CleanupFailure` denote query-result failure. Its native
+log reconstitutes the registered WIM (70-71), copies source System32/Dism and
+loads the remote session (75-78, logged PID 10692), then fails PE attach (98)
+and OSVersion (112) with `0x80070057`. Missing mount registration alone cannot
+explain this boundary, also reached by the earlier applied/debug queries. The
+internal predicate remains unknown; no common cause, irrelevant read-only
+constraints, unsupported WinRE or permanent architecture/version impossibility
+is established. No identical WinRE retry follows from this result.
+
+Six other native phases exited zero. Owned discard, source/unrelated/session
+and postchecks passed; final inventory was empty, with no recovery. Primary job
+accounting 48 bytes/Active 1 naturally reached final 48 bytes/Active 0, checked
+close and both EOFs without overflow, read error or forced termination.
+All 36 fresh Microsoft host pins passed; logged WimServ PID 14072 supplies no
+actual membership/path proof. No mounted-tree scan occurred.
+
+The reader/source/authentication component passed; the required servicing query
+did not. Native query/comparison, configuration, CBS/package, Setup/boot,
+security fidelity, actual PID/path/module/network closure and full Gate P flags
+remain false. Earlier failures remain preserved, public required `RunCase`
+records remain pending/unconfigured, and no source family or Gate P/S readiness
+is promoted.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not

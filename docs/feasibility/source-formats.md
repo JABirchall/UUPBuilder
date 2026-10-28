@@ -24,6 +24,9 @@ Later `p1-additional-image-inputs-report.md` and
 Accepted `task-P1j-report.md` records the separate source-data ISO observations;
 `source-catalog-summary.json` and `x86-ffu-catalog-actual-result.json` distinguish
 source catalogue data from the subsequent exact native trust check.
+`mounted-view-reader-v3-actual-report.md` and
+`mounted-winre-servicing-boundary-assessment.md` record the later bounded
+mounted-reader pass and native query failure.
 [Official JSON API](https://git.uupdump.net/uup-dump/json-api) reference commit:
 `c82a95ae6377743f2712ac0bd060e673f4478b0c`. Pinned resolver
 [get.php](https://git.uupdump.net/uup-dump/api/src/commit/7386a277aa8656fb6f8210d4b5731a44acaac30b/get.php)
@@ -367,15 +370,38 @@ inventory was empty and no recovery was required or run. The 54/54-check
 [toolchain ledger](toolchains.md) bind the exact receipts, source identity,
 session accounting and host-code/driver attribution limits.
 
-The census's name-based, potentially stale metadata grants no mounted-content
-reader permission or atomic current-handle proof. Microsoft ownership and a
-false name-surrogate bit supply no blanket reparse waiver or unknown-tag
-allowance. No mounted selected bytes, mounted provider authentication or
-Get-Intl ran in this census; preflight rehashed pre-existing source-evidence
-blobs as data. A separately reviewed and executed current-handle/source/trust
-contract remains required. Servicing, configuration, CBS/package, full-family
-reconstruction, Setup/boot, security and module/network proof remain unresolved;
-no source family or Gate P/S readiness is promoted.
+The census's name-based, potentially stale metadata supplied no mounted-content
+reader permission, current-handle proof, selected bytes, provider authentication
+or Get-Intl result. Microsoft ownership and a false name-surrogate bit supply
+no blanket reparse waiver or unknown-tag allowance; generic guards remain strict.
+
+The later `native-winre-x86-mounted-reader-19041-v3` case passed its bounded
+source-backed reader on the exact x86 WIM/index 1 in a healthy registered
+read-only mount. All 29 current leaf metadata/data relationships passed under
+16 held plain ancestors. The explicit owned-context W/P model measured initial
+metadata W-to-P transitions, initial normal-data P views and final P/P pairs,
+excluding only reparse-point bit `0x400` from attribute comparison and retaining
+Sparse. This supplies no general reparse permission or physical-materialization
+claim; the [toolchain ledger](toolchains.md) records the model and limits.
+
+All five before/after original member hashes/lengths and typed WindowsPE
+19041.1/x86/US `00000409` state matched without substitutes. The 23-member
+source store passed original identities, 21 fresh Valid Microsoft cmdlet checks
+and the exact fresh FFU CAT/SIP/member proof with checked closure/rehashes.
+Read authority and source/content authentication were separate checks; neither
+establishes whole-WIM publisher trust, atomic-path/ABA, uninterrupted query
+handles or actual scratch-copy/transitive loaded-module closure.
+
+The single actual Get-Intl PID 35752 failed 87 in 769 ms at PE attach/OSVersion
+(`0x80070057`) after registered-WIM reconstitution and source-store copying.
+Missing mount registration alone cannot explain it; the internal predicate and
+any common cause remain unknown. Six other native phases exited zero; owned
+discard, source/unrelated/postchecks and natural session closure passed, final
+inventory was empty and no recovery ran. Query/comparison, configuration,
+CBS/package, full-family reconstruction, Setup/boot, security, actual
+PID/path/module/network closure and full Gate P flags remain false. Public
+required cases remain pending/unconfigured; no source family or Gate P/S
+readiness is promoted.
 
 The existing ARM64 acquisition remains 46 frozen source bodies totalling
 3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for
@@ -386,6 +412,12 @@ graph and is not standalone. The separately observed ARM64 unserviced WinRE
 roundtrip preserves five selected source members and typed state, as detailed in
 the [toolchain ledger](toolchains.md). It does not supply full-image security
 fidelity, servicing or boot proof.
+
+For complete-desktop P1 proof, a materialized data baseline and an explicitly
+compatible provider remain missing; current 19041 inbox DISM is not established
+as the documented Windows 11 provider route for 22000. A real PE modification
+could also qualify as a bounded component, but none occurred. These gaps do not
+authorize another identical WinRE retry or a new reconstruction algorithm.
 
 ## Family/algorithm requirements
 
