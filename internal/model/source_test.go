@@ -1,11 +1,65 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 )
+
+// Frozen query provenance must survive reordering, restart and caller mutation.
+func TestManifestQueriesCanonicalFrozenAndBackwardCompatible(t *testing.T) {
+	source := SourceIdentity{UpdateID: "update_rev.7", BuildLabel: "build", Architecture: "arm64", Language: "en-us"}
+	payloads := []Payload{testPayload(t, "a.esd")}
+	queries := []SourceQuery{{source.UpdateID, source.Language, "PROFESSIONAL"}, {source.UpdateID, source.Language, "CORE"}, {source.UpdateID, source.Language, "CORE"}}
+	a, err := NewPayloadManifest(source, payloads, queries...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := NewPayloadManifest(source, payloads, queries[1], queries[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(a.Queries) != 2 || a.Queries[0].Edition != "CORE" || a.Digest != b.Digest {
+		t.Fatal("query order/duplicates changed frozen identity")
+	}
+	queries[0].Edition = "mutated"
+	if a.Queries[1].Edition != "PROFESSIONAL" || a.Validate() != nil {
+		t.Fatal("caller mutated frozen queries")
+	}
+	b.Queries[0].Edition = "ENTERPRISE"
+	if b.Validate() == nil {
+		t.Fatal("query mutation did not invalidate manifest")
+	}
+	plain, err := NewPayloadManifest(source, payloads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	projection, err := json.Marshal(struct {
+		Version  int            `json:"version"`
+		Source   SourceIdentity `json:"source"`
+		Payloads []Payload      `json:"payloads"`
+	}{1, source, plain.Payloads})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(projection)
+	if plain.Digest != hex.EncodeToString(sum[:]) || plain.Digest == a.Digest {
+		t.Fatal("legacy digest changed or queries excluded")
+	}
+}
+
+// Queries cannot carry credentials, signed URLs, another revision or language.
+func TestManifestRejectsMalformedQueries(t *testing.T) {
+	source := SourceIdentity{UpdateID: "update_rev.7", BuildLabel: "build", Architecture: "amd64", Language: "en-us"}
+	for _, q := range []SourceQuery{{"", "en-us", "CORE"}, {"update_rev.8", "en-us", "CORE"}, {"update_rev.7", "fr-fr", "CORE"}, {"update_rev.7", "en-us", ""}, {"update_rev.7", "en-us", ".CORE"}, {"update_rev.7", "en-us", "-CORE"}, {"update_rev.7", "en-us", "https://example.invalid/?signature=secret"}, {"update_rev.7", "en-us", "CORE&token=secret"}, {"update_rev.7", "en-us", " CORE"}} {
+		if _, err := NewPayloadManifest(source, []Payload{testPayload(t, "a.esd")}, q); err == nil {
+			t.Fatalf("accepted malformed query: %+v", q)
+		}
+	}
+}
 
 func TestSourceIdentityPreservesRevision(t *testing.T) {
 	const id = "12345678-1234-1234-1234-123456789abc_rev.7"

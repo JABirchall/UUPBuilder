@@ -178,6 +178,7 @@ func Inspect(ctx context.Context, req InspectRequest) (Inventory, error) {
 	}
 	inv := Inventory{Source: req.Source, Manifest: req.Manifest}
 	inv.Manifest.Payloads = slices.Clone(req.Manifest.Payloads)
+	inv.Manifest.Queries = slices.Clone(req.Manifest.Queries)
 	known := make(map[model.PayloadIdentity]bool)
 	for _, payload := range req.Manifest.Payloads {
 		known[payload.Identity] = true

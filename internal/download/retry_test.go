@@ -68,3 +68,30 @@ func TestFetchOneNeverFabricatesRefreshSourceContext(t *testing.T) {
 		})
 	}
 }
+
+// A refresh consumer may mutate its borrowed DTO; subsequent refreshes must
+// still receive the exact frozen source queries.
+func TestRefreshCallbackCannotMutateFrozenQueries(t *testing.T) {
+	p := payload(t, fixture, "p.bin")
+	base := manifest(t, p)
+	frozen, err := model.NewPayloadManifest(base.Source, base.Payloads, model.SourceQuery{UpdateID: base.Source.UpdateID, Language: base.Source.Language, Edition: "CORE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set := locatorSet{frozen: frozen, locators: make(model.Locators)}
+	set.refresh = func(_ context.Context, got model.PayloadManifest) (model.Locators, error) {
+		if got.Validate() != nil || got.Queries[0].Edition != "CORE" {
+			t.Fatal("callback mutated frozen queries")
+		}
+		got.Queries[0].Edition = "mutated"
+		return model.Locators{p.Identity: {URL: "https://example.invalid/fresh"}}, nil
+	}
+	for range 2 {
+		if _, err := set.get(context.Background(), p.Identity, time.Now(), true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if frozen.Validate() != nil {
+		t.Fatal("callback mutated caller queries")
+	}
+}
