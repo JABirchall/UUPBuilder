@@ -460,8 +460,42 @@ online/reboot operation or registry-write workaround was used to resolve it.
 The [source ledger](source-formats.md) separately records exact original x86 and
 amd64 setup/WinRE body recovery through alternate catalogue contexts. Source
 oracles and provider-store inventories establish data identities, not runtime
-readiness. Additional x86/amd64 exports are being prepared; no outcome is
-recorded here.
+readiness.
+
+The later paired private native export probe completed both index-2
+`/Get-WimInfo` and `/Export-Image` commands for those x86 and amd64 sources:
+all four commands exited zero. It used the same eight pinned installed native
+amd64 DISM 19041 components on elevated amd64 Windows 10 build 19045.7807,
+with `/Compress:max /Bootable /CheckIntegrity` for each export. The queried
+WindowsPE architecture/build identities match the actual baseline images below,
+not their newer alternate catalogue titles.
+
+| Actual WinRE target | Standard exported WIM bytes | Independently measured output SHA-256 |
+| --- | ---: | --- |
+| x86 10.0.19041.1 | 304,934,622 | `a69934cbb6e222e4b581cddaab5b5ad6928b8b34fc62cc3f8639c8e38744c1ac` |
+| amd64 10.0.26100.1 | 486,421,029 | `2e15508d1fd54384046286ea52e45ba673533f83e5aea37d031cf2d3c7305576` |
+
+The producer receipt `run-native-export-pair/result.json`, SHA-256
+`41873354767529f5a18f09ad52088f560dc010f1f8a2690aefd18545581a81ba`,
+is preserved unchanged. Independent data-only inspections checked standard WIM
+version `0x10d00`, LZX flags `0x40082`, 32 KiB chunks, part 1/1, one image,
+boot index 1, source role/version XML, lookup/resource/chunk bounds and complete
+nonoverlapping physical coverage with no gap or trailing bytes. All 8,983 x86
+and 11,754 amd64 original content SHA-1/size declarations and original metadata
+identity declarations match. Actual exported-byte hashing covers 3,469
+uncompressed x86 resources / 6,173,235 bytes and 4,427 amd64 resources /
+8,021,839 bytes. The 5,515 x86 and 7,328 amd64 compressed LZX resources,
+including each metadata resource, were not independently decoded. These
+declaration comparisons and whole-file hash agreement do not establish complete
+compressed-output content proof; earlier full LZMS source decoding is separate.
+
+The export probe requested no servicing, apply/capture, mount, target-provider
+execution or host setup. Its cooperative monitoring and termination mechanism
+do not establish strict quotas/deadlines, every descendant's termination or
+complete dynamic-module closure. The independent reader strengthens none of
+those runtime claims. These are bounded standard-WIM export candidates;
+x86/amd64 servicing, capture/reapply, ISO/boot and full Gate P/S proof remain
+unproved here, with no change to required `RunCase` readiness.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not

@@ -18,7 +18,9 @@ does not establish the whole UUID's media capability.
 The coordinator's `source-census-research.md`, `source-research/` metadata and
 `research-evidence-digests.json` record the original requests and retained bytes.
 Later `p1-additional-image-inputs-report.md` and
-`additional-final-verification.json` record the source recovery below.
+`additional-final-verification.json` record the source recovery below;
+`additional-exported-winre-inspection-summary.json` and
+`additional-export-final-verification.json` record the later export inspections.
 [Official JSON API](https://git.uupdump.net/uup-dump/json-api) reference commit:
 `c82a95ae6377743f2712ac0bd060e673f4478b0c`. Pinned resolver
 [get.php](https://git.uupdump.net/uup-dump/api/src/commit/7386a277aa8656fb6f8210d4b5731a44acaac30b/get.php)
@@ -220,9 +222,42 @@ establish host compatibility, runtime readiness or transitive dependency closure
 Payload delivery used the API-declared Microsoft HTTP host. Agreement with API
 expected hashes is an integrity bound, not Microsoft publisher/catalog
 authentication or redistribution rights. Bodies and normalized members remain
-private ignored research data. New x86/amd64 native exports are being prepared;
-their results, servicing and target-specific ISO/boot outcomes are separate work
-and are not inferred here.
+private ignored research data.
+
+The separately reviewed paired native index-2 query/export probe subsequently
+completed with four zero exits. The actual standard-WIM export candidates are
+distinct from the original metadata ESD bodies:
+
+| Actual WinRE target | Exported WIM bytes | Independently measured output SHA-256 |
+| --- | ---: | --- |
+| x86 10.0.19041.1 | 304,934,622 | `a69934cbb6e222e4b581cddaab5b5ad6928b8b34fc62cc3f8639c8e38744c1ac` |
+| amd64 10.0.26100.1 | 486,421,029 | `2e15508d1fd54384046286ea52e45ba673533f83e5aea37d031cf2d3c7305576` |
+
+Independent raw inspections checked both complete physical file layouts,
+header/lookup/resource/chunk bounds and nonoverlap, with no gap or trailing byte,
+and source WindowsPE role/architecture/baseline version XML. Both are standard
+`0x10d00` WIMs, LZX flags `0x40082`, 32 KiB chunks, part 1/1, one image and
+boot index 1. All 8,983 x86 and 11,754 amd64 original content SHA-1/size
+declarations match exactly. The original index-2 metadata declarations also
+match: x86 SHA-1 `56f8e397849149f678cc495ebbe5a8be3326109b` / 4,350,240
+bytes; amd64 SHA-1 `84f12269447c873e1c6c93a9a94f99ad8e3707c6` / 6,223,896
+bytes. These are original WIM metadata identities, not exported XML hashes.
+
+| Export | Uncompressed resources actually read and hash-checked | Actual bytes hashed | Compressed resources not decoded |
+| --- | ---: | ---: | ---: |
+| x86 | 3,469 | 6,173,235 | 5,515 |
+| amd64 | 4,427 | 8,021,839 | 7,328 |
+
+The compressed counts include each metadata resource. Their framing and declared
+source identities agree, but their exported LZX bytes were not independently
+decoded. Earlier complete decoding of original LZMS setup/WinRE source streams
+does not supply that compressed-export content proof. Whole-file SHA-256
+agreement with the producer establishes stable output identity, not independent
+reconstruction of its contents. The reader performed no new decompression,
+native/helper/network operation or target-provider execution. Native zero exits
+alone do not establish content proof, servicing, capture/reapply, ISO/boot or
+Gate P/S readiness. The [toolchain ledger](toolchains.md) records the separate
+export-only runtime scope and its cooperative monitoring/module-closure limits.
 
 The existing ARM64 acquisition remains 46 frozen source bodies totalling
 3,235,249,321 bytes. Its 57,209 desktop Pro stream identities are accounted for
@@ -242,7 +277,7 @@ algorithm claims. Every family remains unimplemented or unknown and unverified.
 | Family | Actual evidence | Missing before Gate S |
 | --- | --- | --- |
 | Canonical CAB/ESD | Real Canonical CompDB records, legacy/modern selections, one normalized ARM64 WIM/LZMS Foundation package with explicit source hashes, and fully decoded/hash-checked x86/amd64 setup/WinRE source streams | Broader compression/image variants, complete desktop OS/setup integration, metadata preservation, complete independently expected fixture corpus |
-| Reference/non-standalone WIM/ESD | [wimlib reference resource API](https://github.com/ebiggers/wimlib/blob/v1.14.5/include/wimlib.h) documents a mechanism; no instance inspected | Content-addressed reference closure, actual bodies, correct/missing/wrong-reference fixtures |
+| Reference/non-standalone WIM/ESD | [wimlib reference resource API](https://github.com/ebiggers/wimlib/blob/v1.14.5/include/wimlib.h) documents a mechanism; inspected ARM64 Professional metadata index 3 has all 57,209 original stream hashes located across its ESD/CAB source graph | Full desktop decoding, reconstruction/materialization, reference decoder support, independently checked outputs and correct/missing/wrong-reference fixtures |
 | Baseless express CAB+PSF | Actual Baseless ExpressCab/ExpressPSF pairs | Actual CIX/index/container versions, RAW/PA19/PA30 and relevant newer variants, trustworthy normalized results |
 | Forward/base-dependent express | Actual source/target graph and DeltaForge records | Exact base identities and availability, base-relative forward/reverse/null behavior, verified reconstructed hashes |
 | CIX/PSF | Pinned author parser references, no actual CIX | Bounds/path/index/hash checks, actual variant algorithms, native provider proof; empty-base success does not cover base-dependent data |
