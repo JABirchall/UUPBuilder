@@ -1,10 +1,11 @@
 # Toolchain feasibility ledger
 
-Recorded 2026-10-27. **P1 operational acceptance remains blocked. Gate P has no
-passing host/target pair; Gate S has no passing family.** The internal runner
-now supports two closed, bounded observations: installed Windows CAB metadata
-extraction and one actual canonical WIM/LZMS package variant. These produce
-retained component observations, always `unverified` for the gates. All nine
+Reconciled 2026-10-28. **P1 operational acceptance remains blocked. Gate P has no
+passing host/target pair; Gate S has no passing family.** The probe layer now
+supports three closed component observations: installed Windows CAB metadata
+extraction, one actual canonical WIM/LZMS package variant, and native IMAPI2FS
+source-capsule ISO mastering. These produce retained `component-runtime`
+observations, always `unverified` for the gates. All nine
 x86/amd64/ARM64 logical host/target pairs remain required; additional upstream
 targets remain valid values. The authoritative [host proof policy](../engineering/host-proof-policy.md)
 accepts complete current-host functionality plus Windows 386/amd64/arm64 builds
@@ -15,7 +16,9 @@ Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
 `2026-10-27-uup-builder-engine-plan.md`, and G0 producer contracts. Research
 provenance: the coordinator's dated `provider-research.md`,
 `provider-runtime-report.md`, `adk-static-research.md` and
-`source-census-research.md`. Research archives,
+`source-census-research.md`, accepted `task-P1i-report.md` and
+`task-P1i-quality-rereview.md`, plus `p1-servicing-provider-report.md` and its
+retained export/source-comparison receipts. Research archives,
 Microsoft payloads, legacy guidance and converter scripts are not product inputs
 and are not copied into this tree.
 
@@ -30,7 +33,9 @@ The first command tests validator logic with explicitly synthetic in-memory
 records. Its success establishes no provider capability. On an actual Windows
 host the tagged command selects the current native host's applicable cases and
 assesses all nine logical pairs through `ValidateArchitectureCoverage`. It currently
-**fails** for remaining functional gaps, without running an image tool. `provider_windows_test.go`
+**fails** with an unconfigured runtime and remaining functional gaps, without
+running an image tool. Separate component and private research results do not
+configure these required cases. `provider_windows_test.go`
 is Windows-only; running that test selection on another OS and seeing “no tests
 to run” is not a proof. Non-Windows `RunCase` reports the missing native host.
 
@@ -60,12 +65,16 @@ was added. Native system component handles deny write/delete sharing throughout
 execution; measured size/SHA-256 and PE machine must match the case. Original
 source digest algorithms are preserved alongside locally measured SHA-256.
 
-Every direct process has a fixed 30-second deadline and W1's bounded captured
-output/tree cancellation. The native LZMS observation has a 30-second context
-and at most 1 MiB per input/output buffer. CAB preflight bounds the single named
-member, folder/data blocks and declared output to 4 MiB before launching expand.
+The earlier CAB/LZMS recipes' direct processes have fixed 30-second deadlines
+and W1's bounded captured output/tree cancellation. The native LZMS observation
+has a 30-second context and at most 1 MiB per input/output buffer. CAB preflight
+bounds the single named member, folder/data blocks and declared output to 4 MiB
+before launching expand.
 Bounded Go XML inspection rejects malformed, ambiguous, deeply nested, oversized
-or directive-bearing documents. Zero exit, digest width, JSON flags and declared
+or directive-bearing documents. The separate native ISO recipe has a five-minute
+process deadline and a 5 GiB ISO output cap; its raw inspector streams outer
+bytes and hashes bounded file extents. The earlier 1 MiB buffer limit does not
+describe this larger recipe. Zero exit, digest width, JSON flags and declared
 algorithm names cannot supply missing content/operation evidence.
 
 Public Evidence contains logical `owned-run:` artifact references, measured
@@ -78,12 +87,19 @@ root. Retained files are the evidence; handwritten or edited run.json is not an
 attestation. `ValidateEvidence` remains a structural validator and rejects both
 `component-runtime` and explicitly synthetic test observations.
 
-For an explicitly reviewed local run, set `P1_OBSERVATION_ROOT` to the retained
-own-plan fixture workspace and `P1_OBSERVATION_WORKSPACE_PARENT` to an existing
-local NTFS parent, then run the separately named providerproof observation test.
+For an explicitly reviewed local CAB/LZMS run, set `P1_OBSERVATION_ROOT` to the
+retained own-plan fixture workspace and `P1_OBSERVATION_WORKSPACE_PARENT` to an
+existing local NTFS parent, then run the separately named providerproof observation test.
 Missing roots, bytes, exact host or pins fail instead of skipping. The tests
 `TestProviderObservesCompDBExtraction` and `TestProviderObservesFoundationLZMS`
 check only their narrow observations and explicitly assert gate rejection.
+
+The separate providerproof test `TestProviderMastersARM64SourceCapsule` requires
+`P1_ISO_PLAN_ROOT` to identify its own retained plan's acquisition manifest,
+source members and owned workspace parent. `TestISOInspectRetainedARM64Capsule`
+instead requires `P1_ISO_RETAINED_RUN` and reinspects the unchanged retained ISO
+without rerunning its producer. Missing fixtures or changed identities fail;
+neither test configures the required `RunCase` matrix or supplies full-gate proof.
 
 The actual CAB observation on native amd64 Windows build 19045 retained two
 successful process invocations, one 43,914-byte output and independent hash/XML
@@ -105,13 +121,27 @@ expected SHA-256 comes from the source's explicit `[sha256]` hash manifest;
 all nine WIM content SHA-1 identities were checked. This is positive bounded
 source/algorithm evidence, not complete canonical-family or Gate P/S acceptance.
 
+Native IMAPI2FS on the current native amd64 host created a 3,241,803,776-byte
+source-capsule ISO, SHA-256
+`f82c4b242f2a3da7dbbb04cbf082e2ae3c96c80f7ecb7882a00327109a9106fe`.
+The accepted current independent Go inspector, SHA-256
+`e3e33e2aa8038086845f60a9c130423082208413ace4eac9b56ab609f040774d`,
+checked 48 files in ISO9660 and 48 in UDF 1.02, matching every expected size and
+SHA-256, plus the El Torito catalog/FAT layout and embedded and direct ARM64
+loaders with PE machine `0xAA64`. This is real native source-data
+ISO/content/EFI-data mastering.
+It is not complete Windows Setup media or a booted image: serviced image/setup
+tree closure and actual boot proof remain pending. The retained Evidence stays
+`component-runtime` / `unverified`, with zero `MasterISO` verifications; strict
+Gate P/S validation still rejects it.
+
 Automatic approval review rejected extraction/direct execution of the pinned
 downloaded wimlib with only `blocked by policy`, before the orchestration
 started. No helper exit code or runtime failure was observed. This route remains
-stopped. This task does not retry through tests, Go, another shell or another
-launch mechanism; it does not install tools, elevate, change security, create a
-VM, install drivers or service an image. The refusal is separate from the
-unfinished adapter and from unavailable upstream material.
+stopped. Later independently authorized existing-OS probes, native ISO mastering
+and elevated WinRE export are separate recorded actions; they do not reopen the
+rejected downloaded-helper route. The refusal is separate from unfinished
+adapters and unavailable upstream material.
 
 Historical read-only observation: Windows 10 Enterprise build 19045,
 native/process amd64, non-admin, local fixed NTFS N:. Native Windows x86 and
@@ -339,15 +369,32 @@ not inspected, so that base is not a complete provider pin. Historical provider
 choice remains necessary where exact image/operation compatibility or rights
 requires it. A newest-kit assumption does not cover every requested build.
 
-Installed, not executed: native System32 dism.exe version 10.0.19041.1, 289136
-bytes, measured SHA-256
+The initially inventoried native System32 dism.exe is 289136 bytes, measured SHA-256
 `6a2bc5111b7ea9c4c6fdca0db462187b8b9b1ef009bd2d28a2a0124e3d31b95d`;
 DismCore.dll 413160 bytes,
 `fbb5135de4f6a5c9422a0b218d676930db9bc9a2aea0f7219077862912455914`.
 Research observed valid Microsoft Windows signatures and PE 8664 for these
-files. Installed signatures/bytes are not a distributable ADK manifest, proof of
-newer-image compatibility, or runtime success. The full current-host inventory
-remains in `provider-research.md`; it must not be copied as an ADK toolchain.
+files. Their legacy resource display strings say `10.0.19041.1`; fixed numeric
+versions instead identify DISM/DismCore `10.0.19041.3636`, WIMGAPI
+`10.0.19041.7802` and dismapi `10.0.19041.7663`. The export log agrees with the
+numeric DISM version. These installed identities are not a distributable ADK
+manifest or proof of newer-image servicing compatibility. The full current-host
+inventory remains in private research; it must not be copied as an ADK toolchain.
+
+Separately from the runnable Go observation recipes, ignored private WinRE
+research executed inbox DISM `/Get-WimInfo` and `/Export-Image` against genuine
+ARM64 22000.1 source index 2. Both completed with zero exits on elevated native
+amd64 Windows 10 Enterprise 19045.7807. Export produced a standard bootable LZX
+WIM (one image, boot index 1), 384,901,017 bytes, SHA-256
+`87d6f001b0599e9f4acb75c517b6c6fc726ea421581f361a862dad50edc75642`.
+Independent comparison checked all 8,706 original stream hash/size declarations
+and the original metadata hash/size identity declaration, and actually hashed
+all 3,274 uncompressed rows totalling 3,281,618 bytes. Compressed LZX content and
+metadata were not independently decoded. Export is not image servicing,
+reconstruction, full-content or boot proof, and does not make the required
+`RunCase` cases ready. Locale/capture/reapply proof remains pending. No ADK,
+installation, driver setup, mount, online operation or restart was used for this
+export.
 
 [DISM platforms](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-supported-platforms?view=windows-11)
 distinguishes host/tool/image versions. WinPE-specific restrictions are not
@@ -356,9 +403,10 @@ universal full-Windows host restrictions. Microsoft's
 documents an amd64 technician-PC scenario, not nine-pair native proof.
 [Oscdimg options](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11)
 describe UDF/El Torito; native helper byte availability is now established by the
-static inventories above. Mastered filesystem, target boot resources/catalog,
-bootability, host compatibility and operation/dependency/rights closure remain
-unverified. [W2 acquisition](acquisition.md) documents the candidate-only manager
+static inventories above. ADK mastering, complete Windows Setup media, actual
+boot, and host compatibility and operation/dependency/rights closure remain
+unverified. The separate IMAPI2FS source-capsule result does not certify these
+ADK candidates. [W2 acquisition](acquisition.md) documents the candidate-only manager
 and private synthetic ZIP backend; its component tests do not open Gate P/S.
 
 ## Differential candidates, without source-family proof
@@ -397,9 +445,9 @@ complete provider.
 
 ## Unfinished P1 scope
 
-Complete image/payload extraction, servicing, reconstruction and media adapters,
-broader trustworthy fixture corpora and independent expected hashes, concrete
-complete provider decisions, rights/dependency/
+Complete image/payload extraction, servicing, reconstruction and full Windows
+Setup media adapters, broader trustworthy fixture corpora and independent
+expected hashes, concrete complete provider decisions, rights/dependency/
 signature/acquisition/setup/restart closure, clean-machine validation,
 complete current-host modified-image/media proof for every required target and all
 source-family algorithm proofs remain pending. The stopped policy path is a
