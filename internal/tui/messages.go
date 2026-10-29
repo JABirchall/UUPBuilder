@@ -17,6 +17,10 @@ type ChangeArchitectureMsg struct{ Architecture model.Architecture }
 type SelectLanguageMsg struct{ Language string }
 type ToggleEditionMsg struct{ Edition string }
 type RefreshMsg struct{}
+
+type appPresetMsg struct{ id string }
+
+type appSelectAllMsg struct{}
 type ConversionFieldChangedMsg struct{ Key, Value string }
 type ConfigPathChangedMsg struct{ Path string }
 type LoadConfigMsg struct{}

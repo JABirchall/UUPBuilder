@@ -23,7 +23,7 @@ type appsState struct {
 	status        requestStatus
 	snapshot      source.AppCatalogSnapshot
 	search        textinput.Model
-	focus, cursor int // mode, stub preference, family list
+	focus, cursor int // mode, stub preference, family list, All offered preset
 }
 type appsResultMsg struct {
 	generation uint64
@@ -121,7 +121,7 @@ func (m Model) appChoices() []appChoice {
 	query := strings.ToLower(m.apps.search.Value())
 	for i := range m.apps.snapshot.Entries {
 		entry := &m.apps.snapshot.Entries[i]
-		if entry.Type == "MSIXFramework" || len(entry.Editions) == 0 {
+		if !m.appOffersExamined() || !offeredToSelectedEdition(*entry, m.cfg.Image.Editions) || known[entry.FeatureID] {
 			continue
 		}
 		known[entry.FeatureID] = true
@@ -185,6 +185,7 @@ func (m *Model) toggleApp(id string) {
 		m.cfg.Apps.Include = append(m.cfg.Apps.Include, id)
 	}
 	m.apps.focus = 2
+	m.cfg.Apps.Preset = ""
 	m.apps.cursor = min(m.apps.cursor, max(0, len(m.appChoices())-1))
 	m.appEdited()
 }
@@ -198,6 +199,8 @@ func (m Model) activateAppControl() (tea.Model, tea.Cmd) {
 		policies := []model.AppStubPolicy{model.AppStubAuto, model.AppStub, model.AppFull}
 		index := slices.Index(policies, m.cfg.Apps.StubPolicy)
 		m.setAppStub(policies[(index+1)%len(policies)])
+	case 3:
+		m.applyAppPreset(allOfferedPreset)
 	default:
 		m.navigate(Conversion)
 	}
@@ -223,14 +226,14 @@ func (m Model) appsRows(width, height int) []row {
 			status = "Loading app metadata; link requests may wait or retry..."
 		case m.apps.status.err != nil:
 			status = "App catalogue unavailable | r retry: " + boundedText(m.apps.status.err.Error(), 160)
-		case m.apps.snapshot.State == source.AppCatalogAvailable:
-			offered := 0
+		case m.appOffersExamined():
+			offered := map[string]bool{}
 			for _, e := range m.apps.snapshot.Entries {
-				if e.Type != "MSIXFramework" && len(e.Editions) > 0 {
-					offered++
+				if offeredToSelectedEdition(e, m.cfg.Image.Editions) {
+					offered[e.FeatureID] = true
 				}
 			}
-			status = fmt.Sprintf("%d source-offered · %d visible requests · applicability pending", offered, len(m.appChoices()))
+			status = fmt.Sprintf("%d source-offered · %d visible requests · applicability pending", len(offered), len(m.appChoices()))
 		case len(m.apps.snapshot.Gaps) > 0:
 			status = "Deferred | " + m.apps.snapshot.Gaps[0]
 		default:
@@ -246,6 +249,16 @@ func (m Model) appsRows(width, height int) []row {
 		controls = append(controlRows("Mode", string(m.cfg.Apps.Mode), width, m.apps.focus == 0, true, appControlMsg{field: 0}), controlRows("Stub preference", string(m.cfg.Apps.StubPolicy), width, m.apps.focus == 1, true, appControlMsg{field: 1})...)
 	}
 	rows = append(rows, controls...)
+	preset := "apply to current source"
+	if !m.appOffersExamined() {
+		preset = "unavailable; metadata unexamined"
+	} else if m.cfg.Apps.Preset == allOfferedPreset {
+		preset = "saved request; apply again to replace"
+	}
+	rows = append(rows, controlRows("All offered (a)", preset, width, m.apps.focus == 3, true, appControlMsg{field: 3})...)
+	if m.cfg.Apps.Preset != "" && m.cfg.Apps.Preset != allOfferedPreset {
+		rows = append(rows, row{text: muted.Render("Preset: unresolved " + terminalText(m.cfg.Apps.Preset))})
+	}
 	if height >= 7 || m.apps.search.Focused() {
 		rows = append(rows, controlRows("Search (/)", inputView(m.apps.search, max(1, width-16)), width, m.apps.search.Focused(), true, appSearchMsg{})...)
 	}

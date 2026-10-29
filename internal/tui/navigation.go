@@ -100,6 +100,10 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	if m.area == Apps {
 		switch key {
+		case "a":
+			return m.Update(appPresetMsg{id: allOfferedPreset})
+		case "ctrl+a":
+			return m.Update(appSelectAllMsg{})
 		case "d":
 			return m.Update(appModeMsg{mode: "default"})
 		case "c":
@@ -129,7 +133,7 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		} else if m.area == Conversion {
 			m.move(1)
 		} else if m.area == Apps {
-			m.apps.focus = (m.apps.focus + 1) % 3
+			m.apps.focus = (m.apps.focus + 1) % 4
 		} else {
 			return m.Update(NavigateMsg{Area: (m.area + 1) % 6})
 		}
@@ -154,7 +158,7 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.activate()
 	case "space", " ":
 		if m.area == Apps {
-			if m.apps.focus < 2 {
+			if m.apps.focus != 2 {
 				return m.activateAppControl()
 			}
 			choices := m.appChoices()

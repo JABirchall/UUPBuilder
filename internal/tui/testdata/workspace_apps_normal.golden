@@ -2,18 +2,19 @@
 │ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
 │ │ Choose included apps │
 │ 01 Builds │ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
-│ │ │Search (/) | source families / retained requests │ │
-│ 02 Image │ 2 source-offered · 2 visible requests · applicability pending │
-│ │ Custom: checked families are explicit requests; source hints are not policy locks. │
-│ 03 Apps │ > [x] Example.App_pub │
-│ │ [ ] Example.Other_pub │
-│ 04 Conversion │ professional:MediaCreationRequired · 0 source dependencies │
-│ │ Manifest, package closure, licensing and provisioning checks remain pending. │
-│ 05 Review │ │
+│ │ │All offered (a) | apply to current source │ │
+│ 02 Image │ │Search (/) | source families / retained requests │ │
+│ │ 2 source-offered · 2 visible requests · applicability pending │
+│ 03 Apps │ Custom: checked families are explicit requests; source hints are not policy locks. │
+│ │ > [x] Example.App_pub │
+│ 04 Conversion │ [ ] Example.Other_pub │
+│ │ professional:MediaCreationRequired · 0 source dependencies │
+│ 05 Review │ Manifest, package closure, licensing and provisioning checks remain pending. │
 │ 06 Progress │ │
 │ │ Source: Windows example · 26100.1 │
 │ unsaved draft │ ID: 11111111-1111-1111-1111-111111111111_rev.2 │
 │ Windows 10+ │ Target: amd64 | Language: en-us | Editions: professional │
 │ Host ≠ ISO target │ Apps: unchecked; requested policies retained. │
 │ │ ! App requests changed; manifest, licensing and provisioning applicability remain pending. │
-│ ↑↓ move | space request | / search | tab control | d/c/n mode | enter next | r retry | t TOML | esc back | ? help │
+│ ↑↓ move | space request | / search | a All offered | ctrl+a visible | tab control | d/c/n mode | enter next | r │
+│ retry | t TOML | esc back | ? help │

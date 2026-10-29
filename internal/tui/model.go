@@ -122,6 +122,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setAppMode(msg.mode)
 	case appStubMsg:
 		m.setAppStub(msg.policy)
+	case appPresetMsg:
+		m.applyAppPreset(msg.id)
+	case appSelectAllMsg:
+		m.toggleAllVisibleApps()
 	case appToggleMsg:
 		m.apps.search.Blur()
 		m.toggleApp(msg.featureID)

@@ -10,7 +10,7 @@ func (m Model) helpLines() []string {
 	case Conversion:
 		lines = append(lines, "up/down or tab: settings and TOML actions", "enter / space: cycle choices, edit text, or run selected action", "Text: enter applies; esc cancels. Lists use commas.", "Select config path, then Load or Save. Save reports backup/normalization.", "Requested values are retained; effective values need source applicability.")
 	case Apps:
-		lines = append(lines, "/: search source families locally; enter/esc leaves search", "tab: mode, stub preference, family list; enter/space cycles controls", "d/c/n: engine defaults, explicit custom requests, or no apps", "space: toggle focused raw FeatureID; enter from list: conversion", "r: retry small source metadata; no app package bodies are fetched", "Source dependencies and edition hints do not establish policy locks.", "Manifest, package closure, licensing and provisioning checks remain pending.")
+		lines = append(lines, "/: search source families locally; enter/esc leaves search", "tab: mode, stub preference, family list, All offered preset", "d/c/n: engine defaults, explicit custom requests, or no apps", "a: All offered from current examined source; replaces custom requests", "ctrl+a: select/deselect visible offered families; hidden requests stay", "space: toggle focused raw FeatureID; enter from list: conversion", "Preset requests are saved once; source changes never reapply them.", "r: retry small source metadata; no app package bodies are fetched", "Source dependencies and edition hints do not establish policy locks.", "Manifest, package closure, licensing and provisioning checks remain pending.")
 	default:
 		lines = append(lines, "This area will use its owning editor or job controller.", "Navigation does not start, pause or change a build job.")
 	}
@@ -40,7 +40,7 @@ func (m Model) footer() string {
 	case Conversion:
 		return "↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit"
 	case Apps:
-		return "↑↓ move | space request | / search | tab control | d/c/n mode | enter next | r retry | t TOML | esc back | ? help"
+		return "↑↓ move | space request | / search | a All offered | ctrl+a visible | tab control | d/c/n mode | enter next | r retry | t TOML | esc back | ? help"
 	default:
 		return "1-6 areas | ctrl+left/right navigate | t TOML | esc back | ? help | ctrl+c quit"
 	}

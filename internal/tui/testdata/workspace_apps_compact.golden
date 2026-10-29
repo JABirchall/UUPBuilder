@@ -3,6 +3,7 @@
 │ 06 Progress │
 │ Choose included apps │
 │ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
+│ │All offered (a) | apply to current source │ │
 │ │Search (/) | source families / retained requests │ │
 │ 2 source-offered · 2 visible requests · applicability pending │
 │ Custom: checked families are explicit requests; source hint... │
@@ -12,5 +13,5 @@
 │ Target: amd64 | Language: en-us | Editions: professional │
 │ Apps: unchecked; requested policies retained. │
 │ ! App requests changed; manifest, licensing and provisionin... │
-│ ↑↓ move | space request | / search | tab control | d/c/n mode │
-│ | enter next | r retry | t TOML | esc back | ? help │
+│ ↑↓ move | space request | / search | a All offered | ctrl+a │
+│ visible | tab control | d/c/n mode | enter next | r retry |... │

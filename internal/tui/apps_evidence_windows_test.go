@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -91,6 +92,44 @@ func TestAppsAuthenticMetadataCommandToggleSaveLoad(t *testing.T) {
 	if len(m.appChoices()) != 50 {
 		t.Fatalf("actual edition choices=%d state=%+v", len(m.appChoices()), m.apps.status)
 	}
+	cabDigest := m.apps.snapshot.CAB.Digest.Value
+	m = send(m, key('a', "a"))
+	if m.cfg.Apps.Mode != "custom" || m.cfg.Apps.Preset != "all-offered" || len(m.cfg.Apps.Include) != 50 || !slices.IsSorted(m.cfg.Apps.Include) || m.Snapshot().AppsApplicable {
+		t.Fatalf("authentic All offered requests invalid: %+v", m.cfg.Apps)
+	}
+	wantAll := m.Snapshot().Config.Apps
+	m = send(m, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if m.area != Conversion {
+		t.Fatal("All offered did not continue to Conversion")
+	}
+	m = finishConfigAction(t, m, SaveConfigMsg{})
+	if !strings.HasPrefix(m.notice, "Saved TOML:") {
+		t.Fatalf("destination UTF-16 units=%d: %s", len([]rune(m.configActions.path)), m.notice)
+	}
+	m = send(m, appModeMsg{mode: "none"})
+	m, cmd = step(m, LoadConfigMsg{})
+	m, cmd = step(m, cmd())
+	if !reflect.DeepEqual(m.cfg.Apps, wantAll) || m.Snapshot().AppsApplicable {
+		t.Fatalf("authentic All offered requests changed after Conversion/save/reload: got=%+v want=%+v notice=%s", m.cfg.Apps, wantAll, m.notice)
+	}
+	// Consume the source/language validation commands emitted by reload before
+	// the individual-request flow. The production model remains the owner.
+	for _, result := range runCommands(cmd) {
+		var next tea.Cmd
+		m, next = step(m, result)
+		for _, followup := range runCommands(next) {
+			m = send(m, followup)
+		}
+	}
+	if !m.Snapshot().ImageReady {
+		t.Fatal("reloaded exact source was not validated")
+	}
+	m, cmd = step(m, NavigateMsg{Area: Apps})
+	m = send(m, cmd())
+	m = send(m, tea.KeyPressMsg{Code: 'a', Mod: tea.ModCtrl})
+	if len(m.cfg.Apps.Include) != 0 || m.cfg.Apps.Preset != "" {
+		t.Fatal("authentic select-all failed to deselect offered requests")
+	}
 	const requested = "Microsoft.WindowsNotepad_8wekyb3d8bbwe"
 	m = send(m, key('/', "/"))
 	m = send(m, tea.PasteMsg{Content: "WindowsNotepad"})
@@ -98,6 +137,10 @@ func TestAppsAuthenticMetadataCommandToggleSaveLoad(t *testing.T) {
 	m = send(m, key(' ', " "))
 	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{requested}) {
 		t.Fatalf("raw source FeatureID lost: %v", m.cfg.Apps.Include)
+	}
+	m = send(m, tea.KeyPressMsg{Code: tea.KeyEnter})
+	if m.area != Conversion {
+		t.Fatal("individual request did not continue to Conversion")
 	}
 	m = finishConfigAction(t, m, SaveConfigMsg{})
 	saved, err := config.Load(m.configActions.path)
@@ -112,5 +155,5 @@ func TestAppsAuthenticMetadataCommandToggleSaveLoad(t *testing.T) {
 	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{requested}) || m.cfg.Apps.Mode != "custom" {
 		t.Fatal("load lost actual app request")
 	}
-	t.Logf("actual model command → 50 choices → Space %s → TOML/save/load; app applicability remains %v", requested, m.Snapshot().AppsApplicable)
+	t.Logf("authentic CAB %s: 50 offered → All offered → Conversion/save/reload identical; Ctrl+A clears → Space %s → Conversion/save/reload identical; app applicability remains %v", cabDigest, requested, m.Snapshot().AppsApplicable)
 }
