@@ -155,7 +155,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.selectBuild(msg.UpdateID)
 		return m, cmd
 	case ChangeArchitectureMsg:
-		m.changeArchitecture(msg.Architecture)
+		m.image.focus = 0
+		cmd := m.changeArchitecture(msg.Architecture)
+		m.syncArchitectureCursor()
+		return m, cmd
 	case languagesResultMsg:
 		cmd := m.acceptLanguages(msg)
 		return m, cmd

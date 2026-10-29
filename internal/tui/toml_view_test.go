@@ -91,6 +91,7 @@ func TestWorkspaceVisibleControlsUseCurrentCellsAfterResize(t *testing.T) {
 	m := browse(t)
 	for _, size := range [][2]int{{120, 34}, {68, 26}, {104, 30}} {
 		m = send(m, NavigateMsg{Area: Builds})
+		m.builds.archFilter = "arm64"
 		m = send(m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		lines := strings.Split(ansi.Strip(m.View().Content), "\n")
 		clicked := false

@@ -170,12 +170,12 @@ func (m *Model) move(delta int) {
 		m.conversion.cursor = max(0, min(m.conversion.cursor+delta, configControlCount+len(m.conversion.fields)-1))
 	}
 	if m.area == Builds {
-		m.builds.cursor = max(0, min(m.builds.cursor+delta, len(m.builds.visible())-1))
+		m.builds.cursor = max(0, min(m.builds.cursor+delta, len(m.builds.visibleGroups())-1))
 	}
 	if m.area == Image {
 		switch m.image.focus {
 		case 0:
-			m.image.archCursor = max(0, min(m.image.archCursor+delta, len(m.Architectures())-1))
+			m.image.archCursor = max(0, min(m.image.archCursor+delta, len(m.imageArchitectures())-1))
 		case 1:
 			m.image.languageCursor = max(0, min(m.image.languageCursor+delta, len(m.image.languages)-1))
 		case 2:
@@ -188,15 +188,15 @@ func (m Model) activate() (tea.Model, tea.Cmd) {
 		return m.activateConversion()
 	}
 	if m.area == Builds {
-		rows := m.builds.visible()
+		rows := m.builds.visibleGroups()
 		if len(rows) > m.builds.cursor {
-			return m.Update(SelectBuildMsg{UpdateID: rows[m.builds.cursor].UpdateID})
+			return m.Update(SelectBuildMsg{UpdateID: m.groupBuild(rows[m.builds.cursor]).UpdateID})
 		}
 	}
 	if m.area == Image {
 		switch m.image.focus {
 		case 0:
-			choices := m.Architectures()
+			choices := m.imageArchitectures()
 			if len(choices) > m.image.archCursor {
 				return m.Update(ChangeArchitectureMsg{Architecture: choices[m.image.archCursor]})
 			}

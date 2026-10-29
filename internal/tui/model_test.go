@@ -130,10 +130,10 @@ func TestArchitectureChoicesIndependentOfHost(t *testing.T) {
 	}
 }
 
-func TestSameBuildNumberDoesNotInventGrouping(t *testing.T) {
+func TestExactRecordsRemainAvailableBehindGroupedVersions(t *testing.T) {
 	m := browse(t)
-	if len(m.builds.visible()) != 4 {
-		t.Fatal("distinct records were grouped by build number")
+	if len(m.builds.records) != 4 || len(m.builds.visibleGroups()) != 3 {
+		t.Fatal("version presentation discarded exact sources or retained duplicate rows")
 	}
 	m = send(m, SelectBuildMsg{UpdateID: secondID})
 	if got := m.Snapshot().Config.Image; got.UpdateID != secondID || got.Architecture != "arm64" {
@@ -146,15 +146,15 @@ func TestArchitectureChangeUsesProvenSiblingOrRequiresReselect(t *testing.T) {
 	revision := m.Snapshot().Revision
 	m = send(m, ChangeArchitectureMsg{Architecture: "arm64"})
 	s := m.Snapshot()
-	if s.Config.Image.UpdateID != "" || s.Config.Image.Language != "" || len(s.Config.Image.Editions) != 0 {
-		t.Fatalf("architecture guessed a sibling or retained dependent selection: %+v", s)
+	if s.Config.Image.UpdateID != secondID || s.Config.Image.Language != "" || len(s.Config.Image.Editions) != 0 || m.area != Image {
+		t.Fatalf("architecture lost its actual group member or retained dependent selection: %+v", s)
 	}
-	if s.Revision <= revision || !strings.Contains(strings.ToLower(s.Notice), "exact") {
+	if s.Revision <= revision || s.AppsNotice == "" || !m.image.languageStatus.loading {
 		t.Fatalf("missing explicit invalidation: %+v", s)
 	}
-	m = send(m, SelectBuildMsg{UpdateID: secondID})
-	if m.Snapshot().Config.Image.UpdateID != secondID {
-		t.Fatal("exact record selection lost revision")
+	m = send(m, ChangeArchitectureMsg{Architecture: "x86"})
+	if m.cfg.Image.UpdateID != "" || m.cfg.Image.Architecture != "x86" || m.area != Builds {
+		t.Fatal("target outside the selected version did not require exact source reselection")
 	}
 }
 

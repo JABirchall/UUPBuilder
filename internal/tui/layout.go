@@ -204,13 +204,13 @@ func (m Model) layout() (string, []hit) {
 		padding := strings.Repeat(" ", m.contentPadding())
 		lines = append(lines, frame(left+padding+fit(r.text, width)+padding))
 		if !m.showHelp && !m.showTOML {
-			if r.msg != nil {
-				hits = append(hits, hit{x: contentX, y: bodyY + i, width: width, msg: r.msg})
-			}
 			for _, target := range r.hits {
 				target.x += contentX
 				target.y = bodyY + i
 				hits = append(hits, target)
+			}
+			if r.msg != nil {
+				hits = append(hits, hit{x: contentX, y: bodyY + i, width: width, msg: r.msg})
 			}
 		}
 	}
@@ -287,8 +287,8 @@ func (m Model) summaryRows(width int, dense bool) []row {
 		var msg tea.Msg
 		if m.cfg.Image.UpdateID != "" {
 			msg = NavigateMsg{Area: Image}
-		} else if builds := m.builds.visible(); len(builds) > m.builds.cursor {
-			label, msg = "Select source →", SelectBuildMsg{UpdateID: builds[m.builds.cursor].UpdateID}
+		} else if builds := m.builds.visibleGroups(); len(builds) > m.builds.cursor {
+			label, msg = "Select version →", SelectBuildMsg{UpdateID: m.groupBuild(builds[m.builds.cursor]).UpdateID}
 		}
 		if msg != nil {
 			action := controlRows("", label, 23, true, false, msg)
@@ -342,7 +342,7 @@ func (m Model) buildRows(width, height int) []row {
 	}
 	rows := []row{{text: heading.Render("Choose a Windows build")}}
 	if height >= 11 {
-		rows = append(rows, row{text: muted.Render("Live UUP Dump catalogue · select an exact source record.")})
+		rows = append(rows, row{text: muted.Render("Live UUP Dump catalogue · choose a version and target.")})
 	}
 	if m.height >= 28 && height >= 14 {
 		rows = append(rows, row{})
@@ -359,13 +359,13 @@ func (m Model) buildRows(width, height int) []row {
 		rows = append(rows, controlRows("Search (/)", inputView(m.builds.search, width-15), width, m.builds.search.Focused(), true, buildInputMsg{})...)
 		rows = append(rows, controlRows("Filter (f)", inputView(m.builds.filter, width-25)+" ["+target+"]", width, m.builds.filter.Focused(), true, buildInputMsg{filter: true})...)
 	}
-	visible := m.builds.visible()
+	visible := m.builds.visibleGroups()
 	status := statusText(m.builds.status, "Ready to search UUP Dump")
 	if m.builds.pending {
 		status = "Waiting for query... (300ms debounce)"
 	}
 	if height-len(rows) >= 3 {
-		rows = append(rows, row{text: muted.Render(fmt.Sprintf("%d of %d records · %s", len(visible), len(m.builds.records), status))})
+		rows = append(rows, row{text: muted.Render(fmt.Sprintf("%d of %d versions · %d of %d sources · %s", len(visible), len(groupBuilds(m.builds.records)), len(m.builds.visible()), len(m.builds.records), status))})
 	}
 	if len(visible) == 0 {
 		if !m.builds.pending && !m.builds.status.loading && m.builds.status.err == nil {
@@ -380,16 +380,21 @@ func (m Model) buildRows(width, height int) []row {
 	count := max(1, (height-len(rows))/rowHeight)
 	start := max(0, m.builds.cursor-count+1)
 	for i := start; i < min(len(visible), start+count); i++ {
-		b := visible[i]
+		group := visible[i]
+		b := m.groupBuild(group)
 		mark := " "
-		if b.UpdateID == m.cfg.Image.UpdateID {
+		if group.contains(m.cfg.Image.UpdateID) {
 			mark = "*"
 		}
 		selected := i == m.builds.cursor
 		if selected {
 			mark = ">"
 		}
-		text := sides(fmt.Sprintf("%s %s · %s", mark, terminalText(b.Title), terminalText(b.Build)), terminalText(string(b.Architecture)), width-2)
+		arches := make([]string, 0, len(group.records))
+		for _, arch := range group.architectures() {
+			arches = append(arches, terminalText(string(arch)))
+		}
+		text := sides(fmt.Sprintf("%s %s · %s", mark, terminalText(group.title), terminalText(group.build)), strings.Join(arches, " / "), width-2)
 		msg := SelectBuildMsg{UpdateID: b.UpdateID}
 		secondary := selectedLine("   "+terminalText(b.UpdateID), width, selected)
 		if !selected {
@@ -415,7 +420,7 @@ func (m Model) imageRows(width, height int) []row {
 	if m.cfg.Image.UpdateID == "" {
 		return append(rows, row{text: "Select an exact source in Builds to load language and editions."})
 	}
-	arches := m.Architectures()
+	arches := m.imageArchitectures()
 	archText := make([]string, 0, len(arches))
 	for i, arch := range arches {
 		name := terminalText(string(arch))
@@ -425,15 +430,33 @@ func (m Model) imageRows(width, height int) []row {
 		archText = append(archText, name)
 	}
 	targetLine := strings.Join(archText, "  ")
+	shownArches := arches
 	if ansi.StringWidth(targetLine) > width-12 && len(arches) > m.image.archCursor {
 		marker := ""
 		if m.image.focus == 0 {
 			marker = ">"
 		}
 		targetLine = fmt.Sprintf("%s%s [%d/%d] up/down", marker, terminalText(string(arches[m.image.archCursor])), m.image.archCursor+1, len(arches))
+		shownArches = arches[m.image.archCursor : m.image.archCursor+1]
+		archText = []string{marker + terminalText(string(shownArches[0]))}
 	}
 	dense := height < 15
-	rows = append(rows, controlRows("Target", targetLine, width, m.image.focus == 0, dense, imageFocusMsg{field: 0})...)
+	targetRows := controlRows("Target", targetLine, width, m.image.focus == 0, dense, imageFocusMsg{field: 0})
+	valueRow, x := 1, 2 // border and the value's leading space
+	if dense {
+		valueRow, x = 0, 1+ansi.StringWidth(ansi.Truncate("Target", min(20, max(2, width)/2), "…"))+3
+		if m.image.focus == 0 {
+			x += 2 // focused dense control prefix
+		}
+	}
+	for i, arch := range shownArches {
+		cells := ansi.StringWidth(archText[i])
+		if cells > 0 && x+cells <= width-1 {
+			targetRows[valueRow].hits = append(targetRows[valueRow].hits, hit{x: x, width: cells, msg: ChangeArchitectureMsg{Architecture: arch}})
+		}
+		x += cells + 2
+	}
+	rows = append(rows, targetRows...)
 	language := "no languages available"
 	if len(m.image.languages) > m.image.languageCursor {
 		choice := m.image.languages[m.image.languageCursor]

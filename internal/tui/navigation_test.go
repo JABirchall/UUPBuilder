@@ -49,18 +49,21 @@ func TestImageSpaceSelectsFocusedLanguageAndLoadsCurrentEditions(t *testing.T) {
 	}
 }
 
-func TestImageSpaceSelectsFocusedTargetWithoutGuessingSource(t *testing.T) {
+func TestImageSpaceSelectsFocusedTargetsActualSource(t *testing.T) {
 	m := chosen(t)
 	defer m.Close()
 	m = send(m, key(tea.KeyDown, ""))
 	before := m.Snapshot()
 	m, cmd := step(m, key(' ', " "))
 	after := m.Snapshot()
-	if after.Config.Image.Architecture != "arm64" || after.Config.Image.UpdateID != "" || after.Config.Image.Language != "" || len(after.Config.Image.Editions) != 0 {
-		t.Fatalf("Space did not invalidate the exact source for a target change: %+v", after.Config.Image)
+	if after.Config.Image.Architecture != "arm64" || after.Config.Image.UpdateID != secondID || after.Config.Image.Language != "" || len(after.Config.Image.Editions) != 0 {
+		t.Fatalf("Space did not choose the actual source for a target change: %+v", after.Config.Image)
 	}
-	if after.Revision != before.Revision+1 || after.ImageReady || after.HasCatalogRecord || cmd != nil || m.area != Builds {
-		t.Fatal("target change did not preserve the exact-record reselection workflow")
+	if after.Revision != before.Revision+1 || after.ImageReady || !after.HasCatalogRecord || cmd == nil || m.area != Image {
+		t.Fatal("target change did not discover the actual group source in Image")
+	}
+	if result := cmd().(languagesResultMsg); result.updateID != secondID {
+		t.Fatalf("Space requested languages for the wrong source: %+v", result)
 	}
 }
 

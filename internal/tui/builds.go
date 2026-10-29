@@ -42,17 +42,18 @@ func newBuildsState() buildsState {
 }
 func (s buildsState) visible() []catalog.Build {
 	rows := make([]catalog.Build, 0, len(s.records))
-	filter := strings.ToLower(s.filter.Value())
 	for _, b := range s.records {
-		if s.archFilter != "" && s.archFilter != b.Architecture {
-			continue
+		if s.matches(b) {
+			rows = append(rows, b)
 		}
-		if filter != "" && !strings.Contains(strings.ToLower(b.Title+" "+b.Build+" "+string(b.Architecture)+" "+b.UpdateID), filter) {
-			continue
-		}
-		rows = append(rows, b)
 	}
 	return rows
+}
+
+func (s buildsState) matches(b catalog.Build) bool {
+	filter := strings.ToLower(s.filter.Value())
+	return (s.archFilter == "" || s.archFilter == b.Architecture) &&
+		(filter == "" || strings.Contains(strings.ToLower(b.Title+" "+b.Build+" "+string(b.Architecture)+" "+b.UpdateID), filter))
 }
 
 // Architectures retains all retrieved targets, including unknown values, and
@@ -96,8 +97,21 @@ func (m *Model) acceptSearch(msg searchResultMsg) {
 	if !usable(msg.err) {
 		return
 	}
+	previous := m.builds.visibleGroups()
+	var focused *buildGroup
+	if m.builds.cursor < len(previous) {
+		focused = &previous[m.builds.cursor]
+	}
 	m.builds.records = slices.Clone(msg.builds)
-	m.builds.cursor = min(m.builds.cursor, max(0, len(m.builds.visible())-1))
+	groups := m.builds.visibleGroups()
+	m.builds.cursor = min(m.builds.cursor, max(0, len(groups)-1))
+	for i, group := range groups {
+		if (focused != nil && group.title == focused.title && group.build == focused.build) ||
+			(focused == nil && group.contains(m.cfg.Image.UpdateID)) {
+			m.builds.cursor = i
+			break
+		}
+	}
 	for _, b := range m.builds.records {
 		if b.UpdateID != m.cfg.Image.UpdateID {
 			continue
@@ -137,9 +151,12 @@ func (m *Model) selectBuild(id string) tea.Cmd {
 	}
 	return nil
 }
-func (m *Model) changeArchitecture(arch model.Architecture) {
+func (m *Model) changeArchitecture(arch model.Architecture) tea.Cmd {
 	if arch == m.cfg.Image.Architecture || !slices.Contains(m.Architectures(), arch) {
-		return
+		return nil
+	}
+	if group, ok := m.selectedGroup(); ok && slices.Contains(group.architectures(), arch) {
+		return m.selectBuild(preferredBuild(group.records, arch, m.cfg.Image.UpdateID).UpdateID)
 	}
 	m.invalidateSource()
 	m.cfg.Image = model.Selection{Architecture: arch}
@@ -149,7 +166,8 @@ func (m *Model) changeArchitecture(arch model.Architecture) {
 	m.builds.archFilter = arch
 	m.builds.cursor = 0
 	m.navigate(Builds)
+	return nil
 }
 func (m *Model) syncArchitectureCursor() {
-	m.image.archCursor = max(0, slices.Index(m.Architectures(), m.cfg.Image.Architecture))
+	m.image.archCursor = max(0, slices.Index(m.imageArchitectures(), m.cfg.Image.Architecture))
 }

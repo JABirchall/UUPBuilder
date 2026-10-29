@@ -4,9 +4,9 @@ func (m Model) helpLines() []string {
 	lines := []string{"Keyboard help - " + m.area.String(), "1-6: open an area   ctrl+left/right: change area", "up/down or j/k: move   tab: next field/area", "enter: choose / continue   esc: leave field / back", "t: read-only draft TOML (outside text fields); esc closes", "TOML: up/down, page up/down, home/end or mouse wheel scroll", "?: contextual help   f1: help anywhere   ctrl+c: quit"}
 	switch m.area {
 	case Builds:
-		lines = append(lines, "/: edit upstream query (300ms debounce)", "f: filter retrieved records locally   a: target filter", "r: refresh from upstream / retry", "Each row is an exact UUID/revision, never a guessed release group.")
+		lines = append(lines, "/: edit upstream query (300ms debounce)", "f: filter retrieved sources locally; paste an exact UUID/revision", "a: target filter   r: refresh from upstream / retry", "One row per exact title/build; all available targets are shown.", "Choose uses the filtered/requested target, otherwise the first source.", "For repeated targets, keep the requested UUID or use the first source.")
 	case Image:
-		lines = append(lines, "tab: target, language, editions   space: choose / toggle edition", "r: refresh the focused language/edition choices", "Changing target requires selecting an exact catalogue record.", "App requests are retained; their applicability needs checking.")
+		lines = append(lines, "tab: target, language, editions   space: choose / toggle edition", "r: refresh the focused language/edition choices", "Targets use actual sources in the selected title/build version.", "Missing source: return to Builds to select an exact record.", "Repeated targets use the first source; UUID filters select revisions.", "App requests are retained; their applicability needs checking.")
 	case Conversion:
 		lines = append(lines, "up/down or tab: settings and TOML actions", "enter / space: cycle choices, edit text, or run selected action", "Text: enter applies; esc cancels. Lists use commas.", "Select config path, then Load or Save. Save reports backup/normalization.", "Requested values are retained; effective values need source applicability.")
 	default:

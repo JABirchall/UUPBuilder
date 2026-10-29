@@ -82,8 +82,9 @@ func TestWorkspaceViews(t *testing.T) {
 func TestArchitectureFocusedChoiceVisibleInCompactView(t *testing.T) {
 	m := chosen(t)
 	for i := 0; i < 20; i++ {
-		m.builds.records = append(m.builds.records, catalog.Build{UpdateID: fmt.Sprintf("extra-%d", i), Architecture: model.Architecture(fmt.Sprintf("target-%02d", i))})
+		m.builds.records = append(m.builds.records, catalog.Build{UpdateID: fmt.Sprintf("extra-%d", i), Title: "Windows example", Build: "26100.1", Architecture: model.Architecture(fmt.Sprintf("target-%02d", i))})
 	}
+	m.builds.records = append(m.builds.records, catalog.Build{UpdateID: "extra-x86", Title: "Windows example", Build: "26100.1", Architecture: "x86"})
 	m = send(m, tea.WindowSizeMsg{Width: 68, Height: 24})
 	for i := 0; i < 24; i++ {
 		m = send(m, key(tea.KeyDown, ""))
@@ -119,6 +120,7 @@ func TestWorkspaceFocusedInputAndSmallBounds(t *testing.T) {
 func TestWorkspaceMouseNavigationSelectionAndResize(t *testing.T) {
 	for _, width := range []int{120, 68} {
 		m := browse(t)
+		m.builds.archFilter = "arm64"
 		m = send(m, tea.WindowSizeMsg{Width: width, Height: 30})
 		click := func(match func(tea.Msg) bool) {
 			t.Helper()
@@ -166,7 +168,7 @@ func TestWorkspaceScrolledFocusAndUntrustedTextStayInsideViewport(t *testing.T) 
 				m = send(m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 				m.notice = strings.Repeat("更新 ", 100) + "\x1b]0;unsafe\x07"
 				for i := 0; i < 30; i++ {
-					m.builds.records = append(m.builds.records, catalog.Build{UpdateID: fmt.Sprintf("scroll-%d", i), Title: strings.Repeat("世界é ", 30) + "\x1b]0;unsafe\x07", Architecture: "arm64"})
+					m.builds.records = append(m.builds.records, catalog.Build{UpdateID: fmt.Sprintf("scroll-%d", i), Title: strings.Repeat("世界é ", 30) + "\x1b]0;unsafe\x07", Build: fmt.Sprint(i), Architecture: "arm64"})
 					m.image.editions = append(m.image.editions, catalog.Edition{ID: fmt.Sprintf("edition-%d", i), Name: strings.Repeat("世界é ", 30) + "\x1b]0;unsafe\x07"})
 				}
 				if area == Image {

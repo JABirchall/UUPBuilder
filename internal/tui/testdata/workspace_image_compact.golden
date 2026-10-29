@@ -2,7 +2,7 @@
 │ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
 │ 06 Progress │
 │ Configure the image │
-│ │Target | amd64 arm64 future x86 │ │
+│ │Target | amd64 arm64 │ │
 │ │Language | en-us · English [1/2] (selected) │ │
 │ Available (cache or network) | checked 12:30Z | r refresh │
 │ Available (cache or network) | checked 12:30Z | r refresh │
