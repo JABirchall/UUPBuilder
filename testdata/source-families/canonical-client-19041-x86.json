@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "scope": "U07A source-preserving standard-WIM component; historical observations, not capability authority",
+  "family": "canonical-client-19041",
+  "source": {
+    "update_id": "3d12aa3e-806a-46c9-900e-bf7613959273",
+    "build_label": "19045.7811",
+    "architecture": "x86",
+    "language": "en-us"
+  },
+  "manifest_sha256": "675cf6f2462def2f1a07f533d477488cde9e30217dd272acee2857c5fe8abef9",
+  "baseline": {
+    "edition": "Professional",
+    "installation_type": "Client",
+    "version": "10.0.19041.1",
+    "original_image_index": 3,
+    "metadata_sha1": "29256693076c5877942412848136d702889e3141",
+    "metadata_sha256": "271d6f490baa2f90d497e0d21f721b56d4e2cfc5323feb0bfb491b9c2989201a",
+    "metadata_bytes": 18731096,
+    "unique_nonempty_stream_hashes": 39471
+  },
+  "match": "Original XML Client/edition/architecture/version, original mapped metadata and nonempty decoded OS paths; no UUID, filename or boot-index rule",
+  "operations": ["go-standard-wim raw reconstruction", "independent complete byte verification", "optional installed-WIMGAPI read-only inspection"],
+  "remaining": ["Boot/Setup roles", "native filesystem preservation", "Normalize and Assembler custody", "operational Toolchain", "servicing", "mastering", "publication", "other source/target families"]
+}
