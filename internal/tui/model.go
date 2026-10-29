@@ -123,8 +123,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case appStubMsg:
 		m.setAppStub(msg.policy)
 	case appToggleMsg:
+		m.apps.search.Blur()
 		m.toggleApp(msg.featureID)
 	case appControlMsg:
+		m.apps.search.Blur()
 		m.apps.focus = msg.field
 		return m.activateAppControl()
 	case appSearchMsg:

@@ -34,7 +34,8 @@ type SourceAppCatalog struct {
 }
 
 func NewAppCatalog(endpoint string) *SourceAppCatalog {
-	client := &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	c := &SourceAppCatalog{gate: make(chan struct{}, 1), interval: 500 * time.Millisecond}
+	client := &http.Client{Transport: &appCatalogTransport{owner: c, base: http.DefaultTransport}, Timeout: 45 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 || !appURL(req.URL) {
 			return ErrInvalidInput
 		}
@@ -45,7 +46,51 @@ func NewAppCatalog(endpoint string) *SourceAppCatalog {
 	offline.MaxBodyBytes = 4 << 20
 	online := catalog.New(client, endpoint)
 	online.MaxBodyBytes = 4 << 20
-	return &SourceAppCatalog{metadata: offline, online: online, http: client, gate: make(chan struct{}, 1), interval: 500 * time.Millisecond}
+	c.metadata, c.online, c.http = offline, online, client
+	return c
+}
+
+// Both catalogue retry attempts and CAB requests pass this private send
+// boundary. Load's cancelable admission gate serializes all calls and state;
+// pacing an outer catalogue method would miss its internal HTTP retries.
+type appCatalogTransport struct {
+	owner *SourceAppCatalog
+	base  http.RoundTripper
+}
+
+func (t *appCatalogTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if err := t.owner.pace(req.Context()); err != nil {
+		return nil, err
+	}
+	resp, err := t.base.RoundTrip(req)
+	if err == nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable) {
+		t.owner.observeRetryAfter(resp.Header.Get("Retry-After"))
+	}
+	return resp, err
+}
+func (c *SourceAppCatalog) observeRetryAfter(raw string) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return
+	}
+	now := time.Now()
+	var until time.Time
+	const maxDelay = time.Duration(1<<63 - 1)
+	if seconds, err := strconv.ParseUint(value, 10, 64); err == nil {
+		delay := maxDelay
+		if seconds <= uint64(maxDelay/time.Second) {
+			delay = time.Duration(seconds) * time.Second
+		}
+		until = now.Add(delay)
+	} else if strings.Trim(value, "0123456789") == "" {
+		// Numeric overflow is still a server delay, never permission to send.
+		until = now.Add(maxDelay)
+	} else if date, err := http.ParseTime(value); err == nil {
+		until = date
+	}
+	if until.After(c.retryAfter) {
+		c.retryAfter = until
+	}
 }
 func appURL(u *url.URL) bool {
 	return u != nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && u.Fragment == ""
@@ -65,8 +110,11 @@ func (c *SourceAppCatalog) pace(ctx context.Context) error {
 		case <-timer.C:
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	c.lastRequest = time.Now()
-	return ctx.Err()
+	return nil
 }
 
 func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) (result AppCatalogSnapshot, err error) {
@@ -89,9 +137,6 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 			err = portError(ctx, "app metadata", err)
 		}
 	}()
-	if err = c.pace(ctx); err != nil {
-		return result, err
-	}
 	editions, err := c.metadata.Editions(ctx, selection.UpdateID, "neutral")
 	if err != nil {
 		return result, err
@@ -111,9 +156,6 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 		return result, nil
 	}
 	result.AppQuery = model.SourceQuery{UpdateID: selection.UpdateID, Language: "neutral", Edition: selector}
-	if err = c.pace(ctx); err != nil {
-		return result, err
-	}
 	appSet, err := c.metadata.Files(ctx, selection.UpdateID, "neutral", selector)
 	if err != nil {
 		return result, err
@@ -134,9 +176,6 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 	result.CAB = cab.Identity
 	var first catalog.FileSet
 	for i, edition := range selection.Editions {
-		if err = c.pace(ctx); err != nil {
-			return result, err
-		}
 		set, fetchErr := c.metadata.Files(ctx, selection.UpdateID, selection.Language, edition)
 		if fetchErr != nil {
 			return result, fetchErr
@@ -165,9 +204,6 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 	if c.cachedID == cab.Identity && len(c.cachedCAB) > 0 {
 		body = c.cachedCAB
 	} else {
-		if err = c.pace(ctx); err != nil {
-			return result, err
-		}
 		online, fetchErr := c.online.Files(ctx, selection.UpdateID, selection.Language, selection.Editions[0])
 		if fetchErr != nil {
 			return result, fetchErr
@@ -225,9 +261,6 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 	if err != nil || !appURL(u) || !locator.ExpiresAt.IsZero() && !time.Now().Before(locator.ExpiresAt) {
 		return nil, ErrPayloadUnavailable
 	}
-	if err = c.pace(ctx); err != nil {
-		return nil, err
-	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, locator.URL, nil)
 	if err != nil {
 		return nil, ErrInvalidInput
@@ -241,14 +274,6 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 	// No retries of body locators: upstream throttling is returned to the caller,
 	// whose retry is deliberate. Catalogue retries honor its Retry-After policy.
 	if resp.StatusCode != http.StatusOK || resp.ContentLength > id.Size {
-		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
-			value := resp.Header.Get("Retry-After")
-			if seconds, parseErr := strconv.ParseInt(value, 10, 32); parseErr == nil && seconds >= 0 {
-				c.retryAfter = time.Now().Add(time.Duration(seconds) * time.Second)
-			} else if until, parseErr := http.ParseTime(value); parseErr == nil && until.After(time.Now()) {
-				c.retryAfter = until
-			}
-		}
 		return nil, ErrPayloadUnavailable
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, id.Size+1))

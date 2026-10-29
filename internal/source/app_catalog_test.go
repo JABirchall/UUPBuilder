@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -164,6 +165,112 @@ func TestAppCatalogBodyRetryAfterPacesTheNextLoad(t *testing.T) {
 	defer cancel()
 	if _, err := loader.Load(ctx, appSelection()); !errors.Is(err, context.DeadlineExceeded) || f.bodyCalls != 1 {
 		t.Fatalf("Retry-After bypassed: %v calls=%d", err, f.bodyCalls)
+	}
+}
+
+func TestAppCatalogPacesActualRetryAndFollowingRequest(t *testing.T) {
+	for _, retryAfter := range []string{"0", "", "1"} {
+		t.Run("RetryAfter="+retryAfter, func(t *testing.T) {
+			var mu sync.Mutex
+			var sends []time.Time
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				sends = append(sends, time.Now())
+				attempt := len(sends)
+				mu.Unlock()
+				if attempt == 1 {
+					if retryAfter != "" {
+						w.Header().Set("Retry-After", retryAfter)
+					}
+					w.WriteHeader(http.StatusTooManyRequests)
+					fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
+					return
+				}
+				if r.URL.Path == "/listeditions.php" {
+					fmt.Fprint(w, `{"response":{"editionList":["APP"]}}`)
+					return
+				}
+				fmt.Fprint(w, `{"response":{"error":"NO_FILES"}}`)
+			}))
+			defer server.Close()
+			loader := NewAppCatalog(server.URL)
+			if _, err := loader.Load(context.Background(), appSelection()); err == nil {
+				t.Fatal("fixture must stop after the request following the retry")
+			}
+			mu.Lock()
+			observed := append([]time.Time(nil), sends...)
+			mu.Unlock()
+			if len(observed) != 3 {
+				t.Fatalf("wrong actual HTTP sequence: %d", len(observed))
+			}
+			retryGap, nextGap := observed[1].Sub(observed[0]), observed[2].Sub(observed[1])
+			minimum := 480 * time.Millisecond
+			if retryAfter == "1" {
+				minimum = 980 * time.Millisecond
+			}
+			// Small arrival-time tolerance accounts for the local server receiving the
+			// send after its transport start. The implementation interval stays 500 ms.
+			if retryGap < minimum || nextGap < 480*time.Millisecond {
+				t.Fatalf("actual HTTP requests not paced: retry=%v next=%v", retryGap, nextGap)
+			}
+			t.Logf("actual HTTP arrival gaps: retry=%v following=%v", retryGap, nextGap)
+		})
+	}
+}
+
+func TestAppCatalogCancellationStopsPacedImmediateRetry(t *testing.T) {
+	var mu sync.Mutex
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		calls++
+		mu.Unlock()
+		w.Header().Set("Retry-After", "0")
+		w.WriteHeader(http.StatusTooManyRequests)
+		fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
+	}))
+	defer server.Close()
+	loader := NewAppCatalog(server.URL)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	_, err := loader.Load(ctx, appSelection())
+	mu.Lock()
+	observed := calls
+	mu.Unlock()
+	if !errors.Is(err, context.DeadlineExceeded) || observed != 1 {
+		t.Fatalf("cancellation sent an immediate retry: %v calls=%d", err, observed)
+	}
+}
+
+func TestAppCatalogLongRetryAfterSurvivesToNextLoad(t *testing.T) {
+	for _, retryAfter := range []string{"121", "18446744073709551616"} {
+		t.Run(retryAfter, func(t *testing.T) {
+			var mu sync.Mutex
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				calls++
+				mu.Unlock()
+				w.Header().Set("Retry-After", retryAfter)
+				w.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
+			}))
+			defer server.Close()
+			loader := NewAppCatalog(server.URL)
+			loader.interval = 0
+			if _, err := loader.Load(context.Background(), appSelection()); err == nil {
+				t.Fatal("server delay beyond catalog retry window succeeded")
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+			defer cancel()
+			_, err := loader.Load(ctx, appSelection())
+			mu.Lock()
+			observed := calls
+			mu.Unlock()
+			if !errors.Is(err, context.DeadlineExceeded) || observed != 1 {
+				t.Fatalf("longer server delay was lost between loads: %v calls=%d", err, observed)
+			}
+		})
 	}
 }
 

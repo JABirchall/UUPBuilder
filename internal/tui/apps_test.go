@@ -201,6 +201,70 @@ func TestAppsMouseFocusesClickedFamily(t *testing.T) {
 	}
 }
 
+func TestAppsClickTransfersSearchFocusToCheckboxOrPreference(t *testing.T) {
+	for _, target := range []string{"checkbox", "mode", "stub"} {
+		t.Run(target, func(t *testing.T) {
+			m := appsChosen(t)
+			m, cmd := step(m, NavigateMsg{Area: Apps})
+			m = send(m, cmd())
+			m = send(m, key('/', "/"))
+			m = send(m, tea.PasteMsg{Content: "Example."})
+			_, hits := m.layout()
+			clicked := false
+			for _, h := range hits {
+				match := false
+				switch msg := h.msg.(type) {
+				case appToggleMsg:
+					match = target == "checkbox" && msg.featureID == "Example.Other_pub"
+				case appControlMsg:
+					match = target == "mode" && msg.field == 0 || target == "stub" && msg.field == 1
+				}
+				if match {
+					m = send(m, tea.MouseClickMsg{Button: tea.MouseLeft, X: h.x, Y: h.y})
+					clicked = true
+					break
+				}
+			}
+			if !clicked {
+				t.Fatal("target has no current visible hit region")
+			}
+			if m.apps.search.Focused() || m.editing() {
+				t.Fatalf("clicking %s left search owning keyboard focus", target)
+			}
+			m = send(m, key(' ', " "))
+			if m.apps.search.Value() != "Example." {
+				t.Fatal("Space edited search after a control click")
+			}
+			switch target {
+			case "checkbox":
+				if len(m.cfg.Apps.Include) != 0 {
+					t.Fatal("Space did not toggle clicked family back off")
+				}
+				m = send(m, tea.KeyPressMsg{Code: tea.KeyEnter})
+				if m.area != Conversion {
+					t.Fatal("Enter remained in search instead of continuing")
+				}
+			case "mode":
+				if m.cfg.Apps.Mode != model.AppsNone {
+					t.Fatalf("Space did not activate focused mode after click: %s", m.cfg.Apps.Mode)
+				}
+				m = send(m, tea.KeyPressMsg{Code: tea.KeyTab})
+				if m.apps.focus != 1 {
+					t.Fatal("Tab remained in search instead of next preference")
+				}
+			case "stub":
+				if m.cfg.Apps.StubPolicy != model.AppFull {
+					t.Fatalf("Space did not activate focused stub preference: %s", m.cfg.Apps.StubPolicy)
+				}
+				m = send(m, tea.KeyPressMsg{Code: tea.KeyTab})
+				if m.apps.focus != 2 {
+					t.Fatal("Tab remained in search instead of family list")
+				}
+			}
+		})
+	}
+}
+
 func TestAppsDetailsShowSourceDependencyAndLicenseMismatch(t *testing.T) {
 	m := appsChosen(t)
 	m, cmd := step(m, NavigateMsg{Area: Apps})

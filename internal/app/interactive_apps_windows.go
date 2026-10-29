@@ -3,12 +3,15 @@ package app
 import "uupbuilder/internal/source"
 
 func composeInteractiveApps(opts *Options) {
-	// Explicit fixture discovery ports stay unavailable unless their owner also
-	// supplies an app producer. Normal application startup owns both factories.
-	if opts.Dependencies.Catalog != nil || opts.Dependencies.AppCatalog != nil {
+	if opts.Dependencies.AppCatalog != nil {
 		return
 	}
 	if opts.Dependencies.AppCatalogFactory == nil {
+		// A discovery-only fixture opts out of automatic app composition. An
+		// explicit app factory owns startup regardless of discovery injection.
+		if opts.Dependencies.Catalog != nil {
+			return
+		}
 		opts.Dependencies.AppCatalogFactory = func(endpoint string) source.AppCatalog { return source.NewAppCatalog(endpoint) }
 	}
 	opts.Dependencies.AppCatalog = opts.Dependencies.AppCatalogFactory(opts.Config.Catalog.Endpoint)
