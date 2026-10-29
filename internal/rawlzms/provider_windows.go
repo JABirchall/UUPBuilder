@@ -82,38 +82,46 @@ func (p *Provider) Decode(ctx context.Context, b []byte, size int) (out []byte, 
 	if p.dll == nil {
 		return nil, os.ErrClosed
 	}
+	out = make([]byte, size)
+	if err := p.decodeInto(ctx, b, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Only the two separately bounded public contracts may reach this primitive.
+func (p *Provider) decodeInto(ctx context.Context, b, out []byte) (runErr error) {
+	if p.dll == nil {
+		return os.ErrClosed
+	}
 	var handle uintptr
 	ok, _, err := syscall.SyscallN(p.create, 5|0x20000000, 0, uintptr(unsafe.Pointer(&handle)))
 	if ok == 0 {
-		return nil, compressionError("CreateDecompressor", err)
+		return compressionError("CreateDecompressor", err)
 	}
 	defer func() {
 		ok, _, err := syscall.SyscallN(p.closeProc, handle)
 		if ok == 0 {
 			runErr = errors.Join(runErr, compressionError("CloseDecompressor", err))
 		}
-		if runErr != nil {
-			out = nil
-		}
 	}()
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
-	out = make([]byte, size)
 	var actual uintptr
 	ok, _, err = syscall.SyscallN(p.decompress, handle, uintptr(unsafe.Pointer(&b[0])), uintptr(len(b)), uintptr(unsafe.Pointer(&out[0])), uintptr(len(out)), uintptr(unsafe.Pointer(&actual)))
 	runtime.KeepAlive(b)
 	runtime.KeepAlive(out)
 	if ok == 0 {
-		return nil, compressionError("Decompress", err)
+		return compressionError("Decompress", err)
 	}
-	if actual != uintptr(size) {
-		return nil, errors.New("native LZMS decompressed size mismatch")
+	if actual != uintptr(len(out)) {
+		return errors.New("native LZMS decompressed size mismatch")
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return err
 	}
-	return out, nil
+	return nil
 }
 
 func compressionError(api string, err syscall.Errno) error {

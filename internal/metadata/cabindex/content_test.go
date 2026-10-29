@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -13,7 +14,7 @@ func TestRetainedCandidateCannotBeReplacedByEqualBytes(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s.close()
-	f, name, e := s.create()
+	f, name, e := s.create(2)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -23,10 +24,10 @@ func TestRetainedCandidateCannotBeReplacedByEqualBytes(t *testing.T) {
 	if e = f.Close(); e != nil {
 		t.Fatal(e)
 	}
-	if e = s.root.Remove(name); e != nil {
+	if e = os.Remove(filepath.Join(s.store.Path(), name)); e != nil {
 		t.Fatal(e)
 	}
-	replacement, e := s.root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	replacement, e := os.OpenFile(filepath.Join(s.store.Path(), name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -39,10 +40,10 @@ func TestRetainedCandidateCannotBeReplacedByEqualBytes(t *testing.T) {
 	}
 	// This replacement was created by this test; the production store refuses
 	// to adopt or delete its changed identity.
-	if e := s.root.Remove(name); e != nil {
+	if e := os.Remove(filepath.Join(s.store.Path(), name)); e != nil {
 		t.Fatal(e)
 	}
-	delete(s.names, name)
+	s.remove(name)
 }
 func TestNativeAndAggregateLimitsDiscardWholeBatch(t *testing.T) {
 	b := cabinet([]string{"a", "b"}, [][]byte{[]byte("xx"), []byte("xx")})
@@ -98,9 +99,9 @@ func TestClosePreservesCleanupFailureAfterRevokingReaders(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	scope := r.store.workspace.Path()
+	scope := r.store.store.Path()
 	defer cleanTestRetainedScope(t, scope)
-	f, e := r.store.workspace.OpenFile("unexpected", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	f, e := os.OpenFile(filepath.Join(r.store.store.Path(), "unexpected"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
 		t.Fatal(e)
 	}

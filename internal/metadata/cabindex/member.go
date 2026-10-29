@@ -43,7 +43,7 @@ func (s *memberSink) begin(n int) (uintptr, error) {
 	if m.Size > s.limits.MaxDiskBytes-s.state.RetainedBytes {
 		return 0, ErrLimit
 	}
-	f, name, e := s.store.create()
+	f, name, e := s.store.create(m.Size)
 	if e != nil {
 		return 0, e
 	}

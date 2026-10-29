@@ -11,3 +11,4 @@ func Open(context.Context, string) (*Provider, error)                 { return n
 func (*Provider) Identity() Identity                                  { return Identity{} }
 func (*Provider) Decode(context.Context, []byte, int) ([]byte, error) { return nil, ErrProvider }
 func (*Provider) Close() error                                        { return nil }
+func (*Provider) decodeInto(context.Context, []byte, []byte) error    { return ErrProvider }

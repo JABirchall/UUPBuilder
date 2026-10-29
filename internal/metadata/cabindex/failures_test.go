@@ -22,7 +22,7 @@ type faultyProvider struct {
 
 func (p *faultyProvider) Extract(ctx context.Context, r io.ReaderAt, size uint64, table cabformat.Inventory, sink *memberSink, budget *runBudget) error {
 	p.calls++
-	p.scope = sink.store.workspace.Path()
+	p.scope = sink.store.store.Path()
 	switch p.mode {
 	case "no-op":
 		return nil
@@ -79,7 +79,7 @@ func (p *faultyProvider) Extract(ctx context.Context, r io.ReaderAt, size uint64
 	}
 	e := p.dataProvider.Extract(ctx, r, size, table, sink, budget)
 	if e == nil && p.mode == "extra-output" {
-		f, err := sink.store.workspace.OpenFile("unexpected", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(filepath.Join(sink.store.store.Path(), "unexpected"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 		if err != nil {
 			return err
 		}
@@ -89,11 +89,11 @@ func (p *faultyProvider) Extract(ctx context.Context, r io.ReaderAt, size uint64
 	}
 	if e == nil && p.mode == "changed-output" {
 		a := (*sink.artifacts)[0]
-		a.file.Close()
-		if e := os.WriteFile(a.path, []byte("zz"), 0600); e != nil {
+		a.data.Close()
+		if e := os.WriteFile(filepath.Join(sink.store.store.Path(), "member-00000001.data"), []byte("zz"), 0600); e != nil {
 			return e
 		}
-		a.file, e = os.Open(a.path)
+
 	}
 	return e
 }
