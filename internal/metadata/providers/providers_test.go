@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,5 +118,178 @@ func TestEncryptedContainerRemainsMissingCapability(t *testing.T) {
 	r.Identity.Encryption = model.EncryptionIdentity{Method: "esrp", Fingerprint: strings.Repeat("a", 64)}
 	if _, err := (Appx{}).Inspect(context.Background(), r, metadata.Limits{}); !errors.Is(err, ErrUnsupported) {
 		t.Fatalf("missing decryptor classified as invalid source or bytes: %v", err)
+	}
+}
+
+func centralZIP(entries int, declared uint16) []byte {
+	const localBytes = 30
+	b := make([]byte, localBytes+entries*46+22)
+	// Local data is irrelevant to reader construction; only central-directory
+	// records are interpreted before any selected manifest can be opened.
+	for i := 0; i < entries; i++ {
+		at := localBytes + i*46
+		binary.LittleEndian.PutUint32(b[at:], 0x02014b50)
+	}
+	end := len(b) - 22
+	binary.LittleEndian.PutUint32(b[end:], 0x06054b50)
+	binary.LittleEndian.PutUint16(b[end+8:], declared)
+	binary.LittleEndian.PutUint16(b[end+10:], declared)
+	binary.LittleEndian.PutUint32(b[end+12:], uint32(entries*46))
+	binary.LittleEndian.PutUint32(b[end+16:], localBytes)
+	return b
+}
+
+func TestAppxDirectoryCountsActualRecordsBeforeReaderAllocation(t *testing.T) {
+	// 4,097 records with a lying small EOCD count exercises the standard
+	// reader's parse-until-terminal behavior, rather than trusting that count.
+	body := centralZIP(4097, 1)
+	allocs := testing.AllocsPerRun(1, func() {
+		_, err := newAppxZIP(context.Background(), bytes.NewReader(body), int64(len(body)))
+		if !errors.Is(err, metadata.ErrLimit) {
+			t.Errorf("actual entry ceiling not enforced before construction: %v", err)
+		}
+	})
+	if allocs > 64 {
+		t.Fatalf("over-budget directory constructed entry objects: allocations=%g", allocs)
+	}
+	t.Logf("4,097 actual records / EOCD count 1 refused with %g allocations", allocs)
+	if _, err := (Appx{}).Inspect(context.Background(), resource(t, body), metadata.Limits{}); !errors.Is(err, metadata.ErrLimit) {
+		t.Fatalf("public Appx path bypassed actual-directory preflight: %v", err)
+	}
+}
+
+type oversizedDirectory struct {
+	size         int64
+	end          []byte
+	centralReads int
+}
+
+func (r *oversizedDirectory) ReadAt(p []byte, off int64) (int, error) {
+	if off == 0 {
+		r.centralReads++
+	}
+	if off < 0 || off >= r.size {
+		return 0, io.EOF
+	}
+	n := min(int64(len(p)), r.size-off)
+	clear(p[:n])
+	start := r.size - int64(len(r.end))
+	for i := int64(0); i < n; i++ {
+		if at := off + i - start; at >= 0 && at < int64(len(r.end)) {
+			p[i] = r.end[at]
+		}
+	}
+	if n < int64(len(p)) {
+		return int(n), io.EOF
+	}
+	return int(n), nil
+}
+
+func TestAppxDirectoryByteBudgetPrecedesDirectoryReads(t *testing.T) {
+	end := make([]byte, 22)
+	binary.LittleEndian.PutUint32(end, 0x06054b50)
+	binary.LittleEndian.PutUint16(end[8:], 1)
+	binary.LittleEndian.PutUint16(end[10:], 1)
+	binary.LittleEndian.PutUint32(end[12:], (8<<20)+1)
+	r := &oversizedDirectory{size: (8 << 20) + 1 + 22, end: end}
+	if _, err := newAppxZIP(context.Background(), r, r.size); !errors.Is(err, metadata.ErrLimit) {
+		t.Fatalf("central-directory byte ceiling reached parser: %v", err)
+	}
+	if r.centralReads != 0 {
+		t.Fatalf("over-budget central directory was read %d times", r.centralReads)
+	}
+}
+
+type cancellingDirectory struct {
+	io.ReaderAt
+	offset int64
+	cancel context.CancelFunc
+}
+
+func (r cancellingDirectory) ReadAt(p []byte, off int64) (int, error) {
+	n, e := r.ReaderAt.ReadAt(p, off)
+	if off == r.offset {
+		r.cancel()
+	}
+	return n, e
+}
+
+func TestAppxDirectoryCancellationBeforeManifestParsing(t *testing.T) {
+	body := centralZIP(1, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r := cancellingDirectory{bytes.NewReader(body), 30, cancel}
+	if _, err := newAppxZIP(ctx, r, int64(len(body))); !errors.Is(err, context.Canceled) {
+		t.Fatalf("directory parsing ignored cancellation: %v", err)
+	}
+}
+
+func zip64Directory(body []byte) []byte {
+	oldEnd := len(body) - 22
+	b := append([]byte(nil), body[:oldEnd]...)
+	var trailer [98]byte
+	binary.LittleEndian.PutUint32(trailer[:], 0x06064b50)
+	binary.LittleEndian.PutUint64(trailer[4:], 44)
+	binary.LittleEndian.PutUint16(trailer[12:], 45)
+	binary.LittleEndian.PutUint16(trailer[14:], 45)
+	count := uint64(binary.LittleEndian.Uint16(body[oldEnd+10:]))
+	binary.LittleEndian.PutUint64(trailer[24:], count)
+	binary.LittleEndian.PutUint64(trailer[32:], count)
+	binary.LittleEndian.PutUint64(trailer[40:], uint64(binary.LittleEndian.Uint32(body[oldEnd+12:])))
+	binary.LittleEndian.PutUint64(trailer[48:], uint64(binary.LittleEndian.Uint32(body[oldEnd+16:])))
+	binary.LittleEndian.PutUint32(trailer[56:], 0x07064b50)
+	binary.LittleEndian.PutUint64(trailer[64:], uint64(oldEnd))
+	binary.LittleEndian.PutUint32(trailer[72:], 1)
+	copy(trailer[76:], body[oldEnd:])
+	binary.LittleEndian.PutUint16(trailer[84:], 0xffff)
+	binary.LittleEndian.PutUint16(trailer[86:], 0xffff)
+	binary.LittleEndian.PutUint32(trailer[88:], 0xffffffff)
+	binary.LittleEndian.PutUint32(trailer[92:], 0xffffffff)
+	return append(b, trailer[:]...)
+}
+
+func TestAppxDirectoryZIP64RemainsBoundedAndReadable(t *testing.T) {
+	body := zip64Directory(zipBody(t, []string{"AppxManifest.xml"}))
+	got, err := (Appx{}).Inspect(context.Background(), resource(t, body), metadata.Limits{})
+	if err != nil || len(got.Documents) != 1 || got.Documents[0].Resource.Member != "AppxManifest.xml" {
+		t.Fatalf("bounded ZIP64 manifest: %+v %v", got, err)
+	}
+	bad := append([]byte(nil), body...)
+	at := len(bad) - 98
+	binary.LittleEndian.PutUint64(bad[at+24:], 4097)
+	binary.LittleEndian.PutUint64(bad[at+32:], 4097)
+	if _, err := newAppxZIP(context.Background(), bytes.NewReader(bad), int64(len(bad))); !errors.Is(err, metadata.ErrLimit) {
+		t.Fatalf("ZIP64 record budget: %v", err)
+	}
+	bad = append([]byte(nil), body...)
+	binary.LittleEndian.PutUint64(bad[at+64:], ^uint64(0))
+	if _, err := newAppxZIP(context.Background(), bytes.NewReader(bad), int64(len(bad))); !errors.Is(err, metadata.ErrMalformedMetadata) {
+		t.Fatalf("ZIP64 locator overflow: %v", err)
+	}
+}
+
+type changingDirectory struct {
+	body    []byte
+	offset  int64
+	changed bool
+}
+
+func (r *changingDirectory) ReadAt(p []byte, off int64) (int, error) {
+	n, err := bytes.NewReader(r.body).ReadAt(p, off)
+	if !r.changed && off == r.offset {
+		r.changed = true
+		end := len(r.body) - 22
+		binary.LittleEndian.PutUint16(r.body[end+8:], 0xffff)
+		binary.LittleEndian.PutUint16(r.body[end+10:], 0xffff)
+	}
+	return n, err
+}
+
+func TestAppxDirectorySnapshotPinsValidatedMetadata(t *testing.T) {
+	body := centralZIP(1, 1)
+	r := &changingDirectory{body: body, offset: 30}
+	z, err := newAppxZIP(context.Background(), r, int64(len(body)))
+	if err != nil || len(z.File) != 1 || !r.changed {
+		t.Fatalf("mutable source replaced validated directory: entries=%v changed=%v %v", z, r.changed, err)
 	}
 }
