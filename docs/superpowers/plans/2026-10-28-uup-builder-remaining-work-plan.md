@@ -93,7 +93,7 @@ Not run: actual dense >4 GiB transfer, race toolchain, new image mutations, actu
 
 ## Immediate execution priority — TUI first
 
-R1 and R2 are implemented and reviewed. A real native preview is available for user testing now. The user confirmed its behavior but requested the earlier purple Workspace style and supplied the reference screenshot. Do R16s visual fidelity first, then R16a and concrete UI feedback before returning to R3-R15 backend work; R16b waits only for its actual data producers. Native-control fix work is retained in place while this priority runs. Do not reinstate removed R17 or build fake backend/app data to make the preview look complete.
+R1, R2 and R16s are implemented and reviewed; the purple Workspace preview is available for user testing. The user's follow-up keyboard, architecture-grouping and source-backed Apps fixes are reviewed at R16k/R16g/R16a-apps below, and a fresh combined preview is open. Continue concrete UI feedback before returning to R3-R15 backend work; R16b waits only for its actual data producers. Native-control fix work is retained in place while this priority runs. Do not reinstate removed R17 or build fake backend/app data to make the preview look complete.
 
 ## File boundaries and execution order
 
@@ -331,13 +331,21 @@ Extend producer-owned app evidence with `AppPackage.PackageFamilyName string`. D
 
 Status: completed and independently reviewed at `236680d`; the styled native preview is open for user testing.
 
+**2026-10-29 user feedback:**
+
+- [x] R16k: Space selects the focused Image language and target through the same selection path as Enter/mouse; reviewed at `4225eed`.
+- [x] R16g: show one Builds row per exact title/build with all available architectures, retaining each real source/revision for Image target selection; reviewed at `ac6039d`.
+- [x] R16a-apps: load selectable source-offered app requests for the chosen source/language/editions, including neutral app metadata when the selected language has no APP selector; reviewed at `f27035c` and combined preview opened. The actual latest amd64/en-gb/PROFESSIONAL metadata supplies 50 main app choices. Full package applicability/provisioning remains R6/R13/R16b work.
+
 **R16a — next implementation priority:** Reuse completed R1 startup and R2 typed editors; deliver an interactive preview immediately. Implement the app-editor view/state/navigation against existing typed AppInventory/AppSettings contracts before resuming native provider research. Unit fixtures may test rendering, but the running preview must display unavailable/unexamined data honestly and never fabricate selectable app/source records.
 
-**Files:** `internal/tui/apps.go`, focused tests/goldens and existing area registration. Keep the original R17 review/progress/recovery/terminal project removed.
+**Files:** `internal/tui/apps.go`, focused tests/goldens and existing area registration; the early source-request slice adds `internal/source/app_catalog*.go`, focused metadata CompDB/CAB observation helpers and interactive composition. Reuse these observations in R6 rather than rebuilding the source-request path. Keep the original R17 review/progress/recovery/terminal project removed.
 
-- [ ] Publish/launch the current real TUI preview so the user can test Builds, Image, Conversion and TOML actions now.
+- [x] Publish/launch the current real TUI preview so the user can test Builds, Image, Conversion and TOML actions now.
 - [ ] Implement search/toggles/default/custom/none/preset/stub/full interactions and explicit unresolved/deferred inventory states. Preserve family identities and draft revisions; existing schema-1 settings remain readable.
-- [ ] Exercise the preview with the user before more backend/provider work; fix concrete UI feedback first. No fake controller or invented app metadata.
+- [x] Exercise the preview with the user before more backend/provider work; fix concrete UI feedback first. No fake controller or invented app metadata.
+
+Status: the reviewed early slice uses `source.AppCatalog.Load` snapshots and raw source FeatureIDs to edit requested `model.AppSettings`; search, toggles, default/custom/none, stub/full, unresolved requests and TOML round-trip work. Preset controls remain pending, so the combined interaction checkbox stays open. Source-offered observations do not set `AppsApplicable` or establish full app policy, manifest identity, licensing or provisioning. The refreshed native preview is titled `UUP Builder UI review`.
 
 **R16b — later data integration:** After R6/R13 provide real policies/inventory, bind app-family/dependency/license/phase/applicability state to the same editor. Validate actual source-backed behavior and requested/effective choices then. This later dependency must not block the early TUI preview.
 
