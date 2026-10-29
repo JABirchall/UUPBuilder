@@ -1,21 +1,18 @@
-UUP / IMAGE BUILDER | Workspace
-1 Builds 2 Image 3 Apps [4 Conversion] 5 Review 6 Progress
-Conversion and TOML settings
-Output | output.directory
-requested: C:\very-long-output-
-name\directorydirectorydirectorydirectorydirectorydirectorydirectory
-directorydirectorydirectorydirectorydirectorydirectorydirectorydi...
-Drivers | Integrate drivers: false
-Drivers | Driver source directory:
-Drivers | Targets (os, winpe, winre, shared):
-Output | Output kind: iso
-Output | Image format: wim
-Output | SWM split size (MiB): 3800
-> Output | Output directory: C:\very-long-output-name\directorydi...
-Source: none selected | Draft r2
-ID: select an exact catalogue record
-Target: amd64 | Language: choose | Editions: choose
-! output.directory: must be nonempty UTF-8 without surrounding
-whitespace or controls
-up/down / tab field | enter / space edit or run | esc back | ? help
-| ctrl+c quit
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ Conversion and TOML settings │
+│ Output · output.directory │
+│ requested: C:\very-long-output- │
+│ name\directorydirectorydirectorydirectorydirectorydirectory... │
+│ │Drivers · Integrate… | false │ │
+│ │Drivers · Driver so… | │ │
+│ │Drivers · Targets (… | │ │
+│ │Output · Output kind | iso │ │
+│ │Output · Image form… | wim │ │
+│ │Output · SWM split … | 3800 │ │
+│ │> Output · Output dir… | C:\very-long-output-name\directo...│ │
+│ Source: none selected │
+│ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
+│ | ? help | ctrl+c quit │

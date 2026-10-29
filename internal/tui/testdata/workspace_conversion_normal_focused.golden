@@ -1,30 +1,20 @@
-UUP / IMAGE BUILDER | Workspace
-1 Builds | Conversion and TOML settings
-2 Image | Downloads | downloads.parallel_files
-3 Apps | requested: 4 | effective: unchecked (source applicability unresolved)
->4 Conversion | Updates | Keep reference ESDs: false
-5 Review | Editions | Derived editions (comma separated):
-6 Progress | Editions | Edition servicing: auto
-| Editions | Preserve temporary required bases: true
-| Boot / recovery | .NET Framework 3: false
-| Boot / recovery | Include WinRE: true
-| Boot / recovery | WinRE updates: auto
-| Boot / recovery | Update boot files: false
-| Boot / recovery | Boot WIM engine: auto
-| Drivers | Integrate drivers: false
-| Drivers | Driver source directory:
-| Drivers | Targets (os, winpe, winre, shared):
-| Output | Output kind: iso
-| Output | Image format: wim
-| Output | SWM split size (MiB): 3800
-| Output | Output directory: .
-| Output | Filename (auto or name): auto
-| Output | Volume label (auto or label): auto
-| Output | Edition order (comma separated):
-| Downloads | Proxy mode: system
-| Downloads | Proxy origin (no credentials):
-| > Edit: 12
-Source: none selected | Draft r1
-ID: select an exact catalogue record
-Target: amd64 | Language: choose | Editions: choose
-type value | enter apply | esc cancel | f1 help
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ Conversion and TOML settings │
+│ 01 Builds │ Downloads · downloads.parallel_files │
+│ │ requested: 4 | effective: unchecked (source applicability unresolved) │
+│ 02 Image │ │
+│ │ ┌ Output · Volume label (auto or label) ────────────────────────────────────────────────────┐ │
+│ 03 Apps │ │ auto │ │
+│ 04 Conversion │ ┌ Output · Edition order (comma separated) ─────────────────────────────────────────────────┐ │
+│ 05 Review │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ Downloads · Proxy mode ───────────────────────────────────────────────────────────────────┐ │
+│ 06 Progress │ │ system │ │
+│ │ ┌ Downloads · Proxy origin (no credentials) ────────────────────────────────────────────────┐ │
+│ │ ┌ Edit · Downloads · Parallel files ────────────────────────────────────────────────────────┐ │
+│ │ │ > 12 │ │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │
+│ │ Target: amd64 | Language: choose | Editions: choose │
+│ type value | enter apply | esc cancel | f1 help │

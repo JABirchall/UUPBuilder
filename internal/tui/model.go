@@ -47,6 +47,8 @@ type Model struct {
 	configActions configActionsState
 	notice        string
 	showHelp      bool
+	showTOML      bool
+	tomlOffset    int
 	appsUnchecked bool
 }
 
@@ -109,6 +111,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.builds.filter.SetWidth(max(1, m.contentWidth()-14))
 	case NavigateMsg:
 		m.navigate(msg.Area)
+	case viewTOMLMsg:
+		m.showTOML = !m.showTOML
+		m.showHelp = false
+		m.tomlOffset = 0
+	case buildInputMsg:
+		m.builds.search.Blur()
+		m.builds.filter.Blur()
+		if msg.filter {
+			cmd := m.builds.filter.Focus()
+			return m, cmd
+		}
+		cmd := m.builds.search.Focus()
+		return m, cmd
+	case cycleTargetFilterMsg:
+		m.builds.search.Blur()
+		m.builds.filter.Blur()
+		m.cycleFilter()
 	case ConversionFieldChangedMsg:
 		m.changeConversion(msg.Key, msg.Value)
 	case ConfigPathChangedMsg:
@@ -169,7 +188,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.updateKey(msg)
 	case tea.MouseClickMsg:
-		if !m.showHelp && msg.Button == tea.MouseLeft {
+		if msg.Button == tea.MouseLeft {
 			_, hits := m.layout()
 			for _, hit := range hits {
 				if hit.contains(msg.X, msg.Y) {
@@ -178,7 +197,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.MouseWheelMsg:
-		if !m.showHelp && !m.editing() {
+		if m.showTOML {
+			if msg.Button == tea.MouseWheelUp {
+				m.scrollTOML(-3)
+			}
+			if msg.Button == tea.MouseWheelDown {
+				m.scrollTOML(3)
+			}
+		} else if !m.showHelp && !m.editing() {
 			if msg.Button == tea.MouseWheelUp {
 				m.move(-1)
 			}
@@ -187,7 +213,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	default:
-		if m.editing() && !m.showHelp {
+		if m.editing() && !m.showHelp && !m.showTOML {
 			return m.updateInput(msg)
 		}
 	}

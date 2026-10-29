@@ -21,6 +21,9 @@ type ConversionFieldChangedMsg struct{ Key, Value string }
 type ConfigPathChangedMsg struct{ Path string }
 type LoadConfigMsg struct{}
 type SaveConfigMsg struct{}
+type viewTOMLMsg struct{}
+type buildInputMsg struct{ filter bool }
+type cycleTargetFilterMsg struct{}
 type conversionFocusMsg struct{ index int }
 type configActionResultMsg struct {
 	generation, revision uint64

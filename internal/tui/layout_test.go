@@ -20,7 +20,7 @@ func structuralView(view string) string {
 	var lines []string
 	for _, line := range strings.Split(ansi.Strip(view), "\n") {
 		line = strings.Join(strings.Fields(line), " ")
-		if line == "" || line == "|" || strings.Trim(line, "-") == "" {
+		if strings.Trim(line, "-|│─┌┐└┘├┤ ") == "" {
 			continue
 		}
 		lines = append(lines, line)
@@ -153,6 +153,47 @@ func TestWorkspaceMouseNavigationSelectionAndResize(t *testing.T) {
 		click(func(msg tea.Msg) bool { nav, ok := msg.(NavigateMsg); return ok && nav.Area == Progress })
 		if m.ActiveArea() != Progress {
 			t.Fatal("mouse navigation failed after layout change")
+		}
+	}
+}
+
+func TestWorkspaceScrolledFocusAndUntrustedTextStayInsideViewport(t *testing.T) {
+	for _, area := range []Area{Builds, Image, Conversion} {
+		for _, size := range [][2]int{{120, 32}, {68, 24}, {40, 16}, {28, 12}, {1, 1}} {
+			t.Run(fmt.Sprintf("%s_%dx%d", area, size[0], size[1]), func(t *testing.T) {
+				m := chosen(t)
+				m = send(m, NavigateMsg{Area: area})
+				m = send(m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+				m.notice = strings.Repeat("更新 ", 100) + "\x1b]0;unsafe\x07"
+				for i := 0; i < 30; i++ {
+					m.builds.records = append(m.builds.records, catalog.Build{UpdateID: fmt.Sprintf("scroll-%d", i), Title: strings.Repeat("世界é ", 30) + "\x1b]0;unsafe\x07", Architecture: "arm64"})
+					m.image.editions = append(m.image.editions, catalog.Edition{ID: fmt.Sprintf("edition-%d", i), Name: strings.Repeat("世界é ", 30) + "\x1b]0;unsafe\x07"})
+				}
+				if area == Image {
+					m.image.focus = 2
+				}
+				for i := 0; i < 100; i++ {
+					m.move(1)
+				}
+				view, hits := m.layout()
+				lines := strings.Split(view, "\n")
+				if len(lines) > size[1] {
+					t.Fatalf("height overflow: %d", len(lines))
+				}
+				for _, line := range lines {
+					if ansi.StringWidth(line) > size[0] || strings.Contains(ansi.Strip(line), "unsafe") {
+						t.Fatalf("unsafe or overflowing line: %q", line)
+					}
+				}
+				for _, target := range hits {
+					if target.y < 0 || target.y >= len(lines) || target.x < 0 || target.x+target.width > size[0] {
+						t.Fatalf("hit outside viewport: %+v", target)
+					}
+				}
+				if size[0] >= 40 && !strings.Contains(ansi.Strip(view), "> ") {
+					t.Fatalf("scrolled keyboard focus is hidden:\n%s", ansi.Strip(view))
+				}
+			})
 		}
 	}
 }

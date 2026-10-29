@@ -1,19 +1,22 @@
-UUP / IMAGE BUILDER | Workspace
->1 Builds | Choose a Windows build
-2 Image | Source type: not yet resolved from package metadata
-3 Apps | Search (/): upstream query
-4 Conversion | Filter (f): local text | Target (a): all
-5 Review | Available (cache or network) | checked 12:30Z | r refresh
-6 Progress | 4 of 4 records | exact UUID/revision per row
-| > Windows example | 26100.1 | amd64
-| 11111111-1111-1111-1111-111111111111_rev.2
-| Windows example | 26100.1 | arm64
-| 22222222-2222-2222-2222-222222222222_rev.9
-| Other source | 19045.1 | x86
-| 33333333-3333-3333-3333-333333333333
-| Future source | 1 | future
-| 44444444-4444-4444-4444-444444444444
-Source: none selected | Draft r1
-ID: select an exact catalogue record
-Target: amd64 | Language: choose | Editions: choose
-up/down move | / search | f filter | a target | enter select | r refresh | esc back | ? help
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ Choose a Windows build │
+│ 01 Builds │ Live UUP Dump catalogue · select an exact source record. │
+│ 02 Image │ ┌ Search builds (/) ───────────────────────┐ ┌ Filter (f) ───────────────┐ ┌ Target (a) ──┐ │
+│ │ │ upstream query │ │ local text │ │ all ▾ │ │
+│ 03 Apps │ └──────────────────────────────────────────┘ └───────────────────────────┘ └──────────────┘ │
+│ │ 4 of 4 records · Available (cache or network) | checked 12:30Z | r refresh │
+│ 04 Conversion │ > Windows example · 26100.1 amd64 │
+│ │ 11111111-1111-1111-1111-111111111111_rev.2 │
+│ 05 Review │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ │ Windows example · 26100.1 arm64 │
+│ 06 Progress │ 22222222-2222-2222-2222-222222222222_rev.9 │
+│ │ Other source · 19045.1 x86 │
+│ │ 33333333-3333-3333-3333-333333333333 │
+│ │ Future source · 1 future │
+│ │ 44444444-4444-4444-4444-444444444444 │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected ┌─────────────────────┐ │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │ Select source → │ │
+│ │ Target: amd64 | Language: choose | Editions: choose └─────────────────────┘ │
+│ ↑↓ move | / search | f filter | a target | enter select | r refresh | t TOML | esc back | ? help │

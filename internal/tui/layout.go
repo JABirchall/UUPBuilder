@@ -2,13 +2,14 @@ package tui
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"unicode"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/pelletier/go-toml/v2"
 )
 
 type hit struct {
@@ -21,9 +22,8 @@ func (h hit) contains(x, y int) bool { return y == h.y && x >= h.x && x < h.x+h.
 type row struct {
 	text string
 	msg  tea.Msg
+	hits []hit // relative horizontal cells for controls sharing a rendered row
 }
-
-var accent = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#c5a2ff"))
 
 const appsUncheckedNotice = "Apps: unchecked; requested policies retained."
 
@@ -49,7 +49,8 @@ func boundedText(value string, limit int) string {
 	return string(runes)
 }
 func fit(value string, width int) string {
-	value = ansi.Truncate(value, max(0, width), "...")
+	width = max(0, width)
+	value = ansi.Truncate(value, width, strings.Repeat(".", min(3, width)))
 	return value + strings.Repeat(" ", max(0, width-ansi.StringWidth(value)))
 }
 func wrapped(value string, width, maxLines int) []string {
@@ -60,11 +61,21 @@ func wrapped(value string, width, maxLines int) []string {
 	}
 	return lines
 }
+
+const sidebarWidth = 21 // includes its right divider
+
 func (m Model) contentWidth() int {
+	width := m.width - 2
 	if m.width >= 96 {
-		return m.width - 20
+		width -= sidebarWidth
 	}
-	return m.width
+	return max(1, width-2*m.contentPadding())
+}
+func (m Model) contentPadding() int {
+	if m.width < 50 {
+		return 1
+	}
+	return 2
 }
 
 func (m Model) View() tea.View {
@@ -72,102 +83,169 @@ func (m Model) View() tea.View {
 	v := tea.NewView(content)
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeCellMotion
+	v.BackgroundColor = canvasColor
+	v.ForegroundColor = textColor
 	return v
 }
 
-// layout computes both cells and hit regions from the same current state, so
-// a resize, filter or scrolled list cannot leave stale mouse coordinates.
+// layout computes visible cells and hit regions together, including clipping.
+// Resizing and scrolling never retain coordinates from an earlier frame.
 func (m Model) layout() (string, []hit) {
 	w, h := max(1, m.width), max(1, m.height)
-	lines := []string{fit(accent.Render("UUP / IMAGE BUILDER")+"  | Workspace", w), strings.Repeat("-", w)}
+	if w < 8 || h < 5 {
+		return canvas.Render(fit("UUP / IMAGE BUILDER", w)), nil
+	}
+	inner := w - 2
+	lines := []string{divider.Render("┌" + strings.Repeat("─", inner) + "┐")}
 	var hits []hit
-	normal := w >= 96
-	if !normal {
-		x, y := 0, len(lines)
-		nav := ""
-		for i, name := range areaNames {
-			label := fmt.Sprintf("%d %s", i+1, name)
-			if Area(i) == m.area {
-				label = "[" + label + "]"
-			}
-			if x > 0 && x+len(label) > w {
-				lines = append(lines, fit(nav, w))
-				nav = ""
-				x = 0
-				y++
-			}
-			hits = append(hits, hit{x: x, y: y, width: len(label), msg: NavigateMsg{Area: Area(i)}})
-			nav += label + "  "
-			x += len(label) + 2
+	frame := func(text string) string {
+		return divider.Render("│") + canvas.Render(fit(text, inner)) + divider.Render("│")
+	}
+	headerHeight := 1
+	if h >= 28 {
+		headerHeight = 3
+	}
+	button := "View TOML (t)"
+	if m.showTOML {
+		button = "Close TOML"
+	}
+	buttonWidth := min(17, inner-2)
+	buttonX := inner - buttonWidth - 1
+	buttonRows := controlRows("", button, buttonWidth, m.showTOML, headerHeight == 1, viewTOMLMsg{})
+	if headerHeight == 1 {
+		buttonRows[0].text = divider.Render("│") + accent.Render(fit(button, buttonWidth-2)) + divider.Render("│")
+	}
+	for i := 0; i < headerHeight; i++ {
+		left := ""
+		if i == 0 {
+			left = accent.Render("UUP / IMAGE BUILDER")
+		} else if i == 1 {
+			left = muted.Render("TUI workspace · live catalogue / current draft")
 		}
-		lines = append(lines, fit(nav, w), strings.Repeat("-", w))
+		padding := min(2, buttonX)
+		lines = append(lines, frame(strings.Repeat(" ", padding)+fit(left, max(0, buttonX-padding))+buttonRows[i].text+" "))
+		hits = append(hits, hit{x: buttonX + 1, y: len(lines) - 1, width: buttonWidth, msg: viewTOMLMsg{}})
 	}
-	footer := wrapped(m.footer(), w, 3)
-	summary := m.summaryLines(w)
-	notice := []string{}
-	if m.notice != "" {
-		notice = wrapped("! "+terminalText(m.notice), w, 2)
+	lines = append(lines, divider.Render("├"+strings.Repeat("─", inner)+"┤"))
+	normal := w >= 96
+	if !normal && !m.showTOML && !m.showHelp {
+		var nav string
+		x := 0
+		for i, name := range areaNames {
+			label := fmt.Sprintf("%02d %s", i+1, name)
+			width := min(inner, ansi.StringWidth(label)+2)
+			if x > 0 && x+width > inner {
+				lines = append(lines, frame(nav))
+				nav, x = "", 0
+			}
+			nav += navigationLine(" "+label, width, Area(i) == m.area)
+			hits = append(hits, hit{x: 1 + x, y: len(lines), width: width, msg: NavigateMsg{Area: Area(i)}})
+			x += width
+		}
+		lines = append(lines, frame(nav), divider.Render("├"+strings.Repeat("─", inner)+"┤"))
 	}
-	// Keep source identity and contextual keys visible while lists scroll.
-	bodyHeight := max(0, h-len(lines)-1-len(summary)-len(notice)-len(footer))
-	contentWidth := m.contentWidth()
-	rows := m.areaRows(contentWidth, bodyHeight)
+	footer := wrapped(keyHints(m.footer()), max(1, inner-4), 2)
+	if h < 22 {
+		footer = footer[:1]
+	}
+	bodyHeight := max(0, h-len(lines)-len(footer)-2)
+	width := m.contentWidth()
+	summary := m.summaryRows(width, h < 28)
+	if m.showTOML || m.showHelp {
+		summary = nil
+	}
+	if len(summary) > max(0, bodyHeight-3) {
+		summary = summary[:max(0, bodyHeight-3)]
+	}
+	areaHeight := max(0, bodyHeight-len(summary))
+	rows := m.areaRows(width, areaHeight)
 	if m.showHelp {
 		rows = nil
-		for _, line := range m.helpLines() {
-			for _, part := range wrapped(line, contentWidth, 3) {
+		for i, line := range m.helpLines() {
+			for _, part := range wrapped(line, width, 3) {
+				if i == 0 {
+					part = heading.Render(part)
+				}
 				rows = append(rows, row{text: part})
 			}
 		}
+	} else if m.showTOML {
+		rows = m.tomlRows(width, areaHeight)
 	}
 	bodyY := len(lines)
 	for i := 0; i < bodyHeight; i++ {
-		text := ""
-		if i < len(rows) {
-			text = rows[i].text
+		var r row
+		if i < areaHeight && i < len(rows) {
+			r = rows[i]
+		} else if i >= areaHeight {
+			r = summary[i-areaHeight]
 		}
-		x := 0
+		left := ""
+		contentX := 1 + m.contentPadding()
 		if normal {
-			nav := ""
-			if i < len(areaNames) {
-				nav = fmt.Sprintf(" %d %s", i+1, areaNames[i])
-				if Area(i) == m.area {
-					nav = accent.Render(">" + nav[1:])
-				}
-				hits = append(hits, hit{x: 0, y: bodyY + i, width: 18, msg: NavigateMsg{Area: Area(i)}})
+			left = m.sidebarLine(i, bodyHeight)
+			contentX += sidebarWidth
+			if !m.showTOML && !m.showHelp && i >= 1 && i <= 11 && i%2 == 1 {
+				hits = append(hits, hit{x: 2, y: bodyY + i, width: sidebarWidth - 3, msg: NavigateMsg{Area: Area((i - 1) / 2)}})
 			}
-			lines = append(lines, fit(nav, 18)+"| "+fit(text, contentWidth))
-			x = 20
-		} else {
-			lines = append(lines, fit(text, contentWidth))
 		}
-		if i < len(rows) && rows[i].msg != nil && !m.showHelp {
-			hits = append(hits, hit{x: x, y: bodyY + i, width: contentWidth, msg: rows[i].msg})
+		padding := strings.Repeat(" ", m.contentPadding())
+		lines = append(lines, frame(left+padding+fit(r.text, width)+padding))
+		if !m.showHelp && !m.showTOML {
+			if r.msg != nil {
+				hits = append(hits, hit{x: contentX, y: bodyY + i, width: width, msg: r.msg})
+			}
+			for _, target := range r.hits {
+				target.x += contentX
+				target.y = bodyY + i
+				hits = append(hits, target)
+			}
 		}
 	}
-	lines = append(lines, strings.Repeat("-", w))
-	for _, line := range append(append(summary, notice...), footer...) {
-		lines = append(lines, fit(line, w))
+	lines = append(lines, divider.Render("├"+strings.Repeat("─", inner)+"┤"))
+	for _, line := range footer {
+		lines = append(lines, frame("  "+line))
 	}
+	lines = append(lines, divider.Render("└"+strings.Repeat("─", inner)+"┘"))
 	if len(lines) > h {
 		lines = lines[:h]
 	}
-	return strings.Join(lines, "\n"), hits
+	hits = slices.DeleteFunc(hits, func(target hit) bool {
+		return target.y < 0 || target.y >= len(lines) || target.x < 0 || target.x+target.width > w
+	})
+	return canvas.Render(strings.Join(lines, "\n")), hits
 }
 
-func (m Model) summaryLines(width int) []string {
+func (m Model) sidebarLine(y, height int) string {
+	text := ""
+	if y >= 1 && y <= 11 && y%2 == 1 {
+		area := Area((y - 1) / 2)
+		text = navigationLine(fmt.Sprintf(" %02d %s", area+1, area), sidebarWidth-3, area == m.area)
+	} else if y >= max(13, height-4) {
+		path := terminalText(filepath.Base(m.configActions.path))
+		if path == "." || path == "" {
+			path = "unsaved draft"
+		}
+		host := "Windows 10+"
+		if m.deps.Host.NativeArchitecture != "" {
+			host += " / " + terminalText(string(m.deps.Host.NativeArchitecture))
+		}
+		metadata := []string{path, host, "Host ≠ ISO target"}
+		index := y - max(13, height-4)
+		if index < len(metadata) {
+			text = muted.Render(fit(" "+metadata[index], sidebarWidth-3))
+		}
+	}
+	return " " + fit(text, sidebarWidth-2) + divider.Render("│")
+}
+
+func (m Model) summaryRows(width int, dense bool) []row {
 	label := "none selected"
 	if m.source != nil {
-		label = terminalText(m.source.Title) + " | " + terminalText(m.source.Build)
+		label = terminalText(m.source.Title) + " · " + terminalText(m.source.Build)
 	} else if m.cfg.Image.UpdateID != "" {
 		label = "configured source (title not retrieved)"
 	}
-	lines := []string{ansi.Truncate(fmt.Sprintf("Source: %s | Draft r%d", label, m.revision), width, "...")}
-	id := "select an exact catalogue record"
-	if m.cfg.Image.UpdateID != "" {
-		id = terminalText(m.cfg.Image.UpdateID)
-	}
-	lines = append(lines, wrapped("ID: "+id, width, 4)...)
 	language := terminalText(m.cfg.Image.Language)
 	if language == "" {
 		language = "choose"
@@ -176,11 +254,39 @@ func (m Model) summaryLines(width int) []string {
 	if editions == "" {
 		editions = "choose"
 	}
-	lines = append(lines, wrapped(fmt.Sprintf("Target: %s | Language: %s | Editions: %s", terminalText(string(m.cfg.Image.Architecture)), language, editions), width, 2)...)
-	if m.appsUnchecked {
-		lines = append(lines, wrapped(appsUncheckedNotice, width, 2)...)
+	target := fmt.Sprintf("Target: %s | Language: %s | Editions: %s", terminalText(string(m.cfg.Image.Architecture)), language, editions)
+	rows := []row{{text: rule(width)}, {text: muted.Render("Source: ") + label}}
+	if !dense {
+		id := terminalText(m.cfg.Image.UpdateID)
+		if id == "" {
+			id = "select an exact catalogue record"
+		}
+		rows = append(rows, row{text: muted.Render("ID: " + id)})
 	}
-	return lines
+	rows = append(rows, row{text: muted.Render(target)})
+	if m.appsUnchecked {
+		rows = append(rows, row{text: muted.Render(appsUncheckedNotice)})
+	}
+	if m.notice != "" && !dense {
+		rows = append(rows, row{text: muted.Render("! " + terminalText(m.notice))})
+	}
+	if !dense && m.area == Builds && width >= 76 {
+		label := "Configure image →"
+		var msg tea.Msg
+		if m.cfg.Image.UpdateID != "" {
+			msg = NavigateMsg{Area: Image}
+		} else if builds := m.builds.visible(); len(builds) > m.builds.cursor {
+			label, msg = "Select source →", SelectBuildMsg{UpdateID: builds[m.builds.cursor].UpdateID}
+		}
+		if msg != nil {
+			action := controlRows("", label, 23, true, false, msg)
+			for i, r := range action {
+				rows[i+1].text = fit(rows[i+1].text, width-25) + "  " + r.text
+				rows[i+1].hits = []hit{{x: width - 23, width: 23, msg: msg}}
+			}
+		}
+	}
+	return rows
 }
 
 func statusText(s requestStatus, empty string) string {
@@ -206,13 +312,13 @@ func (m Model) areaRows(width, height int) []row {
 	case Image:
 		return m.imageRows(width, height)
 	case Apps:
-		return []row{{text: "Choose included apps"}, {text: "App inventory has not been resolved for this image."}, {text: "Requested app policies are retained; applicability is unchecked."}}
+		return []row{{text: heading.Render("Choose included apps")}, {}, {text: muted.Render("App inventory has not been resolved for this image.")}, {text: "Requested app policies are retained; applicability is unchecked."}}
 	case Conversion:
 		return m.conversionRows(width, height)
 	case Review:
-		return []row{{text: "Review build"}, {text: "Source metadata, settings and preflight must be resolved first."}, {text: "No build can be started from this browsing view."}}
+		return []row{{text: heading.Render("Review build")}, {}, {text: "Source metadata, settings and preflight must be resolved first."}, {text: muted.Render("No build can be started from this browsing view.")}}
 	case Progress:
-		return []row{{text: "Build progress"}, {text: "No job is connected."}, {text: "Progress will use actual stages and measured work."}}
+		return []row{{text: heading.Render("Build progress")}, {}, {text: muted.Render("No job is connected.")}}
 	}
 	return nil
 }
@@ -222,19 +328,44 @@ func (m Model) buildRows(width, height int) []row {
 	if target == "" {
 		target = "all"
 	}
+	rows := []row{{text: heading.Render("Choose a Windows build")}}
+	if height >= 11 {
+		rows = append(rows, row{text: muted.Render("Live UUP Dump catalogue · select an exact source record.")})
+	}
+	if m.height >= 28 && height >= 14 {
+		rows = append(rows, row{})
+	}
+	if width >= 58 && height >= 11 {
+		searchWidth, filterWidth := (width-4)/2, (width-4)/3
+		targetWidth := width - 4 - searchWidth - filterWidth
+		rows = append(rows, joinControls(
+			controlRows("Search builds (/)", inputView(m.builds.search, searchWidth-4), searchWidth, m.builds.search.Focused(), false, buildInputMsg{}),
+			controlRows("Filter (f)", inputView(m.builds.filter, filterWidth-4), filterWidth, m.builds.filter.Focused(), false, buildInputMsg{filter: true}),
+			controlRows("Target (a)", target+" ▾", targetWidth, false, false, cycleTargetFilterMsg{}),
+		)...)
+	} else if height >= 5 || m.editing() {
+		rows = append(rows, controlRows("Search (/)", inputView(m.builds.search, width-15), width, m.builds.search.Focused(), true, buildInputMsg{})...)
+		rows = append(rows, controlRows("Filter (f)", inputView(m.builds.filter, width-25)+" ["+target+"]", width, m.builds.filter.Focused(), true, buildInputMsg{filter: true})...)
+	}
+	visible := m.builds.visible()
 	status := statusText(m.builds.status, "Ready to search UUP Dump")
 	if m.builds.pending {
 		status = "Waiting for query... (300ms debounce)"
 	}
-	filter := m.builds.filter
-	filter.SetWidth(max(1, width-30-ansi.StringWidth(target)))
-	rows := []row{{text: accent.Render("Choose a Windows build")}, {text: "Source type: not yet resolved from package metadata"}, {text: "Search (/): " + m.builds.search.View()}, {text: "Filter (f): " + strings.TrimRight(filter.View(), " ") + " | Target (a): " + target}, {text: status}}
-	visible := m.builds.visible()
-	rows = append(rows, row{text: fmt.Sprintf("%d of %d records | exact UUID/revision per row", len(visible), len(m.builds.records))})
-	if len(visible) == 0 && !m.builds.pending && !m.builds.status.loading && m.builds.status.err == nil {
-		rows = append(rows, row{text: "No matches. Change the upstream query or local filters."})
+	if height-len(rows) >= 3 {
+		rows = append(rows, row{text: muted.Render(fmt.Sprintf("%d of %d records · %s", len(visible), len(m.builds.records), status))})
 	}
-	count := max(1, (height-len(rows))/2)
+	if len(visible) == 0 {
+		if !m.builds.pending && !m.builds.status.loading && m.builds.status.err == nil {
+			rows = append(rows, row{text: "No matches. Change the upstream query or local filters."})
+		}
+		return rows
+	}
+	rowHeight := 2
+	if m.height >= 28 && height >= 14 {
+		rowHeight = 3
+	}
+	count := max(1, (height-len(rows))/rowHeight)
 	start := max(0, m.builds.cursor-count+1)
 	for i := start; i < min(len(visible), start+count); i++ {
 		b := visible[i]
@@ -242,17 +373,33 @@ func (m Model) buildRows(width, height int) []row {
 		if b.UpdateID == m.cfg.Image.UpdateID {
 			mark = "*"
 		}
-		if i == m.builds.cursor {
+		selected := i == m.builds.cursor
+		if selected {
 			mark = ">"
 		}
-		text := fmt.Sprintf("%s %s | %s | %s", mark, terminalText(b.Title), terminalText(b.Build), terminalText(string(b.Architecture)))
-		rows = append(rows, row{text: text, msg: SelectBuildMsg{UpdateID: b.UpdateID}}, row{text: "  " + terminalText(b.UpdateID), msg: SelectBuildMsg{UpdateID: b.UpdateID}})
+		text := sides(fmt.Sprintf("%s %s · %s", mark, terminalText(b.Title), terminalText(b.Build)), terminalText(string(b.Architecture)), width-2)
+		msg := SelectBuildMsg{UpdateID: b.UpdateID}
+		secondary := selectedLine("   "+terminalText(b.UpdateID), width, selected)
+		if !selected {
+			secondary = muted.Render(fit("   "+terminalText(b.UpdateID), width))
+		}
+		primary := heading
+		if selected {
+			primary = active.Bold(true)
+		}
+		rows = append(rows, row{text: primary.Render(fit(" "+text+" ", width)), msg: msg}, row{text: secondary, msg: msg})
+		if rowHeight == 3 {
+			rows = append(rows, row{text: rule(width)})
+		}
 	}
 	return rows
 }
 
 func (m Model) imageRows(width, height int) []row {
-	rows := []row{{text: accent.Render("Configure the image")}, {text: "One target, one language, one or more editions"}}
+	rows := []row{{text: heading.Render("Configure the image")}}
+	if height >= 10 {
+		rows = append(rows, row{text: muted.Render("One target, one language, one or more editions.")})
+	}
 	if m.cfg.Image.UpdateID == "" {
 		return append(rows, row{text: "Select an exact source in Builds to load language and editions."})
 	}
@@ -265,30 +412,29 @@ func (m Model) imageRows(width, height int) []row {
 		}
 		archText = append(archText, name)
 	}
-	targetLine := "Target: " + strings.Join(archText, "  ")
-	if ansi.StringWidth(targetLine) > width && len(arches) > m.image.archCursor {
+	targetLine := strings.Join(archText, "  ")
+	if ansi.StringWidth(targetLine) > width-12 && len(arches) > m.image.archCursor {
 		marker := ""
 		if m.image.focus == 0 {
 			marker = ">"
 		}
-		targetLine = fmt.Sprintf("Target: %s%s [%d/%d] up/down", marker, terminalText(string(arches[m.image.archCursor])), m.image.archCursor+1, len(arches))
+		targetLine = fmt.Sprintf("%s%s [%d/%d] up/down", marker, terminalText(string(arches[m.image.archCursor])), m.image.archCursor+1, len(arches))
 	}
-	rows = append(rows, row{text: targetLine, msg: imageFocusMsg{field: 0}})
-	rows = append(rows, row{text: statusText(m.image.languageStatus, "Choose a source to load languages")})
+	dense := height < 15
+	rows = append(rows, controlRows("Target", targetLine, width, m.image.focus == 0, dense, imageFocusMsg{field: 0})...)
 	language := "no languages available"
 	if len(m.image.languages) > m.image.languageCursor {
 		choice := m.image.languages[m.image.languageCursor]
-		language = fmt.Sprintf("%s - %s [%d/%d]", terminalText(choice.ID), terminalText(choice.Name), m.image.languageCursor+1, len(m.image.languages))
+		language = fmt.Sprintf("%s · %s [%d/%d]", terminalText(choice.ID), terminalText(choice.Name), m.image.languageCursor+1, len(m.image.languages))
 		if m.cfg.Image.Language == choice.ID {
 			language += " (selected)"
 		}
 	}
-	prefix := "  "
-	if m.image.focus == 1 {
-		prefix = "> "
+	rows = append(rows, controlRows("Language", language, width, m.image.focus == 1, dense, imageFocusMsg{field: 1})...)
+	if height-len(rows) >= 6 {
+		rows = append(rows, row{text: muted.Render(statusText(m.image.languageStatus, "Choose a source to load languages"))}, row{text: muted.Render(statusText(m.image.editionStatus, "Select language to load editions"))})
 	}
-	rows = append(rows, row{text: prefix + "Language: " + language, msg: imageFocusMsg{field: 1}})
-	rows = append(rows, row{text: statusText(m.image.editionStatus, "Select language to load editions")}, row{text: "Editions (space): catalogue choices; derivations need metadata"})
+	rows = append(rows, row{text: accent.Render("Editions (space to toggle)")})
 	choices := m.editionChoices()
 	count := max(1, height-len(rows)-1)
 	start := max(0, m.image.editionCursor-count+1)
@@ -298,20 +444,65 @@ func (m Model) imageRows(width, height int) []row {
 		if slices.Contains(m.cfg.Image.Editions, choice.ID) {
 			check = "[x]"
 		}
-		prefix = "  "
-		if m.image.focus == 2 && i == m.image.editionCursor {
+		prefix := "  "
+		selected := m.image.focus == 2 && i == m.image.editionCursor
+		if selected {
 			prefix = "> "
 		}
 		unavailable := ""
 		if !m.image.hasEdition(choice.ID) {
 			unavailable = " ! unavailable"
 		}
-		rows = append(rows, row{text: prefix + check + " " + terminalText(choice.Name) + " (" + terminalText(choice.ID) + ")" + unavailable, msg: editionClickMsg{index: i, edition: choice.ID}})
+		rows = append(rows, row{text: selectedLine(prefix+check+" "+terminalText(choice.Name)+" ("+terminalText(choice.ID)+")"+unavailable, width, selected), msg: editionClickMsg{index: i, edition: choice.ID}})
 	}
 	if m.image.ready(m.cfg.Image) {
-		rows = append(rows, row{text: "Enter from editions: continue to Apps", msg: NavigateMsg{Area: Apps}})
+		rows = append(rows, row{text: accent.Render("Continue to Apps → (enter from editions)"), msg: NavigateMsg{Area: Apps}})
 	} else {
-		rows = append(rows, row{text: "Choose a language and at least one available edition."})
+		rows = append(rows, row{text: muted.Render("Choose a language and at least one available edition.")})
 	}
+	// Very short views prioritize the control the keyboard is actually moving.
+	// Other image fields remain reachable through Tab rather than hiding the
+	// selected edition underneath explanatory rows.
+	if height < 6 && len(rows) > height {
+		for i, r := range rows {
+			focused := false
+			switch msg := r.msg.(type) {
+			case imageFocusMsg:
+				focused = m.image.focus == msg.field
+			case editionClickMsg:
+				focused = m.image.focus == 2 && msg.index == m.image.editionCursor
+			}
+			if focused {
+				return append(rows[:1:1], rows[i:]...)
+			}
+		}
+	}
+	return rows
+}
+
+func (m Model) tomlLines(width int) []string {
+	data, err := toml.Marshal(m.cfg)
+	if err != nil {
+		return []string{"Unable to encode draft: " + terminalText(err.Error())}
+	}
+	var lines []string
+	for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+		lines = append(lines, strings.Split(ansi.Hardwrap(terminalText(line), max(1, width), true), "\n")...)
+	}
+	return lines
+}
+func (m *Model) scrollTOML(delta int) {
+	m.tomlOffset = max(0, min(m.tomlOffset+delta, len(m.tomlLines(m.contentWidth()-2))-1))
+}
+func (m Model) tomlRows(width, height int) []row {
+	rows := []row{{text: heading.Render("Read-only draft TOML")}, {text: muted.Render("Current requested values · no file is loaded or saved.")}}
+	code := m.tomlLines(width - 2)
+	count := max(1, height-len(rows)-2)
+	start := min(m.tomlOffset, max(0, len(code)-count))
+	rows = append(rows, row{text: divider.Render("┌" + strings.Repeat("─", max(0, width-2)) + "┐")})
+	for i := start; i < min(len(code), start+count); i++ {
+		rows = append(rows, row{text: divider.Render("│") + panel.Render(fit(code[i], width-2)) + divider.Render("│")})
+	}
+	rows = append(rows, row{text: divider.Render("└" + strings.Repeat("─", max(0, width-2)) + "┘")})
 	return rows
 }

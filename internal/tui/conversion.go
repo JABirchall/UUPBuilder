@@ -173,16 +173,16 @@ func (m Model) updateConversionInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) conversionRows(width, height int) []row {
 	c := m.conversion
-	rows := []row{{text: accent.Render("Conversion and TOML settings")}}
+	rows := []row{{text: heading.Render("Conversion and TOML settings")}}
 	if c.cursor >= configControlCount {
 		field := c.fields[c.cursor-configControlCount]
-		rows = append(rows, row{text: terminalText(field.group + " | " + field.key)})
-		for _, line := range wrapped(terminalText(c.detail(field.key)), width, 3) {
-			rows = append(rows, row{text: line})
+		rows = append(rows, row{text: accent.Render(terminalText(field.group + " · " + field.key))})
+		for _, line := range wrapped(terminalText(c.detail(field.key)), width, 2) {
+			rows = append(rows, row{text: muted.Render(line)})
 		}
 	} else {
 		for _, line := range wrapped("TOML: "+terminalText(m.configActions.path), width, 2) {
-			rows = append(rows, row{text: line})
+			rows = append(rows, row{text: muted.Render(line)})
 		}
 		rows = append(rows, row{text: "Load replaces draft; save validates and creates its directory."})
 		if m.configActions.lastSave.Normalized {
@@ -197,36 +197,42 @@ func (m Model) conversionRows(width, height int) []row {
 	if m.configActions.busy {
 		rows = append(rows, row{text: "TOML action in progress..."})
 	}
-	// On short terminals reserve a row for the focused control even when a
-	// wrapped path or save result consumes the available explanatory space.
-	if height > 0 && len(rows) >= height {
-		rows = rows[:height-1]
+	rowHeight := 1
+	if height >= 14 {
+		rowHeight = 3
+		rows = append(rows, row{})
 	}
-	count := max(1, height-len(rows))
+	// Keep the focused bordered control visible even when a path/save result
+	// consumes the available explanatory space.
+	if height > 0 && len(rows) > height-rowHeight {
+		rows = rows[:max(0, height-rowHeight)]
+	}
+	count := max(1, (height-len(rows))/rowHeight)
 	start := max(0, c.cursor-count+1)
 	for i := start; i < min(configControlCount+len(c.fields), start+count); i++ {
-		text := ""
+		label, text := "", ""
 		switch i {
 		case 0:
-			text = "TOML | Config path: " + terminalText(m.configActions.path)
+			label, text = "TOML · Config path", terminalText(m.configActions.path)
 		case 1:
-			text = "TOML | Load selected file"
+			label, text = "TOML", "Load selected file"
 		case 2:
-			text = "TOML | Save selected file"
+			label, text = "TOML", "Save selected file"
 		default:
 			field := c.fields[i-configControlCount]
-			text = field.group + " | " + field.label + ": " + terminalText(field.value)
+			label, text = field.group+" · "+field.label, terminalText(field.value)
 		}
-		prefix := "  "
+		prefix := ""
 		if i == c.cursor {
-			prefix = "> "
+			if rowHeight == 3 {
+				prefix = "> "
+			}
 			if c.input.Focused() {
-				input := c.input
-				input.SetWidth(max(1, width-10))
-				text = "Edit: " + input.View()
+				label = "Edit · " + label
+				text = inputView(c.input, width-7)
 			}
 		}
-		rows = append(rows, row{text: prefix + text, msg: conversionFocusMsg{index: i}})
+		rows = append(rows, controlRows(label, prefix+text, width, i == c.cursor, rowHeight == 1, conversionFocusMsg{index: i})...)
 	}
 	return rows
 }

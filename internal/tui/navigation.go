@@ -40,6 +40,25 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.Close()
 		return m, tea.Quit
 	}
+	if m.showTOML {
+		switch key {
+		case "esc", "t":
+			m.showTOML = false
+		case "up", "k":
+			m.scrollTOML(-1)
+		case "down", "j":
+			m.scrollTOML(1)
+		case "pgup":
+			m.scrollTOML(-max(1, m.height-10))
+		case "pgdown", "space", " ":
+			m.scrollTOML(max(1, m.height-10))
+		case "home":
+			m.tomlOffset = 0
+		case "end":
+			m.scrollTOML(len(m.tomlLines(m.contentWidth() - 2)))
+		}
+		return m, nil
+	}
 	if key == "f1" {
 		m.showHelp = !m.showHelp
 		return m, nil
@@ -68,6 +87,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if key == "?" {
 		m.showHelp = true
 		return m, nil
+	}
+	if key == "t" {
+		return m.Update(viewTOMLMsg{})
 	}
 	if len(key) == 1 && key[0] >= '1' && key[0] <= '6' {
 		m.navigate(Area(key[0] - '1'))

@@ -1,21 +1,18 @@
-UUP / IMAGE BUILDER | Workspace
-1 Builds 2 Image 3 Apps [4 Conversion] 5 Review 6 Progress
-Conversion and TOML settings
-Downloads | downloads.parallel_files
-requested: 4 | effective: unchecked (source applicability
-unresolved)
-Drivers | Targets (os, winpe, winre, shared):
-Output | Output kind: iso
-Output | Image format: wim
-Output | SWM split size (MiB): 3800
-Output | Output directory: .
-Output | Filename (auto or name): auto
-Output | Volume label (auto or label): auto
-Output | Edition order (comma separated):
-Downloads | Proxy mode: system
-Downloads | Proxy origin (no credentials):
-> Edit: 12
-Source: none selected | Draft r1
-ID: select an exact catalogue record
-Target: amd64 | Language: choose | Editions: choose
-type value | enter apply | esc cancel | f1 help
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ Conversion and TOML settings │
+│ Downloads · downloads.parallel_files │
+│ requested: 4 | effective: unchecked (source applicability │
+│ unresolved) │
+│ │Output · SWM split … | 3800 │ │
+│ │Output · Output dir… | . │ │
+│ │Output · Filename (… | auto │ │
+│ │Output · Volume lab… | auto │ │
+│ │Output · Edition or… | │ │
+│ │Downloads · Proxy m… | system │ │
+│ │Downloads · Proxy o… | │ │
+│ │> Edit · Downloads · … | 12 ...│ │
+│ Source: none selected │
+│ Target: amd64 | Language: choose | Editions: choose │
+│ type value | enter apply | esc cancel | f1 help │

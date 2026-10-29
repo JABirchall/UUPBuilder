@@ -1,7 +1,7 @@
 package tui
 
 func (m Model) helpLines() []string {
-	lines := []string{"Keyboard help - " + m.area.String(), "1-6: open an area   ctrl+left/right: change area", "up/down or j/k: move   tab: next field/area", "enter: choose / continue   esc: leave field / back", "?: contextual help   f1: help anywhere   ctrl+c: quit"}
+	lines := []string{"Keyboard help - " + m.area.String(), "1-6: open an area   ctrl+left/right: change area", "up/down or j/k: move   tab: next field/area", "enter: choose / continue   esc: leave field / back", "t: read-only draft TOML (outside text fields); esc closes", "TOML: up/down, page up/down, home/end or mouse wheel scroll", "?: contextual help   f1: help anywhere   ctrl+c: quit"}
 	switch m.area {
 	case Builds:
 		lines = append(lines, "/: edit upstream query (300ms debounce)", "f: filter retrieved records locally   a: target filter", "r: refresh from upstream / retry", "Each row is an exact UUID/revision, never a guessed release group.")
@@ -15,6 +15,9 @@ func (m Model) helpLines() []string {
 	return lines
 }
 func (m Model) footer() string {
+	if m.showTOML {
+		return "up/down scroll | pgup/pgdown page | home/end | esc / t close | ctrl+c quit"
+	}
 	if m.showHelp {
 		return "esc / ? close help | 1-6 areas | ctrl+c quit"
 	}
@@ -26,12 +29,12 @@ func (m Model) footer() string {
 	}
 	switch m.area {
 	case Builds:
-		return "up/down move | / search | f filter | a target | enter select | r refresh | esc back | ? help"
+		return "↑↓ move | / search | f filter | a target | enter select | r refresh | t TOML | esc back | ? help"
 	case Image:
-		return "tab field | up/down move | space toggle | enter choose/next | r retry | esc back | ? help"
+		return "tab field | ↑↓ move | space toggle | enter choose/next | r retry | t TOML | esc back | ? help"
 	case Conversion:
-		return "up/down / tab field | enter / space edit or run | esc back | ? help | ctrl+c quit"
+		return "↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit"
 	default:
-		return "1-6 areas | ctrl+left/right navigate | esc back | ? help | ctrl+c quit"
+		return "1-6 areas | ctrl+left/right navigate | t TOML | esc back | ? help | ctrl+c quit"
 	}
 }
