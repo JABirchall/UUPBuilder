@@ -7,8 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -96,27 +98,119 @@ func StartFixedPreservationProbe(ctx context.Context, pin *PinnedExecutable) (Wo
 	}
 	h, e := launchElevatedSelf(pin.Identity().Path, args)
 	if e != nil {
-		return nil, e
+		return nil, &FixedPreservationLaunchFailure{Phase: "launch", Cause: e}
 	}
-	defer windows.CloseHandle(h)
-	pid, e := windows.GetProcessId(h)
-	if e != nil {
-		return nil, e
+	// The actual launch handle immediately becomes the independent exit owner.
+	// Accepted IPC has a different lifetime and cannot revoke this wait handle.
+	return finishFixedPreservationLaunch(h, s.Close, func(h windows.Handle) (WorkerConnection, string, error) {
+		pid, e := windows.GetProcessId(h)
+		if e != nil {
+			return nil, "identify-child", e
+		}
+		child, held, e := inspectPeer(pid)
+		if e != nil {
+			return nil, "inspect-child", e
+		}
+		defer windows.CloseHandle(held)
+		if !child.Elevated || child.UserSID != self.UserSID || child.SessionID != self.SessionID || !strings.EqualFold(child.Executable, self.Executable) {
+			return nil, "authenticate-child", ErrPreparationCustody
+		}
+		if e = pin.Verify(context.Background()); e != nil {
+			return nil, "verify-executable", e
+		}
+		accept, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		c, e := s.Accept(accept, child)
+		return c, "accept-bootstrap", e
+	})
+}
+
+type FixedPreservationExit struct {
+	WaitAttempted, Exited bool
+	Code                  uint32
+}
+type FixedPreservationLaunchFailure struct {
+	Phase string
+	Exit  FixedPreservationExit
+	Cause error
+}
+
+func (e *FixedPreservationLaunchFailure) Error() string {
+	return fmt.Sprintf("fixed probe %s; wait-attempted=%t exited=%t exit=%d: %v", e.Phase, e.Exit.WaitAttempted, e.Exit.Exited, e.Exit.Code, e.Cause)
+}
+func (e *FixedPreservationLaunchFailure) Unwrap() error { return e.Cause }
+
+// fixedProbeConnection keeps launch-process custody separate from IPC. Its
+// Close disconnects then waits; it never kills or treats IPC loss as exit.
+type fixedProbeConnection struct {
+	connection          WorkerConnection
+	process             windows.Handle
+	waitOnce, closeOnce sync.Once
+	exit                FixedPreservationExit
+	waitErr, closeErr   error
+}
+
+func (c *fixedProbeConnection) Read(b []byte) (int, error)  { return c.connection.Read(b) }
+func (c *fixedProbeConnection) Write(b []byte) (int, error) { return c.connection.Write(b) }
+func (c *fixedProbeConnection) PeerIdentity() PeerIdentity  { return c.connection.PeerIdentity() }
+func (c *fixedProbeConnection) disconnect() error {
+	if c.connection == nil {
+		return nil
 	}
-	child, held, e := inspectPeer(pid)
-	if e != nil {
-		return nil, e
+	return c.connection.Close()
+}
+func (c *fixedProbeConnection) wait() (FixedPreservationExit, error) {
+	c.waitOnce.Do(func() {
+		c.exit.WaitAttempted = true
+		state, e := windows.WaitForSingleObject(c.process, windows.INFINITE)
+		if e != nil || state != windows.WAIT_OBJECT_0 {
+			c.waitErr = errors.Join(e, ErrPreparationCustody)
+			return
+		}
+		c.exit.Exited = true
+		c.waitErr = windows.GetExitCodeProcess(c.process, &c.exit.Code)
+	})
+	return c.exit, c.waitErr
+}
+func (c *fixedProbeConnection) Close() error {
+	c.closeOnce.Do(func() {
+		c.closeErr = c.disconnect()
+		exit, e := c.wait()
+		c.closeErr = errors.Join(c.closeErr, e)
+		if exit.Exited {
+			c.closeErr = errors.Join(c.closeErr, windows.CloseHandle(c.process))
+		}
+	})
+	return c.closeErr
+}
+
+// This post-launch seam cannot select or launch a command. Tests inject only
+// bootstrap refusal over an already owned unprivileged helper process.
+func finishFixedPreservationLaunch(h windows.Handle, disconnectBootstrap func() error, connect func(windows.Handle) (WorkerConnection, string, error)) (WorkerConnection, error) {
+	owner := &fixedProbeConnection{process: h}
+	c, phase, e := connect(h)
+	owner.connection = c
+	if e == nil && c != nil {
+		return owner, nil
 	}
-	defer windows.CloseHandle(held)
-	if !child.Elevated || child.UserSID != self.UserSID || child.SessionID != self.SessionID || !strings.EqualFold(child.Executable, self.Executable) {
-		return nil, ErrPreparationCustody
+	if e == nil {
+		e = ErrPreparationCustody
 	}
-	if e = pin.Verify(context.Background()); e != nil {
-		return nil, e
+	// Disconnect both partial IPC and the listener before waiting for refusal.
+	disconnectErr := errors.Join(owner.disconnect(), disconnectBootstrap())
+	exit, waitErr := owner.wait()
+	closeErr := owner.Close()
+	return nil, &FixedPreservationLaunchFailure{Phase: phase, Exit: exit, Cause: errors.Join(e, disconnectErr, waitErr, closeErr)}
+}
+
+// DisconnectFixedPreservationProbe cancels/drains only IPC. The independent
+// actual-process owner survives for WaitFixedPreservationProbe and Close.
+func DisconnectFixedPreservationProbe(c WorkerConnection) error {
+	p, ok := c.(*fixedProbeConnection)
+	if !ok {
+		return ErrPreparationCustody
 	}
-	accept, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	return s.Accept(accept, child)
+	return p.disconnect()
 }
 func ConnectFixedPreservationProbe(ctx context.Context, b FixedPreservationBootstrap) (WorkerConnection, *PinnedExecutable, error) {
 	if e := b.validate(); e != nil {
@@ -146,17 +240,12 @@ func ConnectFixedPreservationProbe(ctx context.Context, b FixedPreservationBoots
 // WaitFixedPreservationProbe waits for actual target exit even after IPC loss.
 // It never kills the target or treats cancellation as successful restoration.
 func WaitFixedPreservationProbe(c WorkerConnection) (uint32, error) {
-	p, ok := c.(*pipeConnection)
+	p, ok := c.(*fixedProbeConnection)
 	if !ok || p.process == 0 {
 		return 0, ErrPreparationCustody
 	}
-	state, e := windows.WaitForSingleObject(p.process, windows.INFINITE)
-	if e != nil || state != windows.WAIT_OBJECT_0 {
-		return 0, errors.Join(e, ErrPreparationCustody)
-	}
-	var exit uint32
-	e = windows.GetExitCodeProcess(p.process, &exit)
-	return exit, e
+	exit, e := p.wait()
+	return exit.Code, e
 }
 
 // OpenPreparationParent checks current root/owner/ancestor identities. The

@@ -83,8 +83,51 @@ type fixedControlFrame struct {
 }
 type fixedChildResult struct {
 	Failed, NativeInvoked, Preserved bool
-	EvidenceRoot, Failure            string
+	EvidenceRoot                     string
+	Failure                          *fixedChildFailure `json:",omitempty"`
 }
+type fixedChildFailure struct {
+	Phase, Reason string
+	Outcome       applyOperationOutcome
+}
+
+func boundedFixedChildFailure(phase string, cause error) fixedChildFailure {
+	if phase == "" {
+		phase = "child-refusal"
+	}
+	if len(phase) > 64 {
+		phase = phase[:64]
+	}
+	if cause == nil {
+		cause = ErrInput
+	}
+	reason := cause.Error()
+	if len(reason) > 4096 {
+		reason = reason[:4096]
+	}
+	return fixedChildFailure{phase, reason, applyOutcome(cause)}
+}
+func recordFixedChildFailure(result *fixedChildResult, sink *fixedPreparationEvidence, phase string, cause error) error {
+	if result == nil {
+		return ErrInput
+	}
+	failure := boundedFixedChildFailure(phase, cause)
+	result.Failed = true
+	if result.Failure == nil {
+		result.Failure = &failure
+	}
+	if sink != nil {
+		return sink.Record("child-refusal", failure)
+	}
+	return nil
+}
+func fixedChildTokenPolicy(token platform.ProcessTokenIdentity, s fixedApprovedScope) error {
+	if !token.Elevated || token.UserSID != s.TokenUser || token.SessionID != s.TokenSession {
+		return fmt.Errorf("approved token policy mismatch: %w", ErrInput)
+	}
+	return nil
+}
+
 type fixedControlWriter struct {
 	mu sync.Mutex
 	w  io.Writer
@@ -138,6 +181,34 @@ func readFixedControl(r io.Reader) (fixedControlFrame, error) {
 		return v, e
 	}
 	return v, nil
+}
+
+// Initial handoff owns only its IPC operation. Cancellation or write/read
+// failure disconnects the transport and drains that operation before returning;
+// the parent's separate actual-process wait owner remains alive.
+func fixedInitialControlIO(ctx context.Context, disconnect func() error, operation func() error) error {
+	if ctx == nil || disconnect == nil || operation == nil {
+		return ErrInput
+	}
+	if e := ctx.Err(); e != nil {
+		return errors.Join(e, disconnect())
+	}
+	done := make(chan error, 1)
+	go func() { done <- operation() }()
+	select {
+	case e := <-done:
+		if stop := ctx.Err(); stop != nil {
+			return errors.Join(stop, e, disconnect())
+		}
+		if e != nil {
+			return errors.Join(e, disconnect())
+		}
+		return nil
+	case <-ctx.Done():
+		closeErr := disconnect()
+		operationErr := <-done
+		return errors.Join(ctx.Err(), closeErr, operationErr)
+	}
 }
 
 // Only the live tool-owned pipe control command can release this gate. The
@@ -210,12 +281,33 @@ func runFixedApprovedParent(p *fixedSelectedPreparation, s fixedApprovedScope) e
 	p.operatorApproved = true
 	c, e := platform.StartFixedPreservationProbe(p.ctx, p.executable)
 	if e != nil {
+		phase := "launch-preparation"
+		var exit platform.FixedPreservationExit
+		var failed *platform.FixedPreservationLaunchFailure
+		if errors.As(e, &failed) {
+			phase = failed.Phase
+			exit = failed.Exit
+		}
+		p.record("child-launch-failure", struct {
+			Failure fixedChildFailure
+			Exit    platform.FixedPreservationExit
+		}{boundedFixedChildFailure(phase, e), exit})
 		return e
 	}
 	defer c.Close()
 	w := &fixedControlWriter{w: c}
-	if e = w.send(fixedControlFrame{Kind: "approved-fixed-scope", Scope: &s, Digest: digest}); e != nil {
-		_, waitErr := platform.WaitFixedPreservationProbe(c)
+	handoff, stopHandoff := context.WithTimeout(p.ctx, 30*time.Second)
+	e = fixedInitialControlIO(handoff, func() error { return platform.DisconnectFixedPreservationProbe(c) }, func() error {
+		return w.send(fixedControlFrame{Kind: "approved-fixed-scope", Scope: &s, Digest: digest})
+	})
+	stopHandoff()
+	if e != nil {
+		exit, waitErr := platform.WaitFixedPreservationProbe(c)
+		p.record("initial-handoff-failure", struct {
+			Failure fixedChildFailure
+			Wait    applyOperationOutcome
+			Exit    uint32
+		}{boundedFixedChildFailure("scope-send", e), applyOutcome(waitErr), exit})
 		return errors.Join(e, waitErr)
 	}
 	stopControl := make(chan struct{})
@@ -262,18 +354,25 @@ func runFixedApprovedParent(p *fixedSelectedPreparation, s fixedApprovedScope) e
 }
 
 func fixedSelectedChild(t *testing.T) {
+	result := fixedChildResult{Failed: true, Preserved: true}
+	var sink *fixedPreparationEvidence
+	refuse := func(phase string, cause error) {
+		t.Helper()
+		recordErr := recordFixedChildFailure(&result, sink, phase, cause)
+		t.Fatal(phase, errors.Join(cause, recordErr))
+	}
 	if flag.Lookup("test.run").Value.String() != "^TestConfiguredFixedSelectedSourceApply$" || flag.Lookup("test.count").Value.String() != "1" || flag.Lookup("test.timeout").Value.String() != "0s" {
-		t.Fatal("fixed child must run alone without forced timeout")
+		refuse("child-arguments", ErrInput)
 	}
 	b, e := platform.ParseFixedPreservationBootstrap(*fixedBootstrapValue)
 	if e != nil {
-		t.Fatal(e)
+		refuse("parse-bootstrap", e)
 	}
 	connectCtx, stopConnect := context.WithTimeout(context.Background(), 30*time.Second)
 	c, exe, e := platform.ConnectFixedPreservationProbe(connectCtx, b)
 	stopConnect()
 	if e != nil {
-		t.Fatal(e)
+		refuse("connect-bootstrap", e)
 	}
 	t.Cleanup(func() {
 		if e := c.Close(); e != nil {
@@ -286,7 +385,6 @@ func fixedSelectedChild(t *testing.T) {
 		}
 	})
 	writer := &fixedControlWriter{w: c}
-	result := fixedChildResult{Failed: true, Preserved: true}
 	var digest string
 	t.Cleanup(func() {
 		result.Failed = t.Failed()
@@ -294,18 +392,24 @@ func fixedSelectedChild(t *testing.T) {
 			t.Error("final peer delivery", e)
 		}
 	})
-	v, e := readFixedControl(c)
-	if e != nil || v.Kind != "approved-fixed-scope" || v.Scope == nil || v.Digest != preservationDigest(v.Scope) {
-		t.Fatal("fixed authenticated scope missing", e)
+	initial, stopInitial := context.WithTimeout(context.Background(), 30*time.Second)
+	var v fixedControlFrame
+	e = fixedInitialControlIO(initial, c.Close, func() error { var readErr error; v, readErr = readFixedControl(c); return readErr })
+	stopInitial()
+	if e != nil {
+		refuse("initial-scope-read", e)
+	}
+	if v.Kind != "approved-fixed-scope" || v.Scope == nil || v.Digest != preservationDigest(v.Scope) {
+		refuse("initial-scope-envelope", ErrIntegrity)
 	}
 	s := *v.Scope
 	digest = v.Digest
 	if e = s.validate(); e != nil || s.Executable != exe.Identity() || s.SourceHead != fixedPreparationSourceHead || s.TokenUser != b.Parent.UserSID || s.TokenSession != b.Parent.SessionID {
-		t.Fatal("approved scope changed", e)
+		refuse("approved-scope", errors.Join(ErrIntegrity, e))
 	}
 	ctx, cancel, e := fixedPreparationContext(context.Background(), s.Deadline, nil)
 	if e != nil {
-		t.Fatal(e)
+		refuse("approved-deadline", e)
 	}
 	t.Cleanup(cancel)
 	go func() {
@@ -318,7 +422,7 @@ func fixedSelectedChild(t *testing.T) {
 	}()
 	parent, e := platform.OpenPreparationParent(s.Parent)
 	if e != nil {
-		t.Fatal(e)
+		refuse("approved-parent", e)
 	}
 	t.Cleanup(func() {
 		if e := parent.Close(); e != nil {
@@ -326,45 +430,48 @@ func fixedSelectedChild(t *testing.T) {
 		}
 	})
 	if e = parent.Check(s.Parent.Workspace.Path); e != nil {
-		t.Fatal(e)
+		refuse("approved-parent-custody", e)
 	}
 	actual, e := platform.InspectStorage(s.Parent.Workspace.Path)
 	if e != nil {
-		t.Fatal(e)
+		refuse("output-storage-query", e)
 	}
-	if actual.ID != s.Parent.VolumeID || s.Footprint.Check(actual) != nil {
-		t.Fatal("approved output volume/space changed")
+	if actual.ID != s.Parent.VolumeID {
+		refuse("output-volume", platform.ErrPreparationCustody)
+	}
+	if e = s.Footprint.Check(actual); e != nil {
+		refuse("output-space", e)
 	}
 	system, e := native.GetSystemDirectory()
 	if e != nil {
-		t.Fatal(e)
+		refuse("system-storage-path", e)
 	}
 	ancillary, e := platform.InspectStorage(system)
 	if e != nil || ancillary.ID != s.AncillaryVolume.ID || ancillary.AvailableBytes < 8<<30 {
-		t.Fatal("approved ancillary volume/space changed", e)
+		refuse("ancillary-volume-space", errors.Join(ErrLimit, e))
 	}
 	ctx, stopStorage := watchFixedPreparationStorage(ctx, []fixedStorageWatch{{s.Parent.Workspace.Path, s.Parent.VolumeID, 8 << 30}, {system, s.AncillaryVolume.ID, 8 << 30}})
 	t.Cleanup(stopStorage)
 	_, locator, e := fixedSelectedLocatorCost(s.SourceRoot)
 	if e != nil || locator != s.LocatorSHA256 {
-		t.Fatal("approved source locator changed", e)
+		refuse("approved-source-locator", errors.Join(ErrIntegrity, e))
 	}
 	w, e := platform.CreateWorkspace(s.Parent.Workspace.Path, "fixed-selected-native-child")
+	if w != nil {
+		result.EvidenceRoot = w.Path()
+	}
 	if e != nil {
-		t.Fatal(e)
+		refuse("child-workspace", e)
 	}
 	pin, e := platform.PinFreshWorkspace(w)
 	if e != nil {
-		w.Close()
-		t.Fatal(e)
+		refuse("child-parent-pin", errors.Join(e, w.Close()))
 	}
-	sink, e := newFixedPreparationEvidence(pin, fixedEvidenceQuota)
+	sink, e = newFixedPreparationEvidence(pin, fixedEvidenceQuota)
 	if e != nil {
-		pin.Close()
-		w.Close()
-		t.Fatal(e)
+		refuse("child-evidence-sink", errors.Join(e, pin.Close(), w.Close()))
 	}
-	p := &fixedSelectedPreparation{ctx: ctx, parent: pin, executable: exe, footprint: s.Footprint, volume: actual, evidence: sink, approved: &fixedLiveApproval{s, digest, c}}
+	p := &fixedSelectedPreparation{ctx: ctx, parent: pin, executable: exe, footprint: s.Footprint, volume: actual, evidence: sink, approved: &fixedLiveApproval{s, digest, c}, childResult: &result}
 	result.EvidenceRoot = w.Path()
 	// t.Cleanup, rather than defers, lets producer cleanup records finish first.
 	t.Cleanup(func() {
@@ -376,9 +483,11 @@ func fixedSelectedChild(t *testing.T) {
 			Result fixedChildResult
 			Events applyOperationOutcome
 		}{result, applyOutcome(p.recordErr)}); e != nil {
+			recordFixedChildFailure(&result, nil, "final-evidence", e)
 			t.Error("final durability", e)
 		}
 		if e := sink.Close(); e != nil {
+			recordFixedChildFailure(&result, nil, "evidence-close", e)
 			t.Error(e)
 		}
 		result.Failed = t.Failed()
@@ -386,11 +495,11 @@ func fixedSelectedChild(t *testing.T) {
 	p.record("approved-scope", s)
 	p.token, e = platform.CurrentProcessTokenIdentity()
 	if e != nil {
-		t.Fatal(e)
+		refuse("child-token-query", e)
 	}
 	p.record("child-token", p.token)
-	if !p.token.Elevated || p.token.UserSID != s.TokenUser || p.token.SessionID != s.TokenSession {
-		t.Fatal("approved token policy mismatch")
+	if e = fixedChildTokenPolicy(p.token, s); e != nil {
+		refuse("token-policy", e)
 	}
 	priv, e := platform.ObserveImagePreservationPrivileges(ctx)
 	p.record("child-privilege-query", struct {
@@ -398,17 +507,17 @@ func fixedSelectedChild(t *testing.T) {
 		Outcome     applyOperationOutcome
 	}{priv, applyOutcome(e)})
 	if e != nil || len(priv.Required) != 3 {
-		t.Fatal("fixed privileges unavailable", e)
+		refuse("child-privilege-query", errors.Join(platform.ErrPrivilegeRequirement, e))
 	}
 	for _, v := range priv.Required {
 		if !v.Present || v.Attributes&native.SE_PRIVILEGE_REMOVED != 0 {
-			t.Fatal("fixed existing privilege absent; no fallback", v.Name)
+			refuse("child-required-privilege", fmt.Errorf("%w: %s", platform.ErrPrivilegeRequirement, v.Name))
 		}
 	}
 	t.Setenv("TEMP", w.Path())
 	t.Setenv("TMP", w.Path())
 	if e = p.check(); e != nil {
-		t.Fatal(e)
+		refuse("child-live-preparation", e)
 	}
 	fixedSelectedSourceApplyAfterLiveApproval(t, p)
 }

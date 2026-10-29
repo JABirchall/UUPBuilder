@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -266,5 +268,164 @@ func TestFixedPreparationFramesUseBoundedExactBytes(t *testing.T) {
 	}
 	if _, e = readFixedControl(strings.NewReader("\x00\x01\x00\x01")); !errors.Is(e, ErrLimit) {
 		t.Fatalf("unbounded control accepted %v", e)
+	}
+}
+
+type fixedPartialFrameWriter struct {
+	w     io.Writer
+	cause error
+}
+
+func (w fixedPartialFrameWriter) Write(b []byte) (int, error) {
+	n, e := w.w.Write(b[:min(len(b), 2)])
+	return n, errors.Join(e, w.cause)
+}
+
+// A partial write error deliberately leaves this real duplex pipe open. The
+// initial handoff must disconnect before the peer can finish io.ReadFull.
+func TestFixedPreparationPartialInitialFrameDisconnectsAndSettles(t *testing.T) {
+	parent, child := net.Pipe()
+	defer parent.Close()
+	defer child.Close()
+	childDone := make(chan error, 1)
+	go func() {
+		childDone <- fixedInitialControlIO(context.Background(), child.Close, func() error { _, e := readFixedControl(child); return e })
+	}()
+	cause := errors.New("partial initial frame refused")
+	w := fixedControlWriter{w: fixedPartialFrameWriter{parent, cause}}
+	e := fixedInitialControlIO(context.Background(), parent.Close, func() error { return w.send(fixedControlFrame{Kind: "approved-fixed-scope", Digest: "fixed"}) })
+	if !errors.Is(e, cause) {
+		t.Fatal(e)
+	}
+	select {
+	case e = <-childDone:
+		if e == nil {
+			t.Fatal("truncated frame accepted")
+		}
+	case <-time.After(time.Second):
+		parent.Close()
+		<-childDone
+		t.Fatal("peer frame-read did not settle after partial handoff")
+	}
+}
+
+func TestFixedPreparationInitialReadCancellationClosesAndDrainsIPC(t *testing.T) {
+	parent, child := net.Pipe()
+	defer parent.Close()
+	defer child.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	started := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		done <- fixedInitialControlIO(ctx, child.Close, func() error { close(started); _, e := readFixedControl(child); return e })
+	}()
+	<-started
+	cancel()
+	select {
+	case e := <-done:
+		if !errors.Is(e, context.Canceled) {
+			t.Fatal(e)
+		}
+	case <-time.After(time.Second):
+		child.Close()
+		<-done
+		t.Fatal("cancelled initial IO was not drained")
+	}
+}
+
+// A refusal before child sink construction must survive the authenticated
+// result frame and the parent's real durable evidence writer, including cause.
+func TestFixedPreparationPreSinkRefusalReachesDurableParent(t *testing.T) {
+	w, e := platform.CreateWorkspace(t.TempDir(), "fixed-refusal-unit")
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer w.Close()
+	pin, e := platform.PinFreshWorkspace(w)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer pin.Close()
+	sink, e := newFixedPreparationEvidence(pin, fixedEvidenceQuota)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer sink.Close()
+	result := fixedChildResult{}
+	if e = recordFixedChildFailure(&result, nil, "approved-parent", os.ErrNotExist); e != nil {
+		t.Fatal(e)
+	}
+	r, writer, e := os.Pipe()
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer r.Close()
+	go func() {
+		defer writer.Close()
+		sender := fixedControlWriter{w: writer}
+		sender.send(fixedControlFrame{Kind: "final", Digest: "same-live-scope", Result: &result})
+	}()
+	v, e := readFixedControl(r)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = sink.Record("child-final", v); e != nil {
+		t.Fatal(e)
+	}
+	b, e := os.ReadFile(filepath.Join(w.Path(), "attempt.jsonl"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	var event struct {
+		Value fixedControlFrame `json:"value"`
+	}
+	if e = json.Unmarshal(b, &event); e != nil {
+		t.Fatal(e)
+	}
+	failure := event.Value.Result.Failure
+	if failure == nil || failure.Phase != "approved-parent" || !failure.Outcome.Failed || !strings.Contains(failure.Reason, "exist") || !event.Value.Result.Failed {
+		t.Fatalf("lost pre-sink refusal: %s", b)
+	}
+}
+
+func TestFixedPreparationTokenRefusalIsBoundedAndRecorded(t *testing.T) {
+	w, e := platform.CreateWorkspace(t.TempDir(), "fixed-token-refusal-unit")
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer w.Close()
+	pin, e := platform.PinFreshWorkspace(w)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer pin.Close()
+	sink, e := newFixedPreparationEvidence(pin, fixedEvidenceQuota)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer sink.Close()
+	token, e := platform.CurrentProcessTokenIdentity()
+	if e != nil {
+		t.Fatal(e)
+	}
+	cause := fixedChildTokenPolicy(token, fixedApprovedScope{TokenUser: "different-approved-user", TokenSession: token.SessionID})
+	if cause == nil {
+		t.Fatal("wrong token policy accepted")
+	}
+	result := fixedChildResult{}
+	if e = recordFixedChildFailure(&result, sink, "token-policy", cause); e != nil {
+		t.Fatal(e)
+	}
+	b, e := os.ReadFile(filepath.Join(w.Path(), "attempt.jsonl"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !strings.Contains(string(b), "token-policy") || !strings.Contains(string(b), "approved token policy mismatch") {
+		t.Fatalf("missing durable token refusal: %s", b)
+	}
+	var bounded fixedChildResult
+	recordFixedChildFailure(&bounded, nil, strings.Repeat("p", 80), errors.New(strings.Repeat("r", 8192)))
+	if bounded.Failure == nil || len(bounded.Failure.Phase) != 64 || len(bounded.Failure.Reason) != 4096 || !bounded.Failed {
+		t.Fatalf("unbounded refusal %+v", bounded.Failure)
 	}
 }

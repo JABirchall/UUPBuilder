@@ -199,12 +199,12 @@ func fixedSelectedSourceApplyAfterLiveApproval(t *testing.T, preparation *fixedS
 	}
 	preparation.record("native-closed", struct{ Run, Closure applyOperationOutcome }{applyOutcome(runErr), applyOutcome(closeErr)})
 	if runErr != nil {
-		t.Fatal("first native/source-contract failure; no fallback", applyOutcome(runErr))
+		preparation.refuse(t, "native-source-contract-no-fallback", runErr)
 	}
 	if closeErr == nil {
-		t.Fatal("native file/cache claims unexpectedly reported clean removal")
+		preparation.refuse(t, "native-preservation-required", ErrIntegrity)
 	}
-	t.Fatal("component trial finished with preserved destination/cache resources; cleanup and production acceptance remain incomplete", applyOutcome(closeErr))
+	preparation.refuse(t, "native-preserved-component-completion", closeErr)
 }
 
 // fixedTrialPreparedOwner is test-entry ownership only, before the executor

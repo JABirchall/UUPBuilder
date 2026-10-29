@@ -39,6 +39,7 @@ type fixedSelectedPreparation struct {
 	approved         *fixedLiveApproval
 	nativeStarted    bool
 	operatorApproved bool
+	childResult      *fixedChildResult
 }
 
 func (p *fixedSelectedPreparation) nativeAuthorized() bool {
@@ -78,6 +79,9 @@ func (p *fixedSelectedPreparation) record(kind string, value any) {
 
 func (p *fixedSelectedPreparation) refuse(t *testing.T, phase string, e error) {
 	t.Helper()
+	if p.childResult != nil {
+		p.recordErr = errors.Join(p.recordErr, recordFixedChildFailure(p.childResult, p.evidence, phase, e))
+	}
 	detail := "fixed scope refused"
 	if e != nil {
 		detail = e.Error()
