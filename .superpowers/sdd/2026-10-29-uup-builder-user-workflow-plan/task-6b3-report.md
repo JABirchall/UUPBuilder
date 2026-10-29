@@ -191,3 +191,78 @@ Files: `wimmeta/oracle.go` owns the API/result/limits/publication boundary; `tre
 Self-review corrected JSON-digest newline identity, named-root display handling, pre-read minimum budgets, separate witness/extra-field count limits, marker/tag offset preservation, location-independent hardlink comparison and unknown ACE/reparse flag acceptance. Final diff check was clean. The remaining strict canonical alignment/root-list support, budget ceilings and uninterpreted EA/callback/tag semantics are implementation limits; they are not source-unavailable claims. Independent review remains controller-owned.
 
 No source downloads, CAB/file-content/solid decode, original script execution, image API, mount/apply/export/capture/servicing, elevation/privilege change, host installation, target/source DLL execution, downloaded wimlib route or ISO claim occurred. Only the unchanged B2 **1 MiB RAW LZMS** mechanism was used while regenerating metadata. Solid/file-content closure, including the separate reviewed 64 MiB contract, is the next separate slice. Original sources and B2 probe contracts are unchanged.
+
+## Fix round 1
+
+Review base: **17f4098ff98aebc16d8a99c0f7c695e67270805b**. Fix commit: **04292d2 — fix(metadata): keep unsupported control and EFS semantics unresolved**. Addressed the exact Important findings **U06B3-I1** and **U06B3-I2** after checking both code paths and their cited primary definitions. The separately deferred Minor U06B3-M1 wording is unchanged. No controller ledger was edited.
+
+For I1, [Microsoft's control documentation](https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-control) and the [public winnt.h definitions](https://raw.githubusercontent.com/microsoft/win32metadata/main/generation/WinSDK/RecompiledIdlHeaders/um/winnt.h) enumerate the supported mask **0xff3f**. `security.go` now records `security-control-semantics` for unsupported stored bits, including `0x0040` and `0x0080`, at the original control-word offset. Its detail retains the exact unsupported bit value; the full original descriptor/control word remains unchanged. Documented control combinations retain their existing structural interpretation.
+
+For I2, rechecked pinned [dentry.c](https://raw.githubusercontent.com/ebiggers/wimlib/v1.14.5/src/dentry.c), specifically `assign_stream_types_encrypted` and `write_dentry_streams`: encrypted data streams are packed into one EFS raw stream identified by the first nonzero unnamed hash; ordinary default/named/reparse assignment belongs to the unencrypted branch. `streams.go` now separates those branches. A valid EFS raw main hash or unnamed extra remains `encrypted-raw`, with an unused zero main placeholder where appropriate. Missing identifiable EFS raw data, named extras, additional unnamed records and an encrypted/reparse combination are explicitly `encrypted-stream-semantics` gaps. Unsupported records use `unresolved-encrypted`, preserving names, hashes, offsets and reference witnesses instead of ordinary data roles. Encoded zero-hash reference size still has `metadata-empty` provenance; this does not assert an empty decrypted file or an understood EFS layout. No EFS content decoder or capability was added.
+
+Covering test files and exact names:
+
+- `internal/metadata/wimmeta/security_test.go`: **TestPublicDescriptorControlSemanticsGateCompleteness** uses otherwise gap-free artifacts produced through the existing public B1/B2 fixture boundary. Controls `0x8040`, `0x8080` and combined `0x80c0` must preserve raw bytes and produce the sole expected semantic gap, with `MetadataVerified=true` and `Complete=false`. Supported controls `0x8000` and `0xff3f` remain gap-free/complete for metadata only.
+- `internal/metadata/wimmeta/streams_test.go`: **TestPublicEncryptedStreamSemanticsGateCompleteness**, with **streamLayoutFixture**, covers 12 public-bound cases: zero main/no extras, zero-main directory, main EFS raw, unnamed-extra EFS raw, EFS plus named/nonempty or named/empty extras, named extra without EFS raw, multiple nonzero unnamed hashes, an empty unnamed extra, encrypted/reparse, and unencrypted empty/named controls. Every nonempty hash has an exact index witness, so unrelated missing-reference gaps cannot hide the acceptance failure. Tests check exact roles, gap kinds/counts, original attributes/hash/name preservation, size provenance and content/conversion flags remaining false.
+
+I1 behavioral RED before its guard:
+
+```text
+go test ./internal/metadata/wimmeta -run '^TestPublicDescriptorControlSemanticsGateCompleteness$' -count=1 -v
+--- PASS: .../0x8000
+--- PASS: .../0xff3f
+--- FAIL: .../0x8040
+    unsupported control 0x8040 counted complete or unresolved inventory lost: complete=true gaps=[]
+--- FAIL: .../0x8080
+    unsupported control 0x8080 counted complete or unresolved inventory lost: complete=true gaps=[]
+--- FAIL: .../0x80c0
+    unsupported control 0x80c0 counted complete or unresolved inventory lost: complete=true gaps=[]
+FAIL uupbuilder/internal/metadata/wimmeta 0.042s
+```
+
+GREEN after the guard, same exact command: all five subcases passed; `ok uupbuilder/internal/metadata/wimmeta 0.037s`.
+
+I2 behavioral RED before separating encrypted roles:
+
+```text
+go test ./internal/metadata/wimmeta -run '^TestPublicEncryptedStreamSemanticsGateCompleteness$' -count=1 -v
+--- FAIL: .../zero-main-no-extras
+--- FAIL: .../zero-main-directory
+--- FAIL: .../efs-with-named-extra
+--- FAIL: .../efs-with-empty-named-extra
+--- FAIL: .../named-extra-no-efs
+--- FAIL: .../encrypted-reparse
+    encrypted acceptance lost: complete=true gaps=[]
+--- FAIL: .../multiple-unnamed-hashes
+--- FAIL: .../efs-with-empty-unnamed-extra
+    unrelated gap hides unsupported encrypted semantics {stream-role 1 232 extra unnamed stream has no unambiguous role}
+--- PASS: .../main-efs-raw
+--- PASS: .../extra-efs-raw
+--- PASS: .../unencrypted-empty
+--- PASS: .../unencrypted-named
+FAIL uupbuilder/internal/metadata/wimmeta 0.064s
+```
+
+During test authoring, an incorrect repeated-byte hash expectation was corrected from `11...` to the fixture's actual `01...` before this RED run. The valid-layout control cases then passed against the pre-fix implementation, so the retained RED above isolates the actual unsupported-role behavior. GREEN after the role fix, same exact command: all twelve subcases passed; `ok uupbuilder/internal/metadata/wimmeta 0.066s`.
+
+Final focused amended-behavior verification:
+
+```text
+go test ./internal/metadata/wimmeta -run '^TestPublic(DescriptorControl|EncryptedStream)SemanticsGateCompleteness$' -count=1 -v
+--- PASS: TestPublicDescriptorControlSemanticsGateCompleteness (0.03s)
+--- PASS: TestPublicEncryptedStreamSemanticsGateCompleteness (0.05s)
+17/17 subcases passed
+ok uupbuilder/internal/metadata/wimmeta 0.094s
+```
+
+Final affected-package check, with the configured source proof explicitly unconfigured:
+
+```powershell
+$env:UUP_WIM_ORACLE_PREPARED_ROOT=''
+go test ./internal/metadata/wimmeta -count=1
+# ok uupbuilder/internal/metadata/wimmeta 0.129s
+```
+
+All affected behavioral tests passed; the private configured test was skipped, not counted as fresh functional proof. Per the scoped fix instructions, the prior 15/15 observed-source evidence and full-suite/vet/architecture evidence above were not repeated solely for reassurance. This round changes only the unsupported semantic paths and their tests; it does not add observed-source coverage or widen any B1/B2/RAW LZMS limit.
+
+Self-review: inspected all four changed code/test files and the focused diff; `git diff --check` passed. The unencrypted precedence/fallback is unchanged, valid encrypted layouts remain identifiable, public artifact/source authority and copied accessors are untouched, and new gaps retain normal budget/cancellation/publication gating. The actual EA/callback/tag-4/current-WIM-index missing-hash inventories remain unresolved as before. Complete metadata acceptance, decrypted contents, security reconstruction, conversion and ISO support are not inferred from these fixes. No new download, original source write, host/image operation, helper or reviewer was used.
