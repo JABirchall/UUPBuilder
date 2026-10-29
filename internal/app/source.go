@@ -9,7 +9,7 @@ import (
 
 // NewSourceManager binds the cycle at the application boundary. Configure the
 // resolver before use; the caller owns the manager and its workspaces' lifetime.
-// Run does not invoke this helper until startup composition is implemented.
+// The default build preflight owns the manager through semantic planning.
 func NewSourceManager(options download.Options, resolver *source.Resolver) (*download.Manager, error) {
 	if resolver == nil {
 		return nil, download.ErrInvalidOptions
@@ -27,6 +27,7 @@ func NewSourceManager(options download.Options, resolver *source.Resolver) (*dow
 		}
 		if resolver.DiscoverApps == nil {
 			resolver.DiscoverApps = discovery.Apps
+			resolver.DeferAppsOnMediaGaps = true
 		}
 	}
 	return manager, nil

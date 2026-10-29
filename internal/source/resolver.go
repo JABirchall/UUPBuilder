@@ -58,6 +58,10 @@ type Resolver struct {
 	DiscoverApps func(context.Context, model.Selection, metadata.Inventory, []SourceSet) (AppDiscovery, error)
 	Inspect      func(context.Context, metadata.InspectRequest) (metadata.Inventory, error)
 	Emit         model.Emit
+	// Production Appx inspection cannot establish image roles, source layout or
+	// container schemas. The application may defer it on those exact gaps. The
+	// zero value preserves custom discovery/inspection orchestration.
+	DeferAppsOnMediaGaps bool
 }
 
 // Resolve performs small, verified semantic inspection before choosing base
@@ -107,6 +111,23 @@ func (r *Resolver) Resolve(ctx context.Context, selection model.Selection, setti
 		return res, res.failure(ctx, "metadata inspection", err)
 	}
 	res.Classification = res.Inventory.Classification
+	if r.DeferAppsOnMediaGaps {
+		for _, gap := range res.Inventory.Gaps {
+			switch gap.Code {
+			case "unsupported-schema", "unsupported-format", "role-unresolved", "layout-unresolved":
+				// Lead with the actual non-app blocker. Preserve every original
+				// observation, including gaps against this metadata-only projection.
+				res.gap("metadata-"+gap.Code, gap.Detail)
+				for _, other := range res.Inventory.Gaps {
+					if other != gap {
+						res.gap("metadata-"+other.Code, other.Detail)
+					}
+				}
+				res.gap("app-inspection-unexamined", "App requests are retained; app inspection is unexamined because source media metadata is blocked. The manifest contains only the verified metadata projection, not full source closure.")
+				return res, nil
+			}
+		}
+	}
 	if r.Catalog == nil {
 		res.gap("catalog-producer-unavailable", "A catalog producer is required to resolve downloadable edition bases and app sets.")
 		res.inventoryGaps()
@@ -385,7 +406,7 @@ func portError(ctx context.Context, operation string, err error) error {
 		}
 		return fmt.Errorf("%s: %w", operation, &catalog.APIError{Endpoint: endpoint, StatusCode: api.StatusCode, Code: code})
 	}
-	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded, ErrInvalidInput, ErrInputIdentityChanged, ErrConflictingDestinations, ErrImplementationGap, ErrPayloadUnavailable, download.ErrIntegrity, download.ErrRefresh, metadata.ErrIntegrity, metadata.ErrLimit, metadata.ErrMalformedMetadata, metadata.ErrConflictingMetadata, metadata.ErrInvalidEvidence, metadata.ErrInvalidInput} {
+	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded, ErrInvalidInput, ErrInputIdentityChanged, ErrConflictingDestinations, ErrImplementationGap, ErrPayloadUnavailable, download.ErrIntegrity, download.ErrRefresh, download.ErrStorage, metadata.ErrIntegrity, metadata.ErrLimit, metadata.ErrMalformedMetadata, metadata.ErrConflictingMetadata, metadata.ErrInvalidEvidence, metadata.ErrInvalidInput} {
 		if errors.Is(err, sentinel) {
 			return fmt.Errorf("%s: %w", operation, sentinel)
 		}

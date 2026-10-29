@@ -15,6 +15,12 @@ func validURL(u *url.URL) bool {
 	return u != nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && u.User == nil
 }
 
+// NewTransport returns an owned clone with the downloader's exact proxy and
+// compression policy. Callers close idle connections after requests quiesce.
+func NewTransport(proxy model.ProxySettings) (*http.Transport, error) {
+	return configuredTransport(Options{Proxy: proxy})
+}
+
 func configuredTransport(opts Options) (*http.Transport, error) {
 	var t *http.Transport
 	if opts.Transport != nil {

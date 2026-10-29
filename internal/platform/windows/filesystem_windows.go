@@ -24,10 +24,13 @@ const ownerFile = ".uupbuilder-owner.json"
 // that handle through os.Root, which prevents escape even under rename/reparse
 // races; a prior lexical check or a checked absolute path is insufficient.
 type Workspace struct {
-	root     *os.Root
-	identity WorkspaceIdentity
-	mu       sync.Mutex
-	mounts   map[string]mountClaim
+	root      *os.Root
+	identity  WorkspaceIdentity
+	mu        sync.Mutex
+	mounts    map[string]mountClaim
+	fresh     *workspaceRemoval
+	closeOnce sync.Once
+	closeErr  error
 }
 type mountClaim struct {
 	descriptor OwnedMount
@@ -46,8 +49,10 @@ func validID(s string) bool {
 }
 
 // CreateWorkspace creates a fresh private child beneath a selected local NTFS
-// parent. It never adopts or deletes an existing directory.
-func CreateWorkspace(parent, jobID string) (*Workspace, error) {
+// parent. It never adopts or deletes an existing directory. A nonnil result on
+// initialization failure retains the fresh scope identity; callers must retain
+// its reported custody. All acquired handles are closed and errors are joined.
+func CreateWorkspace(parent, jobID string) (w *Workspace, err error) {
 	if !filepath.IsAbs(parent) || !validID(jobID) {
 		return nil, errors.New("absolute parent and job identity required")
 	}
@@ -62,54 +67,91 @@ func CreateWorkspace(parent, jobID string) (*Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer parentRoot.Close()
+	defer func() {
+		err = errors.Join(err, parentRoot.Close())
+		if err != nil && w != nil && w.fresh.ready {
+			err = errors.Join(err, w.Close())
+			err = fmt.Errorf("workspace preserved at %s [job=%s volume=%d file=%d]: %w", w.Path(), jobID, w.fresh.rootID.VolumeSerial, w.fresh.rootID.FileIndex, err)
+		}
+	}()
 	token, err := randomToken()
 	if err != nil {
 		return nil, err
 	}
-	name := "uupbuilder-" + token
 	parentHandle, err := parentRoot.Open(".")
 	if err != nil {
 		return nil, err
 	}
-	defer parentHandle.Close()
+	return createWorkspace(parentRoot, parentHandle, parent, jobID, token)
+}
+
+// createWorkspace takes ownership of parentHandle even on initialization failure.
+func createWorkspace(parentRoot *os.Root, parentHandle *os.File, parent, jobID, token string) (w *Workspace, err error) {
+	name := "uupbuilder-" + token
+	defer func() {
+		if err != nil && w != nil {
+			err = errors.Join(err, w.Close())
+			err = fmt.Errorf("workspace preserved at %s [job=%s volume=%d file=%d]: %w", w.Path(), jobID, w.fresh.rootID.VolumeSerial, w.fresh.rootID.FileIndex, err)
+		}
+	}()
+	parentOwned := false
+	defer func() {
+		if !parentOwned {
+			err = errors.Join(err, parentHandle.Close())
+		}
+	}()
+	parentInfo, err := nativeInfo(parentHandle)
+	if err != nil {
+		return nil, err
+	}
 	created, err := createPrivateDirectory(windows.Handle(parentHandle.Fd()), name)
 	if err != nil {
 		return nil, err
 	}
-	defer windows.CloseHandle(created)
-	r, err := parentRoot.OpenRoot(name)
+	// Custody begins at the native creation, before any fallible initialization.
+	w = &Workspace{identity: WorkspaceIdentity{Path: filepath.Join(parent, name), JobID: jobID, Token: token}, mounts: make(map[string]mountClaim), fresh: &workspaceRemoval{parent: parentHandle, parentID: nativeIdentity(parentInfo), created: os.NewFile(uintptr(created), name)}}
+	parentOwned = true
+	original, err := nativeInfo(w.fresh.created)
 	if err != nil {
-		return nil, err
+		return w, err
 	}
-	f, err := r.Open(".")
+	w.fresh.rootID = nativeIdentity(original)
+	resolved, err := finalPath(created)
 	if err != nil {
-		r.Close()
-		return nil, err
+		return w, err
 	}
-	path, err := finalPath(windows.Handle(f.Fd()))
-	f.Close()
+	w.identity.Path = resolved
+	w.root, err = parentRoot.OpenRoot(name)
 	if err != nil {
-		r.Close()
-		return nil, err
+		return w, err
 	}
-	id := WorkspaceIdentity{Path: path, JobID: jobID, Token: token}
-	b, _ := json.Marshal(id)
-	f, err = r.OpenFile(ownerFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	owner, err := w.root.OpenFile(ownerFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
-		r.Close()
-		return nil, err
+		return w, err
 	}
-	_, err = f.Write(b)
-	if err == nil {
-		err = f.Sync()
-	}
-	err = errors.Join(err, f.Close())
+	w.fresh.owner = owner
+	ownerInfo, err := nativeInfo(owner)
 	if err != nil {
-		r.Close()
-		return nil, err
+		return w, err
 	}
-	return &Workspace{root: r, identity: id, mounts: make(map[string]mountClaim)}, nil
+	w.fresh.ownerID = nativeIdentity(ownerInfo)
+	b, _ := json.Marshal(w.identity)
+	if _, err = owner.Write(b); err != nil {
+		return w, err
+	}
+	if err = owner.Sync(); err != nil {
+		return w, err
+	}
+	if err = owner.Close(); err != nil {
+		return w, err
+	}
+	w.fresh.owner = nil
+	if err = w.fresh.created.Close(); err != nil {
+		return w, err
+	}
+	w.fresh.created = nil
+	w.fresh.ready = true
+	return w, nil
 }
 
 // Windows ignores Unix permission bits in Mkdir. Supply a protected inheritable
@@ -173,7 +215,30 @@ func validToken(s string) bool {
 }
 func (w *Workspace) Path() string                { return w.identity.Path }
 func (w *Workspace) Identity() WorkspaceIdentity { return w.identity }
-func (w *Workspace) Close() error                { return w.root.Close() }
+func (w *Workspace) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.closeLocked()
+}
+
+func (w *Workspace) closeLocked() error {
+	w.closeOnce.Do(func() {
+		if w.root != nil {
+			w.closeErr = errors.Join(w.closeErr, w.root.Close())
+		}
+		if w.fresh != nil {
+			for _, file := range []*os.File{w.fresh.owner, w.fresh.created, w.fresh.parent} {
+				if file != nil {
+					w.closeErr = errors.Join(w.closeErr, file.Close())
+				}
+			}
+		}
+		if w.closeErr != nil {
+			w.closeErr = fmt.Errorf("workspace handles preserved at %s [job=%s]: %w", w.Path(), w.Identity().JobID, w.closeErr)
+		}
+	})
+	return w.closeErr
+}
 
 func workspaceName(name string) (string, error) {
 	n, err := model.ValidateRelativePath(name)

@@ -24,19 +24,15 @@ import (
 	"uupbuilder/internal/tui"
 )
 
-func TestDefaultBuildReportsMissingDiscoveryWithoutMutation(t *testing.T) {
+func TestDefaultBuildRejectsExcludedSettingsBeforeSourcePreparation(t *testing.T) {
 	cfg := config.Defaults()
 	cfg.Image.UpdateID = "revision"
 	cfg.Output.Directory = t.TempDir()
 	opts := Options{Config: cfg}
 	closeBuild := composeInteractiveBuild(&opts)
 	defer closeBuild()
-	_, err := opts.Dependencies.Builder.Prepare(context.Background(), tui.BuildDraft{Config: cfg, Revision: 4})
-	if err == nil || !strings.Contains(err.Error(), "metadata-discovery-unavailable") {
-		t.Fatalf("missing producer: %v", err)
-	}
 	cfg.Output.Kind = model.OutputDirectory
-	_, err = opts.Dependencies.Builder.Prepare(context.Background(), tui.BuildDraft{Config: cfg, Revision: 5})
+	_, err := opts.Dependencies.Builder.Prepare(context.Background(), tui.BuildDraft{Config: cfg, Revision: 5})
 	if err == nil || !strings.Contains(err.Error(), "output.kind") {
 		t.Fatalf("explicit excluded setting: %v", err)
 	}

@@ -5,6 +5,17 @@ import (
 	"uupbuilder/internal/model"
 )
 
+// ValidateRequestedSettings rejects source-independent exclusions before a
+// preflight acquires metadata. Source applicability and readiness remain in
+// Resolve; this check never authorizes an operation or changes settings.
+func ValidateRequestedSettings(s model.ResolvedSettings) error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	_, err := settingsApplicability(s)
+	return err
+}
+
 func settingsApplicability(s model.ResolvedSettings) ([]model.SettingApplicability, error) {
 	excluded := func(key string) ([]model.SettingApplicability, error) {
 		return nil, fmt.Errorf("%w: %s explicitly requests an excluded standalone output or recovery feature", ErrBlocked, key)
