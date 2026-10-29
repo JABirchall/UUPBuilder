@@ -95,6 +95,23 @@ func build(ctx context.Context, m model.PayloadManifest, files []metadata.LocalR
 	supplied := map[model.PayloadIdentity]metadata.LocalResource{}
 	var inputTotal uint64
 	for _, f := range files {
+		// Supplied identities are separate caller input. Bound their strings
+		// before validation can format an error or normalization can allocate.
+		for _, value := range [...]string{string(f.Identity.Digest.Algorithm), f.Identity.Digest.Value, f.Identity.Provenance.Source, f.Identity.Provenance.Name, f.Identity.Encryption.Method, f.Identity.Encryption.Fingerprint} {
+			if len(value) > l.MaxVariableBytes {
+				return nil, ErrLimit
+			}
+		}
+		bound := false
+		for _, p := range m.Payloads {
+			if p.Identity == f.Identity {
+				bound = true
+				break
+			}
+		}
+		if !bound {
+			return nil, ErrInput
+		}
 		if f.Identity.Validate() != nil || f.Identity.Encryption.Method != "" || f.Identity.Size < 36 || !strings.EqualFold(strings.TrimSpace(f.Identity.Provenance.Name), f.Identity.Provenance.Name) || !strings.HasSuffix(strings.ToLower(f.Identity.Provenance.Name), ".cab") {
 			return nil, ErrInput
 		}
@@ -167,10 +184,13 @@ func build(ctx context.Context, m model.PayloadManifest, files []metadata.LocalR
 		}
 		remaining := l.MaxMetadataBytes - metadataBytes
 		declaredRemaining := l.MaxDeclaredBytes - s.DeclaredBytes
-		if remaining == 0 || declaredRemaining == 0 {
+		resultRemaining := l.MaxResultBytes - s.AccountedBytes
+		// Zero means the framing parser's default allowance, not an exhausted
+		// caller budget. Refuse before handing that sentinel to Inspect.
+		if remaining == 0 || declaredRemaining == 0 || resultRemaining == 0 {
 			return nil, ErrLimit
 		}
-		v.table, e = cabformat.Inspect(ctx, file, uint64(f.Identity.Size), cabformat.Limits{MaxSourceBytes: l.MaxSourceBytes, MaxMemberBytes: l.MaxMemberBytes, MaxDecodedBytes: declaredRemaining, MaxMetadataBytes: min(remaining, 32<<20), MaxMembers: min(l.MaxMembers-totalMembers, 65535), MaxFolders: l.MaxFolders - totalFolders, MaxBlocks: l.MaxBlocks - totalBlocks, MaxNameBytes: l.MaxNameBytes, MaxDirectoryBytes: min(l.MaxResultBytes-s.AccountedBytes, 128<<20)})
+		v.table, e = cabformat.Inspect(ctx, file, uint64(f.Identity.Size), cabformat.Limits{MaxSourceBytes: l.MaxSourceBytes, MaxMemberBytes: l.MaxMemberBytes, MaxDecodedBytes: declaredRemaining, MaxMetadataBytes: min(remaining, 32<<20), MaxMembers: min(l.MaxMembers-totalMembers, 65535), MaxFolders: l.MaxFolders - totalFolders, MaxBlocks: l.MaxBlocks - totalBlocks, MaxNameBytes: l.MaxNameBytes, MaxDirectoryBytes: min(resultRemaining, 128<<20)})
 		if e != nil {
 			return nil, e
 		}
