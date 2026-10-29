@@ -135,7 +135,7 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		return m.activate()
 	case "space", " ":
-		if m.area == Conversion {
+		if m.area == Conversion || (m.area == Image && m.image.focus < 2) {
 			return m.activate()
 		}
 		if m.area == Image && m.image.focus == 2 {

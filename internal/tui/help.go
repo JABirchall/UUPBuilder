@@ -6,7 +6,7 @@ func (m Model) helpLines() []string {
 	case Builds:
 		lines = append(lines, "/: edit upstream query (300ms debounce)", "f: filter retrieved records locally   a: target filter", "r: refresh from upstream / retry", "Each row is an exact UUID/revision, never a guessed release group.")
 	case Image:
-		lines = append(lines, "tab: target, language, editions   space: toggle edition", "r: refresh the focused language/edition choices", "Changing target requires selecting an exact catalogue record.", "App requests are retained; their applicability needs checking.")
+		lines = append(lines, "tab: target, language, editions   space: choose / toggle edition", "r: refresh the focused language/edition choices", "Changing target requires selecting an exact catalogue record.", "App requests are retained; their applicability needs checking.")
 	case Conversion:
 		lines = append(lines, "up/down or tab: settings and TOML actions", "enter / space: cycle choices, edit text, or run selected action", "Text: enter applies; esc cancels. Lists use commas.", "Select config path, then Load or Save. Save reports backup/normalization.", "Requested values are retained; effective values need source applicability.")
 	default:
@@ -31,6 +31,9 @@ func (m Model) footer() string {
 	case Builds:
 		return "↑↓ move | / search | f filter | a target | enter select | r refresh | t TOML | esc back | ? help"
 	case Image:
+		if m.image.focus < 2 {
+			return "tab field | ↑↓ move | space / enter choose | r retry | t TOML | esc back | ? help"
+		}
 		return "tab field | ↑↓ move | space toggle | enter choose/next | r retry | t TOML | esc back | ? help"
 	case Conversion:
 		return "↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit"
