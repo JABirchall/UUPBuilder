@@ -185,6 +185,24 @@ RED/GREEN, acquisition, native failure and verification evidence.
 - [ ] Implement the first proven canonical/reference adapter and assemble its actual Windows image and normal source-matching Setup/image files. Record stage intent before mutation and bind inspected predecessor outputs before accepting successors. Preserve source records needed inside a normal ISO; no recovery-image construction.
 - [ ] Run `go test ./internal/engine/... ./internal/planner ./internal/jobs -count=1` and real selected-source reconstruction/assembly with the proven provider. Retain inspected contents and security/resource evidence. The intermediate tree is internal; it is not a new standalone directory deliverable.
 
+**U07 partial evidence (2026-10-29):** Commits `bbd8d39` and `703afa6`
+materialize and independently verify all 900 original source-media files from
+the first x86/en-us canonical fixture. The shared logical-media namespace
+conservatively refuses non-ASCII paths; actual storage paths retain their
+existing Unicode behavior. Commit `76c8187` builds a 917,770,992-byte internal
+Setup archive candidate from the same source: 818 matching Setup files and 70
+new directories, exact launch replacement, retained security/stream/link and
+opaque record bytes, correct boot metadata/index and independently verified
+output XML counts. The actual first attempt exposed 97 valid empty directory
+lists; its regression/fix and failed evidence are retained before the successful
+retry. The original 17,637 metadata gaps concern tag-4 semantics, not missing
+file references; those semantics remain unknown and all native/complete flags
+stay false. Both components passed independent task review; the final full
+suite, vet and Windows 386/amd64/arm64 builds passed. Generated candidates were
+removed by their owners after inspection. No ISO, native preservation or whole
+U07 acceptance is claimed. Production Normalize/Assembler/stage and install-image
+integration, verified providers, native acceptance and complete active cleanup
+remain open. The default application still reports its semantic-role blocker.
 ## U08 — Apply updates and produce the selected editions
 
 **Files:** Create `internal/planner/{servicing,editions}.go`, `internal/engine/service/{types,executor,updates,editions,cleanup}.go`, `internal/engine/rules/{registry,updates,editions}.go`, tests and generation fixtures.
@@ -243,7 +261,7 @@ RED/GREEN, acquisition, native failure and verification evidence.
 
 ## Tracking and execution rules
 
-- **U01 and U02 are complete; U03 implementation and validation are complete, with task review pending. U04 implementation and validation are complete, with task review pending. U05 implementation and validation are complete, with task review pending; U06 has partial implementation and verified source acquisition, but remains the next incomplete task because semantic closure and an operational provider are unproved.** The user's current request authorizes executing the plan in order; native image mutations and excluded recovery/boot work remain outside this execution's authorization.
+- **U01–U05 are complete with task reviews clean. U06 and U07 have reviewed partial implementations and actual source-byte evidence, but their full semantic/provider/native/assembly acceptance remains incomplete.** The current continuation starts at U07 as explicitly requested, carrying unfinished U06 prerequisites rather than claiming them complete. U08–U12 remain pending. Native image mutation, privilege/elevation and excluded recovery/boot work are not authorized by the ordinary Go archive/data continuation.
 - Work top to bottom. A task may prepare a narrowly required downstream interface, but must not start unrelated provider research or a second subsystem schedule. Put newly found work under its owning workflow task, with its concrete acceptance condition.
 - For substantive code changes, run the named new behavior checks before implementation and establish the expected failure; then implement and rerun the owning task's verification. Existing passing checks alone do not establish the new behavior. Finish each independently testable change with a focused reviewable commit.
 - Check a task off only when its deliverable is demonstrated. Add a short evidence line with changed files/commit, executed tests, actual user-visible result and any remaining gap. Do not import old unchecked boxes or count old component observations as current completion.
