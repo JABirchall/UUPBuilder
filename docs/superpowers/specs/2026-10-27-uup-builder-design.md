@@ -1,5 +1,7 @@
 # UUP Builder design
 
+**Authoritative scope amendment (2026-10-29):** [Reduced scope](../../engineering/2026-10-29-scope-amendment.md) removes recovery, original R17 Review/Start/progress/terminal work and bootability testing. It supersedes conflicting clauses below; historical text is retained as design history.
+
 Date: 2026-10-27
 
 Status: Accepted as the basis for implementation planning on 2026-10-27, when the user requested a multi-agent plan using GPT-6.1 Sol at xhigh. Product implementation has not started.

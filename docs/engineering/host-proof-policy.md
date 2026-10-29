@@ -1,5 +1,7 @@
 # Host architecture proof policy
 
+**Scope amendment (2026-10-29):** [The user's reduced scope](2026-10-29-scope-amendment.md) excludes recovery, R17 UI/terminal work and bootability testing. Those historical functional requirements below no longer block the active plan. The available-host plus three-build architecture rule remains unchanged.
+
 On 2026-10-27 the user decided: "Go is cross platform for x86 and arm, so is windows. If it all works correctly on this host, consider that as full proof."
 
 Successful complete functional evidence on the available native Windows host,

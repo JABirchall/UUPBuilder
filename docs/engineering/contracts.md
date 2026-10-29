@@ -1,5 +1,9 @@
 # Shared engineering contracts
 
+**Authoritative scope amendment (2026-10-29)**
+
+[The user's reduced scope](2026-10-29-scope-amendment.md) specifies ISO-file-only output and supersedes recovery, R17 UI/terminal and bootability-testing requirements in this historical contract. New orchestration need not implement Recover/List/Discard or restart discovery; active operation ownership, cancellation and resource cleanup still apply. Existing types and completed implementations are not removed merely to edit this document.
+
 G0 establishes the dependency-free `uupbuilder` module with Go 1.27.0. There is
 no `go.sum` until a task introduces a real external dependency. Only the
 coordinator changes these shared contracts after G0; consumers use public model
