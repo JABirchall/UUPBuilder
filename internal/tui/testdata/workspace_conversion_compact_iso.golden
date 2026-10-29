@@ -1,0 +1,18 @@
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ ISO conversion and TOML settings │
+│ ISO output · output.kind │
+│ requested: iso | ISO file deliverable | effective: iso | │
+│ supported; stale claim │
+│ │Excluded recovery ·… | omit │ │
+│ │ISO contents · Upda… | false │ │
+│ │ISO contents · Boot… | auto │ │
+│ │Drivers · Integrate… | false │ │
+│ │Drivers · Driver so… | │ │
+│ │Drivers · Targets (… | │ │
+│ │> ISO output · Output… | iso │ │
+│ Source: none selected │
+│ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
+│ | ? help | ctrl+c quit │

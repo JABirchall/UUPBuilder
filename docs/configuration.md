@@ -2,9 +2,20 @@
 
 UUP Builder uses TOML schema version `1`. The default configuration path is
 `%LOCALAPPDATA%\UUPBuilder\config.toml`; the executable also accepts
-`--config PATH`. Configuration loading and saving are provided by
-`internal/config`; the bootstrap executable does not yet connect these services
-to the TUI.
+`--config PATH`. The Charm Workspace connects configuration loading and saving
+to its Conversion area. Edit the TOML path there, then activate Load or Save.
+Load replaces the current draft; Save checks structural validity, creates the
+selected configuration directory if needed, and reports normalization and any
+backup path. View TOML (`t`) shows the current draft without writing it. Image
+selection and app requests remain part of the same saved document.
+
+The deliverable is an ISO file. Conversion exposes update, edition, .NET,
+driver, internal image, download and storage policies for that ISO. WIM, ESD and
+SWM are representations inside its contents; standalone image/directory
+deliverables and recovery/WinRE work are excluded. Source-matching Setup and
+boot files remain part of normal ISO contents; this does not claim boot or
+Setup execution testing. Saving a structurally valid draft does not establish
+source applicability, helper availability or executable conversion support.
 
 Every document must contain `schema_version = 1`. Omitted settings receive the
 defaults below. Explicit `false`, `0`, empty strings and empty arrays remain
@@ -13,7 +24,11 @@ keys (including case-mismatched names), wrong types, invalid policy values and
 unsupported versions are rejected with the filename, full key and one-based
 line/column when available. Missing keys have no invented source position.
 Version migration is not implemented: another schema version fails without
-rewriting the file.
+rewriting the file. New drafts and omitted recovery fields use
+`include_winre = false` and `winre_updates = "omit"` for the current ISO scope.
+Older minimal schema-1 files that omit these fields receive these current
+defaults too. Explicit legacy `true`, `auto` and `include` values remain
+readable and survive load, save and request creation unchanged.
 
 `Defaults()` and minimal documents allow an incomplete image selection for
 browsing. `Config.Validate()` checks structural syntax; `Config.Request()` also
@@ -49,8 +64,8 @@ enablement_packages = "auto"
 cleanup = true
 reset_base = "off"
 netfx3 = false
-include_winre = true
-winre_updates = "auto"
+include_winre = false
+winre_updates = "omit"
 update_boot_files = false
 boot_wim_engine = "auto"
 reference_images = "auto"
@@ -108,21 +123,24 @@ schema beyond the design's abbreviated example.
 | `conversion.updates` | `integrate`, `external`, `omit` |
 | `conversion.servicing_strategy` | `auto`, `per-edition`, `shared-base` |
 | `conversion.cumulative_update_policy`, `checkpoint_updates` | Independently `auto`, `expand`, `preserve` |
-| `conversion.enablement_packages`, `winre_updates` | Independently `auto`, `include`, `omit` |
+| `conversion.enablement_packages` | `auto`, `include`, `omit` |
+| `conversion.winre_updates` | Legacy `auto`, `include`, `omit` remain readable; dedicated WinRE servicing is excluded. Current default: `omit`. |
 | `conversion.cleanup` | Component-cleanup boolean |
 | `conversion.reset_base` | `off`, `auto`, `on` |
-| `conversion.netfx3`, `include_winre`, `update_boot_files` | .NET 3.5 inclusion, WinRE inclusion and boot-file update booleans |
+| `conversion.netfx3`, `update_boot_files` | .NET 3.5 inclusion and ISO boot-file update booleans |
+| `conversion.include_winre` | Legacy recovery policy boolean; dedicated WinRE work is excluded. Current default: `false`. |
 | `conversion.boot_wim_engine` | `auto`, `wimlib`, `dism` |
 | `conversion.reference_images` | `auto`, `reuse`, `export` |
 | `conversion.cumulative_msu` | `auto`, `expand`, `keep` |
 | `conversion.keep_reference_esds` | Retain reference ESDs boolean |
-| `conversion.drivers.enabled`, `source`, `targets` | Boolean, source directory, unique targets from `os`, `winpe`, `winre`, `shared`; enabled integration requires a source and at least one target. |
+| `conversion.drivers.enabled`, `source`, `targets` | Boolean, source directory and unique targets. ISO customization targets are `os`, `winpe`, `shared`; legacy `winre` remains readable with an excluded-scope explanation. Enabled integration structurally requires a source and at least one target. |
 | `conversion.editions.derived`, `strategy`, `preserve_required_bases` | Unique requested derived editions; `auto`/`per-edition`/`shared-base` servicing; retain necessary bases temporarily even when excluded from final output. |
 | `apps.mode` | `default`, `custom`, `none` |
 | `apps.preset`, `include` | Optional preset and unique stable package-family identities, not translated display names. |
 | `apps.stub_policy` | `auto`, `stub`, `full` |
 | `apps.edge_policy` | `default`, `include`, `exclude` |
-| `output.kind`, `image_format` | `iso`/`image`/`directory` and `wim`/`esd`/`swm` |
+| `output.kind` | Current deliverable: `iso`. Legacy `image` and `directory` remain readable, with an excluded-scope explanation. The TUI offers only `iso`; activating a loaded legacy kind explicitly changes it to `iso`. |
+| `output.image_format` | `wim`, `esd`, `swm`: internal image format inside the ISO, not a separate deliverable. |
 | `output.split_size_mib` | Nonnegative integer; must be positive for SWM. |
 | `output.directory`, `filename`, `label`, `edition_order` | Directory, Windows-safe single filename or `auto`, label or `auto`, unique final edition order. |
 | `downloads.parallel_files`, `retries` | Positive parallel file count; nonnegative retry count. |
@@ -133,9 +151,15 @@ schema beyond the design's abbreviated example.
 `auto` and all explicit source-dependent choices survive decoding and request
 creation. For example, an explicit WinRE-update request survives when WinRE is
 disabled, and custom app families survive in `none` mode. The later engine
-resolver must either support these requests or report a concrete applicability
-failure before mutation. Structural validation does not claim support for a
-particular source, host or helper.
+resolver must report excluded output/recovery requests as unsupported and must
+either support other requests or report a concrete applicability failure before
+mutation. The Conversion area labels excluded recovery controls and WinRE driver
+targets explicitly, and retains their requested values. A scope explanation
+takes precedence over any stale applicability display. Structural validation
+does not claim support for a particular source, host or helper. Loading a saved
+image selection also requires its exact catalogue record, language and editions
+to be checked again; app applicability remains unchecked until semantic
+validation succeeds.
 
 Relative driver, output, workspace and cache directories resolve against the
 configuration file's directory, independent of the process working directory.
@@ -182,6 +206,6 @@ exclusive hard link for initial creation.
 `SaveResult.BackupPath` identifies a completed backup, including when publication
 subsequently fails. `SaveResult.Normalized` is true after a successful rewrite
 of different existing bytes, and false for new files, no-ops and failed saves.
-The TUI can use these fields to explain normalization and show the backup path.
+The TUI uses these fields to explain normalization and show the backup path.
 Save is intended for one application writer; atomic publication does not merge
 concurrent manual edits or provide a cross-process settings lock.

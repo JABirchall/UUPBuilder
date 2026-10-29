@@ -1,17 +1,17 @@
 │ UUP / IMAGE BUILDER ┌───────────────┐ │
 │ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
-│ │ Conversion and TOML settings │
-│ 01 Builds │ Output · output.directory │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ ISO output · output.directory │
 │ │ requested: C:\very-long-output- │
 │ 02 Image │ name\directorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydirectorydire... │
-│ 03 Apps │ ┌ Output · Output kind ─────────────────────────────────────────────────────────────────────┐ │
+│ 03 Apps │ ┌ ISO output · Output kind (ISO only) ──────────────────────────────────────────────────────┐ │
 │ │ │ iso │ │
 │ 04 Conversion │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
-│ │ ┌ Output · Image format ────────────────────────────────────────────────────────────────────┐ │
+│ │ ┌ ISO output · Image inside ISO ────────────────────────────────────────────────────────────┐ │
 │ 05 Review │ │ wim │ │
-│ 06 Progress │ ┌ Output · SWM split size (MiB) ────────────────────────────────────────────────────────────┐ │
+│ 06 Progress │ ┌ ISO output · SWM split size (MiB) ────────────────────────────────────────────────────────┐ │
 │ │ │ 3800 │ │
-│ │ ┌ Output · Output directory ────────────────────────────────────────────────────────────────┐ │
+│ │ ┌ ISO output · Output directory ────────────────────────────────────────────────────────────┐ │
 │ │ │ > C:\very-long-output-name\directorydirectorydirectorydirectorydirectorydirectorydirect...│ │
 │ unsaved draft │ Source: none selected │
 │ Windows 10+ │ ID: select an exact catalogue record │

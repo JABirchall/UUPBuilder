@@ -1,16 +1,16 @@
 │ UUP / IMAGE BUILDER │View TOML (t) │ │
 │ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
 │ 06 Progress │
-│ Conversion and TOML settings │
-│ Output · output.directory │
+│ ISO conversion and TOML settings │
+│ ISO output · output.directory │
 │ requested: C:\very-long-output- │
 │ name\directorydirectorydirectorydirectorydirectorydirectory... │
 │ │Drivers · Driver so… | │ │
 │ │Drivers · Targets (… | │ │
-│ │Output · Output kind | iso │ │
-│ │Output · Image form… | wim │ │
-│ │Output · SWM split … | 3800 │ │
-│ │> Output · Output dir… | C:\very-long-output-name\directo...│ │
+│ │ISO output · Output… | iso │ │
+│ │ISO output · Image … | wim │ │
+│ │ISO output · SWM sp… | 3800 │ │
+│ │> ISO output · Output… | C:\very-long-output-name\directo...│ │
 │ Source: none selected │
 │ Target: amd64 | Language: choose | Editions: choose │
 │ ! output.directory: must be nonempty UTF-8 without surround... │

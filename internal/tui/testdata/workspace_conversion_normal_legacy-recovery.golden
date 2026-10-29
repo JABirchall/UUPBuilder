@@ -1,0 +1,22 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ Excluded recovery · conversion.include_winre │
+│ │ requested: true | excluded: recovery/WinRE work; legacy value retained. │
+│ 02 Image │ │
+│ │ ┌ Editions · Derived editions (comma separated) ────────────────────────────────────────────┐ │
+│ 03 Apps │ │ │ │
+│ 04 Conversion │ ┌ Editions · Edition servicing ─────────────────────────────────────────────────────────────┐ │
+│ │ │ auto │ │
+│ 05 Review │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ Editions · Preserve temporary required bases ─────────────────────────────────────────────┐ │
+│ 06 Progress │ │ true │ │
+│ │ ┌ Features · .NET Framework 3 ──────────────────────────────────────────────────────────────┐ │
+│ │ │ false │ │
+│ │ ┌ Excluded recovery · Include WinRE (legacy) ───────────────────────────────────────────────┐ │
+│ │ │ > true │ │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │
+│ │ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit │

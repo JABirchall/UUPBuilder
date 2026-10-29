@@ -1,0 +1,18 @@
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ ISO conversion and TOML settings │
+│ Excluded recovery · conversion.include_winre │
+│ requested: true | excluded: recovery/WinRE work; legacy value │
+│ retained. │
+│ │Updates · Reference… | auto │ │
+│ │Updates · Keep refe… | false │ │
+│ │Editions · Derived … | │ │
+│ │Editions · Edition … | auto │ │
+│ │Editions · Preserve… | true │ │
+│ │Features · .NET Fra… | false │ │
+│ │> Excluded recovery ·… | true │ │
+│ Source: none selected │
+│ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
+│ | ? help | ctrl+c quit │

@@ -1,0 +1,21 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ ISO output · output.kind │
+│ │ requested: iso | ISO file deliverable | effective: iso | supported; stale claim │
+│ 02 Image │ │
+│ │ ┌ ISO contents · Boot WIM engine ───────────────────────────────────────────────────────────┐ │
+│ 03 Apps │ │ auto │ │
+│ 04 Conversion │ ┌ Drivers · Integrate drivers ──────────────────────────────────────────────────────────────┐ │
+│ │ │ false │ │
+│ 05 Review │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ Drivers · Driver source directory ────────────────────────────────────────────────────────┐ │
+│ 06 Progress │ │ │ │
+│ │ ┌ Drivers · Targets (WinRE excluded) ───────────────────────────────────────────────────────┐ │
+│ │ ┌ ISO output · Output kind (ISO only) ──────────────────────────────────────────────────────┐ │
+│ │ │ > iso │ │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │
+│ │ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit │

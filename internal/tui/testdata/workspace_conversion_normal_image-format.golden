@@ -1,0 +1,21 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ ISO output · output.image_format │
+│ │ requested: swm | image inside ISO; standalone images excluded | effective: swm | supported; │
+│ 02 Image │ stale claim │
+│ 03 Apps │ ┌ Drivers · Integrate drivers ──────────────────────────────────────────────────────────────┐ │
+│ │ │ false │ │
+│ 04 Conversion │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ Drivers · Driver source directory ────────────────────────────────────────────────────────┐ │
+│ 05 Review │ │ │ │
+│ 06 Progress │ ┌ Drivers · Targets (WinRE excluded) ───────────────────────────────────────────────────────┐ │
+│ │ ┌ ISO output · Output kind (ISO only) ──────────────────────────────────────────────────────┐ │
+│ │ │ iso │ │
+│ │ ┌ ISO output · Image inside ISO ────────────────────────────────────────────────────────────┐ │
+│ │ │ > swm │ │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │
+│ │ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit │

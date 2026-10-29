@@ -1,15 +1,15 @@
 │ UUP / IMAGE BUILDER │View TOML (t) │ │
 │ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
 │ 06 Progress │
-│ Conversion and TOML settings │
+│ ISO conversion and TOML settings │
 │ Downloads · downloads.parallel_files │
 │ requested: 4 | effective: unchecked (source applicability │
 │ unresolved) │
-│ │Output · SWM split … | 3800 │ │
-│ │Output · Output dir… | . │ │
-│ │Output · Filename (… | auto │ │
-│ │Output · Volume lab… | auto │ │
-│ │Output · Edition or… | │ │
+│ │ISO output · SWM sp… | 3800 │ │
+│ │ISO output · Output… | . │ │
+│ │ISO output · Filena… | auto │ │
+│ │ISO output · Volume… | auto │ │
+│ │ISO output · Editio… | │ │
 │ │Downloads · Proxy m… | system │ │
 │ │Downloads · Proxy o… | │ │
 │ │> Edit · Downloads · … | 12 ...│ │

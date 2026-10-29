@@ -14,7 +14,7 @@ import (
 // remain requested values; applicability never writes through these bindings.
 type settingField struct {
 	key, group, label, value string
-	choices                  []string
+	choices                  []string // values offered by the UI; write can retain legacy schema values
 	read                     func(config.Config) string
 	write                    func(*config.Config, string) error
 }
@@ -26,7 +26,7 @@ func stringField[T ~string](key, group, label string, access func(*config.Config
 	}
 	f.read = func(cfg config.Config) string { return string(*access(&cfg)) }
 	f.write = func(cfg *config.Config, value string) error {
-		if len(f.choices) > 0 && !slices.Contains(f.choices, value) {
+		if len(choices) > 0 && !slices.Contains(choices, T(value)) {
 			return fmt.Errorf("%s: choose %s", key, strings.Join(f.choices, ", "))
 		}
 		*access(cfg) = T(value)
@@ -86,6 +86,10 @@ func listField[T ~string](key, group, label string, access func(*config.Config) 
 }
 
 func conversionFields() []settingField {
+	// Parsing retains every schema-1 value. Activating this control explicitly
+	// chooses the current deliverable, including when a legacy value was loaded.
+	outputKind := stringField("output.kind", "ISO output", "Output kind (ISO only)", func(c *config.Config) *model.OutputKind { return &c.Output.Kind }, model.OutputISO, model.OutputImage, model.OutputDirectory)
+	outputKind.choices = []string{string(model.OutputISO)}
 	return []settingField{
 		stringField("conversion.updates", "Updates", "Update handling", func(c *config.Config) *model.UpdatePolicy { return &c.Conversion.Updates }, model.UpdatesIntegrate, model.UpdatesExternal, model.UpdatesOmit),
 		stringField("conversion.servicing_strategy", "Updates", "Servicing strategy", func(c *config.Config) *model.ServicingStrategy { return &c.Conversion.ServicingStrategy }, model.ServicingAuto, model.ServicingPerEdition, model.ServicingSharedBase),
@@ -100,21 +104,21 @@ func conversionFields() []settingField {
 		listField("conversion.editions.derived", "Editions", "Derived editions (comma separated)", func(c *config.Config) *[]string { return &c.Conversion.Editions.Derived }),
 		stringField("conversion.editions.strategy", "Editions", "Edition servicing", func(c *config.Config) *model.ServicingStrategy { return &c.Conversion.Editions.Strategy }, model.ServicingAuto, model.ServicingPerEdition, model.ServicingSharedBase),
 		boolField("conversion.editions.preserve_required_bases", "Editions", "Preserve temporary required bases", func(c *config.Config) *bool { return &c.Conversion.Editions.PreserveRequiredBases }),
-		boolField("conversion.netfx3", "Boot / recovery", ".NET Framework 3", func(c *config.Config) *bool { return &c.Conversion.NetFX3 }),
-		boolField("conversion.include_winre", "Boot / recovery", "Include WinRE", func(c *config.Config) *bool { return &c.Conversion.IncludeWinRE }),
-		stringField("conversion.winre_updates", "Boot / recovery", "WinRE updates", func(c *config.Config) *model.InclusionPolicy { return &c.Conversion.WinREUpdates }, model.InclusionAuto, model.InclusionInclude, model.InclusionOmit),
-		boolField("conversion.update_boot_files", "Boot / recovery", "Update boot files", func(c *config.Config) *bool { return &c.Conversion.UpdateBootFiles }),
-		stringField("conversion.boot_wim_engine", "Boot / recovery", "Boot WIM engine", func(c *config.Config) *model.BootWIMEngine { return &c.Conversion.BootWIMEngine }, model.BootWIMAuto, model.BootWIMWimlib, model.BootWIMDISM),
+		boolField("conversion.netfx3", "Features", ".NET Framework 3", func(c *config.Config) *bool { return &c.Conversion.NetFX3 }),
+		boolField("conversion.include_winre", "Excluded recovery", "Include WinRE (legacy)", func(c *config.Config) *bool { return &c.Conversion.IncludeWinRE }),
+		stringField("conversion.winre_updates", "Excluded recovery", "WinRE updates (legacy)", func(c *config.Config) *model.InclusionPolicy { return &c.Conversion.WinREUpdates }, model.InclusionAuto, model.InclusionInclude, model.InclusionOmit),
+		boolField("conversion.update_boot_files", "ISO contents", "Update boot files", func(c *config.Config) *bool { return &c.Conversion.UpdateBootFiles }),
+		stringField("conversion.boot_wim_engine", "ISO contents", "Boot WIM engine", func(c *config.Config) *model.BootWIMEngine { return &c.Conversion.BootWIMEngine }, model.BootWIMAuto, model.BootWIMWimlib, model.BootWIMDISM),
 		boolField("conversion.drivers.enabled", "Drivers", "Integrate drivers", func(c *config.Config) *bool { return &c.Conversion.Drivers.Enabled }),
 		stringField("conversion.drivers.source", "Drivers", "Driver source directory", func(c *config.Config) *string { return &c.Conversion.Drivers.Source }),
-		listField("conversion.drivers.targets", "Drivers", "Targets (os, winpe, winre, shared)", func(c *config.Config) *[]model.DriverTarget { return &c.Conversion.Drivers.Targets }, model.DriverOS, model.DriverWinPE, model.DriverWinRE, model.DriverShared),
-		stringField("output.kind", "Output", "Output kind", func(c *config.Config) *model.OutputKind { return &c.Output.Kind }, model.OutputISO, model.OutputImage, model.OutputDirectory),
-		stringField("output.image_format", "Output", "Image format", func(c *config.Config) *model.ImageFormat { return &c.Output.ImageFormat }, model.ImageWIM, model.ImageESD, model.ImageSWM),
-		intField("output.split_size_mib", "Output", "SWM split size (MiB)", func(c *config.Config) *int { return &c.Output.SplitSizeMiB }),
-		stringField("output.directory", "Output", "Output directory", func(c *config.Config) *string { return &c.Output.Directory }),
-		stringField("output.filename", "Output", "Filename (auto or name)", func(c *config.Config) *string { return &c.Output.Filename }),
-		stringField("output.label", "Output", "Volume label (auto or label)", func(c *config.Config) *string { return &c.Output.Label }),
-		listField("output.edition_order", "Output", "Edition order (comma separated)", func(c *config.Config) *[]string { return &c.Output.EditionOrder }),
+		listField("conversion.drivers.targets", "Drivers", "Targets (WinRE excluded)", func(c *config.Config) *[]model.DriverTarget { return &c.Conversion.Drivers.Targets }, model.DriverOS, model.DriverWinPE, model.DriverWinRE, model.DriverShared),
+		outputKind,
+		stringField("output.image_format", "ISO output", "Image inside ISO", func(c *config.Config) *model.ImageFormat { return &c.Output.ImageFormat }, model.ImageWIM, model.ImageESD, model.ImageSWM),
+		intField("output.split_size_mib", "ISO output", "SWM split size (MiB)", func(c *config.Config) *int { return &c.Output.SplitSizeMiB }),
+		stringField("output.directory", "ISO output", "Output directory", func(c *config.Config) *string { return &c.Output.Directory }),
+		stringField("output.filename", "ISO output", "Filename (auto or name)", func(c *config.Config) *string { return &c.Output.Filename }),
+		stringField("output.label", "ISO output", "Volume label (auto or label)", func(c *config.Config) *string { return &c.Output.Label }),
+		listField("output.edition_order", "ISO output", "Edition order (comma separated)", func(c *config.Config) *[]string { return &c.Output.EditionOrder }),
 		stringField("downloads.proxy.mode", "Downloads", "Proxy mode", func(c *config.Config) *model.ProxyMode { return &c.Downloads.Proxy.Mode }, model.ProxySystem, model.ProxyDirect, model.ProxyExplicit),
 		stringField("downloads.proxy.url", "Downloads", "Proxy origin (no credentials)", func(c *config.Config) *string { return &c.Downloads.Proxy.URL }),
 		intField("downloads.parallel_files", "Downloads", "Parallel files", func(c *config.Config) *int { return &c.Downloads.ParallelFiles }),

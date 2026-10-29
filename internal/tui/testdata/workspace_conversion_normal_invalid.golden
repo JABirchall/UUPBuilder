@@ -1,12 +1,12 @@
 │ UUP / IMAGE BUILDER ┌───────────────┐ │
 │ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
-│ │ Conversion and TOML settings │
+│ │ ISO conversion and TOML settings │
 │ 01 Builds │ Downloads · downloads.parallel_files │
 │ │ requested: 0 | effective: unchecked (source applicability unresolved) │
 │ 02 Image │ │
-│ │ ┌ Output · Volume label (auto or label) ────────────────────────────────────────────────────┐ │
+│ │ ┌ ISO output · Volume label (auto or label) ────────────────────────────────────────────────┐ │
 │ 03 Apps │ │ auto │ │
-│ 04 Conversion │ ┌ Output · Edition order (comma separated) ─────────────────────────────────────────────────┐ │
+│ 04 Conversion │ ┌ ISO output · Edition order (comma separated) ─────────────────────────────────────────────┐ │
 │ 05 Review │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
 │ │ ┌ Downloads · Proxy mode ───────────────────────────────────────────────────────────────────┐ │
 │ 06 Progress │ │ system │ │

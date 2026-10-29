@@ -79,6 +79,23 @@ func (c ConversionModel) detail(key string) string {
 			continue
 		}
 		text := "requested: " + field.value
+		// Scope exclusions precede observational applicability. A loaded legacy
+		// request remains intact even if an old resolver called it supported.
+		switch key {
+		case "conversion.include_winre", "conversion.winre_updates":
+			return text + " | excluded: recovery/WinRE work; legacy value retained."
+		case "conversion.drivers.targets":
+			if slices.Contains(strings.Split(strings.ReplaceAll(field.value, " ", ""), ","), "winre") {
+				return text + " | excluded: WinRE driver targets; other targets need applicability checks."
+			}
+		case "output.kind":
+			if field.value != string(model.OutputISO) {
+				return text + " | excluded: standalone image/directory output; choose iso."
+			}
+			text += " | ISO file deliverable"
+		case "output.image_format":
+			text += " | image inside ISO; standalone images excluded"
+		}
 		for _, applicability := range c.applicability {
 			if applicability.Key != key || applicability.RequestedValue != field.value {
 				continue
@@ -173,7 +190,7 @@ func (m Model) updateConversionInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) conversionRows(width, height int) []row {
 	c := m.conversion
-	rows := []row{{text: heading.Render("Conversion and TOML settings")}}
+	rows := []row{{text: heading.Render("ISO conversion and TOML settings")}}
 	if c.cursor >= configControlCount {
 		field := c.fields[c.cursor-configControlCount]
 		rows = append(rows, row{text: accent.Render(terminalText(field.group + " · " + field.key))})

@@ -1,0 +1,21 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ Drivers · conversion.drivers.targets │
+│ │ requested: os, winre | excluded: WinRE driver targets; other targets need applicability │
+│ 02 Image │ checks. │
+│ 03 Apps │ ┌ ISO contents · Update boot files ─────────────────────────────────────────────────────────┐ │
+│ │ │ false │ │
+│ 04 Conversion │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ ISO contents · Boot WIM engine ───────────────────────────────────────────────────────────┐ │
+│ 05 Review │ │ auto │ │
+│ 06 Progress │ ┌ Drivers · Integrate drivers ──────────────────────────────────────────────────────────────┐ │
+│ │ │ false │ │
+│ │ ┌ Drivers · Driver source directory ────────────────────────────────────────────────────────┐ │
+│ │ ┌ Drivers · Targets (WinRE excluded) ───────────────────────────────────────────────────────┐ │
+│ │ │ > os, winre │ │
+│ unsaved draft │ ───────────────────────────────────────────────────────────────────────────────────────────── │
+│ Windows 10+ │ Source: none selected │
+│ Host ≠ ISO target │ ID: select an exact catalogue record │
+│ │ Target: amd64 | Language: choose | Editions: choose │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit │

@@ -20,7 +20,7 @@ func Defaults() Config {
 			Updates: model.UpdatesIntegrate, ServicingStrategy: model.ServicingAuto,
 			CumulativeUpdates: model.ExpansionAuto, CheckpointUpdates: model.ExpansionAuto,
 			EnablementPackages: model.InclusionAuto, Cleanup: true, ResetBase: model.ResetBaseOff,
-			IncludeWinRE: true, WinREUpdates: model.InclusionAuto, BootWIMEngine: model.BootWIMAuto,
+			IncludeWinRE: false, WinREUpdates: model.InclusionOmit, BootWIMEngine: model.BootWIMAuto,
 			ReferenceImages: model.ReferenceAuto, CumulativeMSU: model.MSUAuto,
 			Drivers:  model.DriverSettings{Targets: []model.DriverTarget{}},
 			Editions: model.EditionSettings{Derived: []string{}, Strategy: model.ServicingAuto, PreserveRequiredBases: true},
