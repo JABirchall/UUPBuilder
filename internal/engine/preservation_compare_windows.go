@@ -922,14 +922,9 @@ func (c *comparisonRun) streams(path, name string, en EntryExpectation, o platfo
 		}
 		delete(observed, key)
 		field := fmt.Sprintf("stream[%d].content", j)
-		if !s.SizeKnown {
-			if e := c.unknown(path, field, "source length is unresolved"); e != nil {
-				return e
-			}
-			continue
-		}
-		if got.Size != s.Size {
-			if e := c.mismatch(path, field, fmt.Sprint(s.Size), fmt.Sprint(got.Size), nil, nil); e != nil {
+		want := en.Content[j]
+		if got.Size != want.Size {
+			if e := c.mismatch(path, field, fmt.Sprint(want.Size), fmt.Sprint(got.Size), nil, nil); e != nil {
 				return e
 			}
 			continue
@@ -940,18 +935,18 @@ func (c *comparisonRun) streams(path, name string, en EntryExpectation, o platfo
 			}
 			continue
 		}
-		if s.Size > c.l.MaxReadBytes-c.v.ReadBytes {
+		if want.Size > c.l.MaxReadBytes-c.v.ReadBytes {
 			return ErrLimit
 		}
-		c.v.ReadBytes += s.Size
+		c.v.ReadBytes += want.Size
 		h1, h256 := sha1.New(), sha256.New()
 		var b [64 << 10]byte
 		completeRead := true
-		for off := uint64(0); off < s.Size; {
+		for off := uint64(0); off < want.Size; {
 			if e := c.ctx.Err(); e != nil {
 				return e
 			}
-			n := min(uint64(len(b)), s.Size-off)
+			n := min(uint64(len(b)), want.Size-off)
 			got, readErr := c.p.ReadOwnedAt(c.ctx, name, stream, b[:n], int64(off))
 			if readErr != nil && !(errors.Is(readErr, io.EOF) && uint64(got) == n) || uint64(got) != n {
 				if e := c.unknown(path, field, "held stream content read failed or was incomplete"); e != nil {
@@ -964,9 +959,8 @@ func (c *comparisonRun) streams(path, name string, en EntryExpectation, o platfo
 			h256.Write(b[:n])
 			off += n
 		}
-		want := en.Content[j]
 		g1, g256 := hex.EncodeToString(h1.Sum(nil)), hex.EncodeToString(h256.Sum(nil))
-		if (s.Size > 0 && g1 != want.SHA1) || g256 != want.SHA256 {
+		if (want.Size > 0 && g1 != want.SHA1) || g256 != want.SHA256 {
 			if e := c.mismatch(path, field, want.SHA256, g256, nil, nil); e != nil {
 				return e
 			}

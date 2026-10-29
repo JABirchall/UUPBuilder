@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -52,7 +53,7 @@ type FieldRequirement struct {
 }
 type EntryExpectation struct {
 	Original      wimmeta.Entry
-	Content       []source.ResourceIdentity // Original stream ordinal, including placeholders.
+	Content       []source.ResourceIdentity // Verified resolved sizes/bytes, in original stream order (including placeholders).
 	EAs           []wimmeta.SourceEA
 	ReparseData   []byte // Exact original blob, without the native 8-byte header.
 	ExpectedLinks uint32
@@ -248,7 +249,14 @@ func (x *SourceExpectations) ReadOriginalAt(ctx context.Context, entry, stream i
 }
 
 func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits ComparisonLimits) (result *SourceExpectations, runErr error) {
-	defer func() { runErr = expectationError(runErr) }()
+	phase, entry, stream, offset := "proof", -1, -1, uint64(0)
+	defer func() {
+		if runErr != nil {
+			// Fixed phase names and scalar ordinals keep diagnostics bounded and
+			// add no source/workspace locators or variable diagnostic fields.
+			runErr = fmt.Errorf("bind source expectations: phase=%s entry=%d stream=%d offset=%d: %w", phase, entry, stream, offset, expectationError(runErr))
+		}
+	}()
 	if ctx == nil {
 		return nil, ErrInput
 	}
@@ -258,10 +266,12 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 	if e := p.CheckLive(); e != nil {
 		return nil, e
 	}
+	phase = "limits"
 	l, e := comparisonBounds(limits)
 	if e != nil {
 		return nil, e
 	}
+	phase = "original-records"
 	claim, counts, e := p.recipe.OriginalRecords()
 	if e != nil {
 		return nil, e
@@ -276,6 +286,7 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 	if base > l.MaxResultBytes {
 		return nil, ErrLimit
 	}
+	phase = "metadata-before"
 	if e = verifyOriginalMetadata(ctx, p); e != nil {
 		return nil, e
 	}
@@ -303,6 +314,7 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 		x.requirements = append(x.requirements, FieldRequirement{entry, path, field, detail, off})
 		return nil
 	}
+	phase = "security"
 	for n := 0; n < counts.Security; n++ {
 		s, c, e := p.recipe.OriginalSecurityAt(n, l.MaxResultBytes-x.state.AccountedBytes)
 		if e != nil {
@@ -313,11 +325,13 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 	}
 	links := map[uint64]uint32{}
 	for n := 0; n < counts.Entries; n++ {
+		phase, entry, stream, offset = "entry", n, -1, 0
 		en, c, e := p.recipe.OriginalEntryAt(n, l.MaxResultBytes-x.state.AccountedBytes)
 		if e != nil {
 			return nil, e
 		}
 		x.state.AccountedBytes += c
+		offset = en.Offset
 		if len(en.Path) > l.MaxStringBytes || len(en.Name)*2 > l.MaxStringBytes || len(en.ShortName)*2 > l.MaxStringBytes {
 			return nil, ErrLimit
 		}
@@ -351,6 +365,7 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 			}
 		}
 		for j, s := range en.Streams {
+			phase, stream, offset = "stream-resource", j, s.Offset
 			if len(s.Name)*2 > l.MaxStringBytes {
 				return nil, ErrLimit
 			}
@@ -380,11 +395,12 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 			if e != nil {
 				return nil, e
 			}
-			if id.SHA1 != s.SHA1 || !s.SizeKnown || id.Size != s.Size {
+			if id.SHA1 != s.SHA1 || (s.SizeKnown && id.Size != s.Size) {
 				return nil, ErrInput
 			}
 			v.Content[j] = id
 		}
+		phase, stream, offset = "ea-source", -1, en.Offset
 		eaTags := 0
 		for _, tag := range en.Tags {
 			if tag.Tag == 2 {
@@ -441,12 +457,22 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 		}
 	}
 	for n := 0; n < counts.Gaps; n++ {
+		phase, entry, stream, offset = "original-gap", -1, -1, 0
 		g, c, e := p.recipe.OriginalGapAt(n, l.MaxResultBytes-x.state.AccountedBytes)
 		if e != nil {
 			return nil, e
 		}
 		x.state.AccountedBytes += c
 		x.gaps = append(x.gaps, g)
+		entry, offset = g.Entry, g.Offset
+		// B5 may resolve an original missing WIM reference through verified
+		// CAB bytes. Keep the original gap; only this consumer requirement is
+		// discharged by its exact original stream and live sealed resource.
+		if resolved, e := x.resolvesOriginalReferenceGap(g); e != nil {
+			return nil, e
+		} else if resolved {
+			continue
+		}
 		// Raw ACE preservation does not evaluate conditions. Supported tag-2
 		// framing is interpreted separately without rewriting the source Oracle.
 		if g.Kind == "ace-semantics" {
@@ -477,20 +503,22 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 			if s.Kind != "reparse" {
 				continue
 			}
-			if s.Size > 16376 {
+			phase, entry, stream, offset = "reparse", n, j, s.Offset
+			size := x.entries[n].Content[j].Size
+			if size > 16376 {
 				if e = require(n, x.entries[n].Original.Path, "reparse.source", "source reparse data exceeds native framing limit", s.Offset); e != nil {
 					return nil, e
 				}
 				continue
 			}
-			if s.Size > l.MaxReadBytes-read {
+			if size > l.MaxReadBytes-read {
 				return nil, ErrLimit
 			}
-			read += s.Size
-			if e = charge(s.Size * 2); e != nil {
+			read += size
+			if e = charge(size * 2); e != nil {
 				return nil, e
 			}
-			b := make([]byte, int(s.Size))
+			b := make([]byte, int(size))
 			if len(b) > 0 {
 				if got, e := x.ReadOriginalAt(ctx, n, j, b, 0); e != nil || got != len(b) {
 					return nil, errors.Join(ErrInput, e)
@@ -506,9 +534,11 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 	x.state.Unresolved = len(x.requirements)
 	x.state.ComparableComplete = len(x.requirements) == 0
 	x.state.ReadBytes = read
+	phase, entry, stream, offset = "metadata-after", -1, -1, 0
 	if e = verifyOriginalMetadata(ctx, p); e != nil {
 		return nil, e
 	}
+	phase = "final-liveness"
 	if e = x.CheckLive(); e != nil {
 		return nil, e
 	}
@@ -516,4 +546,28 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 		return nil, e
 	}
 	return x, nil
+}
+
+func (x *SourceExpectations) resolvesOriginalReferenceGap(g wimmeta.Gap) (bool, error) {
+	if g.Kind != "missing-stream-reference" || g.Entry < 0 || g.Entry >= len(x.entries) {
+		return false, nil
+	}
+	en := x.entries[g.Entry]
+	for j, s := range en.Original.Streams {
+		if s.Offset != g.Offset || s.SHA1 != g.Detail || s.Reference < 0 {
+			continue
+		}
+		if e := x.CheckLive(); e != nil {
+			return false, e
+		}
+		id, _, e := x.proof.recipe.Resource(s.Reference + 1)
+		if e != nil {
+			return false, e
+		}
+		if id != en.Content[j] || id.SHA1 != s.SHA1 || id.ProvenanceDigest == "" || (s.SizeKnown && id.Size != s.Size) {
+			return false, ErrInput
+		}
+		return true, nil
+	}
+	return false, nil
 }

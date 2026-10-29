@@ -84,16 +84,16 @@ func newSourceNativeObservation(ctx context.Context, x *SourceExpectations, c *j
 			name = "."
 		}
 		p := platform.NativeObservationPath{Path: name, Directory: o.Attributes&16 != 0, Reparse: o.Attributes&0x400 != 0}
-		for _, stream := range o.Streams {
+		for j, stream := range o.Streams {
 			switch stream.Kind {
 			case "data":
-				p.DefaultSize = stream.Size
+				p.DefaultSize = en.Content[j].Size
 			case "named-data":
 				name := string(utf16.Decode(stream.Name))
 				if !slices.Equal(stream.Name, utf16.Encode([]rune(name))) {
 					return nil, ErrInput
 				}
-				p.Streams = append(p.Streams, platform.NativeObservationStream{Name: name, Size: stream.Size})
+				p.Streams = append(p.Streams, platform.NativeObservationStream{Name: name, Size: en.Content[j].Size})
 			case "directory-placeholder", "unused-main", "reparse":
 			default:
 				return nil, ErrInput

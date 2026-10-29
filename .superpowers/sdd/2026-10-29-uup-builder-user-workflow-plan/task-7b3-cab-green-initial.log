@@ -1,0 +1,20 @@
+=== RUN   TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal
+--- PASS: TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal (0.26s)
+=== RUN   TestSourceNativeObservationBudgetsResolvedCABStreamSizes
+--- PASS: TestSourceNativeObservationBudgetsResolvedCABStreamSizes (0.41s)
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/equal
+    preservation_cab_expectations_windows_test.go:156: CAB-resolved bytes not fully compared/charged true 7 3318 [] []
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/default-content
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/named-content
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/size
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/reparse
+--- FAIL: TestPreservationComparisonUsesResolvedCABStreamSizes (0.24s)
+    --- FAIL: TestPreservationComparisonUsesResolvedCABStreamSizes/equal (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/default-content (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/named-content (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/size (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/reparse (0.00s)
+FAIL
+FAIL	uupbuilder/internal/engine	0.934s
+FAIL

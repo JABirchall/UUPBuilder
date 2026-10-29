@@ -1,0 +1,34 @@
+=== RUN   TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal
+--- PASS: TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal (0.28s)
+=== RUN   TestSourceNativeObservationBudgetsResolvedCABStreamSizes
+--- PASS: TestSourceNativeObservationBudgetsResolvedCABStreamSizes (0.41s)
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/equal
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/default-content
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/named-content
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/size
+=== RUN   TestPreservationComparisonUsesResolvedCABStreamSizes/reparse
+--- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes (0.24s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/equal (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/default-content (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/named-content (0.00s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/size (0.01s)
+    --- PASS: TestPreservationComparisonUsesResolvedCABStreamSizes/reparse (0.00s)
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/provenance
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/sha256
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/size
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/reference
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/missing-resource
+=== RUN   TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/foreign-proof
+--- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap (0.51s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/provenance (0.00s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/sha256 (0.00s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/size (0.00s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/reference (0.00s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/missing-resource (0.00s)
+    --- PASS: TestSourceExpectationsResolveOnlyExactLiveOriginalReferenceGap/foreign-proof (0.24s)
+=== RUN   TestSourceExpectationsCABResolutionRetainsOtherUnknownRequirements
+--- PASS: TestSourceExpectationsCABResolutionRetainsOtherUnknownRequirements (0.41s)
+PASS
+ok  	uupbuilder/internal/engine	1.860s

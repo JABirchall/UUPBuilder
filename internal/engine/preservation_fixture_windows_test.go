@@ -44,6 +44,10 @@ func preservationFixtureRecords(t *testing.T, emptyKernel bool, hardlinkGroup ui
 }
 
 func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, extra int, clean ...bool) (source.Inputs, []byte, func()) {
+	return preservationFixtureStorage(t, emptyKernel, hardlinkGroup, short, extra, false, clean...)
+}
+
+func preservationFixtureStorage(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, extra int, cabBacked bool, clean ...bool) (source.Inputs, []byte, func()) {
 	t.Helper()
 	ctx := context.Background()
 	le := binary.LittleEndian
@@ -172,6 +176,9 @@ func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup
 	list([]testNode{nodes})
 	xml := fixtureXML(`<WIM><IMAGE INDEX="1"><WINDOWS><ARCH>0</ARCH><EDITIONID>Professional</EDITIONID><INSTALLATIONTYPE>Client</INSTALLATIONTYPE><VERSION><MAJOR>10</MAJOR><MINOR>0</MINOR><BUILD>19041</BUILD><SPBUILD>1</SPBUILD></VERSION></WINDOWS><OPAQUE>carry</OPAQUE></IMAGE></WIM>`)
 	blobs := [][]byte{meta, data, ads, reparse}
+	if cabBacked {
+		blobs = [][]byte{meta, []byte("unreferenced WIM bytes")}
+	}
 	total := 208 + len(xml) + len(blobs)*50
 	for _, v := range blobs {
 		total += len(v)
@@ -218,7 +225,20 @@ func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup
 	if e := os.WriteFile(path, wim, 0600); e != nil {
 		t.Fatal(e)
 	}
-	m, e := model.NewPayloadManifest(model.SourceIdentity{UpdateID: "fixture", BuildLabel: "19045.7811", Architecture: "x86", Language: "en-us"}, []model.Payload{{Identity: id, Destination: "opaque.esd"}})
+	payloads := []model.Payload{{Identity: id, Destination: "opaque.esd"}}
+	var cabs []metadata.LocalResource
+	if cabBacked {
+		b := preservationFixtureCAB([][]byte{data, ads, reparse})
+		h := sha256.Sum256(b)
+		id := model.PayloadIdentity{Digest: model.Digest{Algorithm: model.DigestSHA256, Value: hex.EncodeToString(h[:])}, Size: int64(len(b)), Provenance: model.PackageProvenance{Source: "fixture", Name: "data-only.cab"}}
+		path := filepath.Join(t.TempDir(), "data-only.cab")
+		if e := os.WriteFile(path, b, 0600); e != nil {
+			t.Fatal(e)
+		}
+		payloads = append(payloads, model.Payload{Identity: id, Destination: "data-only.cab"})
+		cabs = append(cabs, metadata.LocalResource{Identity: id, Path: path})
+	}
+	m, e := model.NewPayloadManifest(model.SourceIdentity{UpdateID: "fixture", BuildLabel: "19045.7811", Architecture: "x86", Language: "en-us"}, payloads)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -239,7 +259,7 @@ func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup
 	if e != nil {
 		t.Fatal(e)
 	}
-	cab, e := cabindex.Build(ctx, m, nil, o, cabindex.Limits{})
+	cab, e := cabindex.Build(ctx, m, cabs, o, cabindex.Limits{})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -256,6 +276,38 @@ func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup
 	}
 	t.Cleanup(close)
 	return source.Inputs{Manifest: m, Files: files, Index: idx, Metadata: as[0], Oracle: o, References: view}, meta, close
+}
+
+// A single uncompressed folder with three ordinary data members. Every stream
+// hash remains in the original metadata, but no WIM index entry knows its size.
+func preservationFixtureCAB(data [][]byte) []byte {
+	le := binary.LittleEndian
+	table := 44 + len(data)*18 // Fixed one-byte names plus NUL.
+	total := 0
+	for _, b := range data {
+		total += len(b)
+	}
+	b := make([]byte, table+8+total)
+	copy(b, "MSCF")
+	le.PutUint32(b[8:], uint32(len(b)))
+	le.PutUint32(b[16:], 44)
+	b[24], b[25] = 3, 1
+	le.PutUint16(b[26:], 1)
+	le.PutUint16(b[28:], uint16(len(data)))
+	le.PutUint32(b[36:], uint32(table))
+	le.PutUint16(b[40:], 1)
+	off := 0
+	for n, d := range data {
+		p := 44 + n*18
+		le.PutUint32(b[p:], uint32(len(d)))
+		le.PutUint32(b[p+4:], uint32(off))
+		b[p+16] = byte('a' + n)
+		copy(b[table+8+off:], d)
+		off += len(d)
+	}
+	le.PutUint16(b[table+4:], uint16(total))
+	le.PutUint16(b[table+6:], uint16(total))
+	return b
 }
 func fixtureXML(s string) []byte {
 	u := utf16.Encode([]rune(s))
