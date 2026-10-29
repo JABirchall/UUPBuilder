@@ -14,6 +14,23 @@ import (
 
 var ErrMediaShape = errors.New("source image is not a supported plain media file tree")
 
+// MediaPathKey defines only this component's conservative logical namespace.
+// Non-ASCII paths are unsupported until a Windows-bound Unicode alias policy
+// exists; simple lowercase alone is not such a policy. Original paths and the
+// producer's frozen manifest normalization/digests are never changed here.
+func MediaPathKey(value string) (string, error) {
+	normalized, err := model.ValidateRelativePath(value)
+	if err != nil || normalized != value {
+		return "", ErrInput
+	}
+	for i := range len(value) {
+		if value[i] >= 0x80 {
+			return "", ErrMediaShape
+		}
+	}
+	return strings.ToLower(value), nil
+}
+
 // MediaTreeDescriptor is source evidence, never an asserted Setup role or an
 // operational capability. Windows security/record bytes remain in Metadata.
 type MediaTreeDescriptor struct {
@@ -110,11 +127,10 @@ func BindMediaTree(ctx context.Context, in Inputs, reserved []string, limits Lim
 		if len(p) > 4096 {
 			return nil, ErrLimit
 		}
-		v, e := model.ValidateRelativePath(p)
-		if e != nil || v != p {
-			return nil, ErrInput
+		key, e := MediaPathKey(p)
+		if e != nil {
+			return nil, e
 		}
-		key := strings.ToLower(v)
 		for _, old := range targets {
 			if key == old || strings.HasPrefix(key, old+"/") || strings.HasPrefix(old, key+"/") {
 				return nil, ErrInput
@@ -178,11 +194,10 @@ func BindMediaTree(ctx context.Context, in Inputs, reserved []string, limits Lim
 			continue
 		}
 		p := strings.TrimPrefix(en.Path, "/")
-		v, e := model.ValidateRelativePath(p)
-		if e != nil || v != p {
+		key, e := MediaPathKey(p)
+		if e != nil {
 			return nil, ErrMediaShape
 		}
-		key := strings.ToLower(p)
 		if _, exists := seen[key]; exists {
 			return nil, ErrMediaShape
 		}
@@ -225,7 +240,11 @@ func BindMediaTree(ctx context.Context, in Inputs, reserved []string, limits Lim
 	}
 	for _, en := range entries {
 		if at := strings.LastIndex(en.Path, "/"); at >= 0 {
-			if dir, ok := seen[strings.ToLower(en.Path[:at])]; !ok || !dir {
+			parent, e := MediaPathKey(en.Path[:at])
+			if e != nil {
+				return nil, ErrMediaShape
+			}
+			if dir, ok := seen[parent]; !ok || !dir {
 				return nil, ErrMediaShape
 			}
 		}

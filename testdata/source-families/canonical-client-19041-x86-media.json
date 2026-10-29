@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "scope": "U07 source-media file component; historical observations, never capability authority or completed assembly",
+  "logical_media_namespace": "ASCII-only; non-ASCII source paths/reservations/lookups are unsupported implementation shapes. Original manifest identity and storage/output directory path policies are unchanged.",
   "source": {
     "update_id": "3d12aa3e-806a-46c9-900e-bf7613959273",
     "build_label": "19045.7811",

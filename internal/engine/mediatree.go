@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"uupbuilder/internal/engine/source"
 	"uupbuilder/internal/metadata/privatestore"
@@ -100,8 +99,12 @@ func MaterializeMediaTree(ctx context.Context, r *source.BoundMediaTree, limits 
 		if e != nil {
 			return nil, e
 		}
+		key, e := source.MediaPathKey(en.Path)
+		if e != nil {
+			return nil, ErrInput
+		}
 		entries[i] = en
-		lookup[strings.ToLower(en.Path)] = i
+		lookup[key] = i
 	}
 	volume, e := platform.InspectStorage(os.TempDir())
 	if e != nil {
@@ -276,11 +279,11 @@ func (a *MediaTreeArtifact) Open(path string) (io.Reader, error) {
 	if a.closed {
 		return nil, os.ErrClosed
 	}
-	p, e := model.ValidateRelativePath(path)
-	if e != nil || p != path {
+	key, e := source.MediaPathKey(path)
+	if e != nil {
 		return nil, ErrInput
 	}
-	n, ok := a.lookup[strings.ToLower(p)]
+	n, ok := a.lookup[key]
 	if !ok {
 		return nil, os.ErrNotExist
 	}

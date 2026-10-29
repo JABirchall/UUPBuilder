@@ -269,6 +269,19 @@ func TestMediaTreeRejectsGraftAndWindowsPathCollisions(t *testing.T) {
 		{"unicode-file-alias", func(n *testNode) {
 			n.children = append(n.children, testNode{name: "K.txt", attrs: 32}, testNode{name: "\u212a.txt", attrs: 32})
 		}, []string{"sources/boot.wim"}},
+		{"sigma-source-alias", func(n *testNode) {
+			n.children = append(n.children, testNode{name: "\u03c3.txt", attrs: 32}, testNode{name: "\u03c2.txt", attrs: 32})
+		}, []string{"sources/boot.wim"}},
+		{"sigma-reservation-alias", nil, []string{"sources/\u03c3.wim", "sources/\u03c2.wim"}},
+		{"sigma-source-graft-alias", func(n *testNode) {
+			n.children[1].children = append(n.children[1].children, testNode{name: "\u03c3.wim", attrs: 32})
+		}, []string{"sources/\u03c2.wim"}},
+		{"sigma-source-ancestor-alias", func(n *testNode) {
+			n.children = append(n.children, testNode{name: "\u03c3", attrs: 32})
+		}, []string{"\u03c2/boot.wim"}},
+		{"sigma-source-descendant-alias", func(n *testNode) {
+			n.children = append(n.children, testNode{name: "\u03c3", attrs: 16, children: []testNode{{name: "boot.wim", attrs: 32}}})
+		}, []string{"\u03c2"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			in, _, _ := mediaFixture(t, tc.alter)
@@ -276,6 +289,40 @@ func TestMediaTreeRejectsGraftAndWindowsPathCollisions(t *testing.T) {
 				t.Fatal("collision accepted", e)
 			}
 		})
+	}
+}
+
+func TestMediaTreeRefusesNonASCIIPathLookup(t *testing.T) {
+	in, _, _ := mediaFixture(t, func(n *testNode) {
+		n.children = append(n.children, testNode{name: "K.txt", attrs: 32, hash: n.children[0].hash})
+	})
+	r, e := source.BindMediaTree(context.Background(), in, []string{"sources/boot.wim"}, source.Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := MaterializeMediaTree(context.Background(), r, MediaTreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() {
+		if e := a.Close(); e != nil {
+			t.Error(e)
+		}
+	})
+	for _, path := range []string{"K.txt", "k.TXT"} {
+		reader, e := a.Open(path)
+		if e != nil {
+			t.Fatal("ASCII lookup", path, e)
+		}
+		body, e := io.ReadAll(reader)
+		if e != nil || string(body) != "source setup fixture bytes" {
+			t.Fatal("ASCII lookup lost bytes", path, string(body), e)
+		}
+	}
+	for _, path := range []string{"\u212a.txt", "\u03c3.txt", "\u03c2.txt"} {
+		if reader, e := a.Open(path); reader != nil || !errors.Is(e, ErrInput) {
+			t.Errorf("non-ASCII lookup accepted namespace alias: path=%q reader=%v err=%v", path, reader != nil, e)
+		}
 	}
 }
 
