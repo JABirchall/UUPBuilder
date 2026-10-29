@@ -198,3 +198,56 @@ pins, independent semantic expectations and loaded provider closure remain
 pending before a concrete elevated control can run. No installer, image mount,
 mutation, host-policy change or historical rejected helper route was executed
 by this checkpoint.
+
+### U06 actual source preparation (2026-10-29)
+
+Production discovery now routes a verified aggregated metadata CAB or a selected
+canonical WIM/ESD XML resource into bounded read-only inspection. Exact optional
+payload projections on frozen source queries keep bootstrap metadata from
+broadening the selected downloads. Refresh validates the complete fresh response,
+then requires the selected identities, original provenance and destinations to
+match. Unprojected queries retain their whole-response contract. Metadata downloads
+use manifest-aware Fetch when available, so link expiry uses the same catalog
+pacer and source checks as larger transfers. CDN parallelism remains configured
+independently. Locators remain runtime-only.
+
+The census Windows 10 x86 UUID `3b507ad4-99b0-4630-b979-7c220b37a002` again
+returned online HTTP 500 / EMPTY_FILELIST for professional/en-us. An initial
+edition=all bootstrap query returned HTTP 400 / UNSUPPORTED_COMBINATION; discovery
+now chooses an advertised requested edition and retains derived-only cases as
+missing semantic base rules. These observations do not prove permanent removal
+of an entire source or justify changing a selected source silently.
+
+The explicitly chosen alternate UUID `3d12aa3e-806a-46c9-900e-bf7613959273`,
+catalog build `19045.7811`, x86/en-us/professional, supplied 40 selected payloads.
+All 3,036,466,495 bytes were acquired through the actual managed downloader with
+four transfers, system proxy policy and source SHA-256/size checks. A separate
+read rehashed all 40 files. Frozen manifest SHA-256:
+`675cf6f2462def2f1a07f533d477488cde9e30217dd272acee2857c5fe8abef9`.
+The private source receipt contains actual verified paths, never locators.
+This is complete acquisition of that catalog selection, not semantic proof of
+all reference/base/app requirements or an ISO-capable source-family pass.
+
+The application composition helper binds the production discovery callbacks.
+An explicitly registered preparation handler copies every payload into declared
+stage-owned paths, verifies source digest/size and computed SHA-256 again, and
+commits actual bytes plus a source/plan-bound receipt. Verified cache reuse does
+not force a network refresh. Scratch estimates include transfer, stage and
+independent checkpoint copies. Final interactive composition is still pending;
+BuildMedia remains blocked by independent publication verification.
+
+No operational provider manifest or nonzero Ensure toolchain is claimed. Source
+generation, frozen source-manifest and rule identities now bind capability
+requests, but all existing candidate/runtime/prerequisite/rights blockers remain.
+The downloaded-wimlib extraction/execution route was not retried.
+
+For authoritative API constants, the pinned Microsoft Deployment Tools 19041 MSI
+(626,688 bytes, SHA-256
+`5da7a3f65e6364735fbceb08357773387d2b035b0073ba0bbc19a76a548c95b2`)
+was downloaded and its File/Media tables queried read-only. Its vendor-direct
+20,842-byte CAB `36e3c2de16bbebad20daec133c22acb1.cab` had measured SHA-256
+`b9f4516337e9679a5b81d2bf3169eb3aba455670445ad1ac5a673cc496bbe72f`.
+Installed expand extracted only the 15,956-byte wimgapi.h data member, SHA-256
+`8aafd624abcdc32098007e5ce5b15ebc6ca3dab1835a7bba664f04a84d35cd7a`.
+No installer or extracted executable ran, no license was accepted, and these
+private research bytes are not product resources or a redistribution claim.

@@ -1,5 +1,43 @@
 # Toolchain feasibility ledger
 
+### U06 existing-OS read-only result (2026-10-29)
+
+A bounded, explicitly authorized non-elevated native probe used the installed
+amd64 `System32/wimgapi.dll`, version 10.0.19041.1, 780,640 bytes, freshly hashed
+SHA-256 `31638dc7ceb75258940c3b256935f385f192fa9d0f47516d711f029dc241154f`.
+Local Authenticode reported Valid with the Microsoft Windows signer. Static PE
+inspection confirmed the documented exports. Primary Microsoft WIMCreateFile,
+WIMSetReferenceFile, WIMApplyImage and callback documentation, plus a data-only
+header from the pinned vendor MSI, fixed the ABI/constants before execution.
+
+The exact selected `professional_en-us.esd` was 338,670,400 bytes, SHA-256
+`edf4967f0d9f8b8703d24489f727786cd314c43a26cfdc111e5d3b8e40d13dc0`.
+WIMCreateFile with WIM_GENERIC_READ, WIM_OPEN_EXISTING, flags 0 and the ignored
+existing-file compression argument returned NULL / Win32 11 ERROR_BAD_FORMAT.
+The probe stopped at that first failure. It made no reference registrations,
+callbacks, NO_APPLY call, apply/export/capture/servicing operation, mount,
+privilege change, elevation, target-code load or installer invocation.
+
+Actual host: Windows build 19045, native/process amd64, local NTFS with ACLs,
+streams, reparse and hard-link capabilities. All 40 prepared source files were
+rehashed unchanged before and after the attempt. The fresh owned scope retained
+only its owner marker and observation report; the private request was removed,
+and no native temporary image directory had been created. The final loaded-module
+snapshot occurred after the provider was unloaded, so it is explicitly not the
+operation-time dependency closure. No functional toolchain or clean-machine
+provider acceptance follows from this failed compatibility observation.
+
+Microsoft's WIMSetReferenceFile documentation identifies an alternate-resource
+mechanism for Apply/Capture. It does not establish arbitrary LZMS ESD support or
+reference-aware ExportImage. DISM /SWMFile documents split-WIM input and is not
+used to infer canonical ESD reference support. Undocumented ESD flag suggestions
+were not used. A reviewed proposal and exact private observation are retained in
+this execution's U06 evidence. Native reconstruction, independent desktop-content
+and security oracles, real servicing, loaded dependency closure, rights and
+managed prerequisites remain unresolved. Ensure therefore remains refusal-only,
+including source/target/operation/rule-bound requests. The stopped downloaded
+wimlib route remains stopped; the failed Get-Intl/WinRE sequence was not repeated.
+
 Reconciled 2026-10-28. **P1 operational acceptance remains blocked. Gate P has no
 passing host/target pair; Gate S has no passing family.** The probe layer now
 supports three kinds of closed component observation: installed Windows CAB metadata

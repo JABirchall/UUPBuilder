@@ -1,5 +1,49 @@
 # Source-format census and Gate S
 
+### U06 prepared canonical candidate and retained observations (2026-10-29)
+
+The explicit alternate Windows 10 source
+`3d12aa3e-806a-46c9-900e-bf7613959273` / 19045.7811 / x86 / en-us /
+professional now has all 40 catalog-selected bodies acquired and independently
+rehashed: 3,036,466,495 bytes, frozen manifest SHA-256
+`675cf6f2462def2f1a07f533d477488cde9e30217dd272acee2857c5fe8abef9`.
+This is a distinct exact source selection, not a relabeling of the original
+19041 census UUID's online EMPTY_FILELIST observation. Resolver default revision
+was requested; no echoed Microsoft revision is claimed.
+
+The selected image ESD exactly matches the earlier independently retained source
+oracle: 338,670,400 bytes and SHA-256
+`edf4967f0d9f8b8703d24489f727786cd314c43a26cfdc111e5d3b8e40d13dc0`.
+The production read-only WIM XML adapter observes three images: index 1 has no
+OS-role metadata; index 2 declares x86 WindowsPE / 10.0.19041.1; index 3 declares
+x86 Professional / Client / 10.0.19041.1. XML alone does not establish Setup or
+recovery roles. The inventory remains metadata-incomplete with five unresolved
+role/layout/base/app observations. No excluded recovery work is added to resolve
+the historical inspector's recovery-role field.
+
+Actual retained ARM64 22000.1 metadata was also checked by the production nested
+CAB adapter using installed expand: 44 canonical package declarations and the
+independently expected XML SHA-256
+`3f1705c8ed1b8a2ff5b52899929536acebe760810561de4a16877ba41343cb90`.
+The actual 21,506-byte Foundation ESD supplied a 920-byte WIM XML resource; its
+SHA-256 is `824a39e6c0109ff550d3918b23272f9dc4213aedb4966bb8add8b241acff42d6`.
+These remain bounded metadata observations. U03's retained authentic app CAB
+still produces 50 offered families / 59 entries through the unchanged catalog;
+none of those observations establish package installability or valid licensing.
+
+The new single-package Appx ZIP adapter preserves actual manifest bytes and
+container identity, rejects malformed/duplicate/unsafe entries and honors limits.
+Its tests use synthetic containers; an exact-source complete Appx/bundle/license
+corpus and bundle expansion remain missing. Missing licenses and unknown phases
+remain gaps. Source-bound post-assembly evidence retains the guarded deferred
+inspection phase; a filename never invents it.
+
+The native installed-WIMGAPI open failed ERROR_BAD_FORMAT before reference
+registration; see the toolchain ledger. No full desktop stream/reference closure,
+metadata-preserving reconstruction, servicing result, image customization or ISO
+exists. These are implementation/provider/evidence gaps, not claims that the
+40 acquired upstream bodies are unavailable. Gate S and U06 remain incomplete.
+
 Reconciled 2026-10-28. **Sampled census; Gate S has no passing family.** No source
 was proved globally upstream-unavailable. Observed metadata, missing algorithms,
 missing fixtures, transient request errors and missing upstream material remain

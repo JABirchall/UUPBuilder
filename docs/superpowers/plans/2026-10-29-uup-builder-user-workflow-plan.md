@@ -158,6 +158,23 @@ U05 implementation evidence (2026-10-29): private immutable plans retain source/
 - [ ] Connect exact frozen manifests to the existing download manager, shared U01 get.php pacing for link refresh, proxy policy, source digest/size verification and computed SHA-256 cache. Test expired-link refresh, identity change, cancellation, duplicate content with different provenance, low space and reuse of verified downloads. CDN downloads retain configured parallelism.
 - [ ] Run `go test ./internal/source ./internal/metadata/... ./internal/tools ./internal/download ./internal/jobs -count=1`. Run real read-only discovery/acquisition checks and the selected operation-specific proof with actual fixtures; retain failed/skipped results honestly. Produce prepared inputs and verified tools for U07 without claiming an ISO exists.
 
+U06 partial evidence (2026-10-29): production CAB/WIM/Appx metadata adapters,
+exact projected query refresh, source/rule-bound capability requests and a
+registered preparation handler now preserve verified payload bytes in actual
+stage checkpoints. The explicit Windows 10 alternate source
+`3d12aa3e-806a-46c9-900e-bf7613959273` / 19045.7811 / x86 / en-us /
+professional supplied all 40 catalog-selected files (3,036,466,495 bytes), which
+were independently rehashed. Its selected image matches the previously retained
+338,670,400-byte baseline SHA-256 and yields three observed WIM XML images;
+five semantic inventory gaps remain. Retained ARM64 CAB/Foundation and U03 app
+observations still pass without semantic installability claims. The authorized
+non-elevated installed-WIMGAPI probe stopped immediately at WIMCreateFile /
+ERROR_BAD_FORMAT (11), with unchanged source hashes and no subsequent image
+operation. Ensure remains refusal-only; full reference/content/security closure,
+servicing, rights/prerequisites and verified tools remain blocked. No U06
+acceptance checkbox is complete. The private `task-6-report.md` retains exact
+RED/GREEN, acquisition, native failure and verification evidence.
+
 ## U07 — Reconstruct and assemble source-matching Windows ISO contents
 
 **Files:** Create `internal/engine/source/{types,adapter,registry,canonical,references}.go`, `internal/engine/{types,assembly,mediatree}.go` and tests; extend preparation/planner/stage registration. Add a small sanitized source descriptor under `testdata/source-families/`; retain large inputs privately. Update focused `tests/probes` contracts rather than weakening historical proof records.
@@ -226,7 +243,7 @@ U05 implementation evidence (2026-10-29): private immutable plans retain source/
 
 ## Tracking and execution rules
 
-- **U01 and U02 are complete; U03 implementation and validation are complete, with task review pending. U04 implementation and validation are complete, with task review pending. U05 implementation and validation are complete, with task review pending; U06 is the next pending implementation task.** The user's current request authorizes executing the plan in order; native image mutations and excluded recovery/boot work remain outside this execution's authorization.
+- **U01 and U02 are complete; U03 implementation and validation are complete, with task review pending. U04 implementation and validation are complete, with task review pending. U05 implementation and validation are complete, with task review pending; U06 has partial implementation and verified source acquisition, but remains the next incomplete task because semantic closure and an operational provider are unproved.** The user's current request authorizes executing the plan in order; native image mutations and excluded recovery/boot work remain outside this execution's authorization.
 - Work top to bottom. A task may prepare a narrowly required downstream interface, but must not start unrelated provider research or a second subsystem schedule. Put newly found work under its owning workflow task, with its concrete acceptance condition.
 - For substantive code changes, run the named new behavior checks before implementation and establish the expected failure; then implement and rerun the owning task's verification. Existing passing checks alone do not establish the new behavior. Finish each independently testable change with a focused reviewable commit.
 - Check a task off only when its deliverable is demonstrated. Add a short evidence line with changed files/commit, executed tests, actual user-visible result and any remaining gap. Do not import old unchecked boxes or count old component observations as current completion.
