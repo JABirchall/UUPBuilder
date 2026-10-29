@@ -18,7 +18,8 @@ type imageState struct {
 	languageStatus, editionStatus             requestStatus
 	languages                                 []catalog.Language
 	editions                                  []catalog.Edition
-	languageChecked, editionsChecked          bool
+	// Saved selectors may finish discovery before Search verifies their target.
+	sourceChecked, languageChecked, editionsChecked bool
 }
 
 func (m *Model) invalidateSource() {
@@ -26,6 +27,7 @@ func (m *Model) invalidateSource() {
 		m.image.languageCancel()
 	}
 	m.image.sourceGeneration++
+	m.image.sourceChecked = false
 	m.image.languages = nil
 	m.image.languageStatus = requestStatus{}
 	m.image.languageChecked = false
@@ -115,7 +117,7 @@ func (s imageState) hasEdition(id string) bool {
 	return slices.ContainsFunc(s.editions, func(e catalog.Edition) bool { return e.ID == id })
 }
 func (s imageState) ready(selection model.Selection) bool {
-	if !s.languageChecked || !s.editionsChecked || s.languageStatus.loading || s.editionStatus.loading || !usable(s.languageStatus.err) || !usable(s.editionStatus.err) || selection.Validate() != nil {
+	if !s.sourceChecked || !s.languageChecked || !s.editionsChecked || s.languageStatus.loading || s.editionStatus.loading || !usable(s.languageStatus.err) || !usable(s.editionStatus.err) || selection.Validate() != nil {
 		return false
 	}
 	for _, id := range selection.Editions {

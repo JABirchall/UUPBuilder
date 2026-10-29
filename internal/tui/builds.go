@@ -126,6 +126,7 @@ func (m *Model) acceptSearch(msg searchResultMsg) {
 		} else {
 			copy := b
 			m.source = &copy
+			m.image.sourceChecked = true
 		}
 		break
 	}
@@ -143,6 +144,7 @@ func (m *Model) selectBuild(id string) tea.Cmd {
 		m.invalidateSource()
 		copy := b
 		m.source = &copy
+		m.image.sourceChecked = true
 		m.cfg.Image = model.Selection{UpdateID: b.UpdateID, Architecture: b.Architecture}
 		m.revision++
 		m.notice = "Source changed: language and editions cleared; app applicability must be checked again."

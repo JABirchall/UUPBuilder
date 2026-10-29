@@ -253,3 +253,46 @@ func TestSelectionSavedSourceTargetMismatchInvalidatesSelectors(t *testing.T) {
 		})
 	}
 }
+
+func TestSelectionLoadedChoicesWaitForExactSourceTargetValidation(t *testing.T) {
+	for _, arch := range []model.Architecture{"amd64", "arm64"} {
+		t.Run(string(arch), func(t *testing.T) {
+			cfg := config.Defaults()
+			cfg.Image.UpdateID, cfg.Image.Architecture = firstID, arch
+			m := New(Dependencies{Catalog: testCatalog{}}, cfg)
+			defer m.Close()
+			m, cmd := step(m, m.Init()())
+			var search tea.Msg
+			for _, msg := range runCommands(cmd) {
+				if _, ok := msg.(searchResultMsg); ok {
+					search = msg
+					continue
+				}
+				m, cmd = step(m, msg)
+				for _, edition := range runCommands(cmd) {
+					m = send(m, edition)
+				}
+			}
+			if !m.image.languageChecked || !m.image.editionsChecked {
+				t.Fatal("fixture did not receive saved language and edition validation before Search")
+			}
+			if snapshot := m.Snapshot(); snapshot.ImageReady || snapshot.HasCatalogRecord {
+				t.Errorf("loaded choices became ready before exact source/target validation: %+v", snapshot)
+			}
+			m = send(m, NavigateMsg{Area: Image})
+			m.image.focus = 2
+			m, cmd = step(m, key(tea.KeyEnter, ""))
+			if m.ActiveArea() != Image || cmd != nil {
+				t.Error("Enter continued before the saved source target was checked")
+			}
+			m = send(m, search)
+			if arch == "amd64" {
+				if snapshot := m.Snapshot(); !snapshot.ImageReady || !snapshot.HasCatalogRecord || snapshot.Source.UpdateID != firstID || snapshot.Source.Architecture != arch {
+					t.Fatalf("matching exact record did not validate the saved choices: %+v", snapshot)
+				}
+			} else if snapshot := m.Snapshot(); snapshot.ImageReady || snapshot.HasCatalogRecord || snapshot.Config.Image.UpdateID != "" {
+				t.Fatalf("source/target mismatch restored the invalid selection: %+v", snapshot)
+			}
+		})
+	}
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/config"
+	"uupbuilder/internal/model"
 )
 
 func finishConfigAction(t *testing.T, m Model, msg any) Model {
@@ -323,5 +324,83 @@ func TestConfigSuccessfulLoadInvalidatesImageAndOldResponses(t *testing.T) {
 	m = send(m, result)
 	if m.cfg.Downloads.Retries != 8 {
 		t.Fatal("late load result overwrote newer draft")
+	}
+}
+
+func TestConfigEndpointReloadRejectsOldSelectorsForSameExactSource(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "endpoint.toml")
+	cfg := config.Defaults()
+	cfg.Image.UpdateID = firstID
+	cfg.Image.Editions = []string{"core", "professional"}
+	cfg.Apps.Include = []string{"Requested.Family"}
+	cfg.Catalog.Endpoint = "https://new-catalog.example"
+	if _, err := config.Save(path, cfg); err != nil {
+		t.Fatal(err)
+	}
+	old := testCatalog{}
+	current := testCatalog{
+		languages: func(context.Context, string) ([]catalog.Language, error) {
+			return []catalog.Language{{ID: "en-us", Name: "Current English"}}, nil
+		},
+		editions: func(context.Context, string, string) ([]catalog.Edition, error) {
+			return []catalog.Edition{{ID: "core", Name: "Current Home"}, {ID: "professional", Name: "Current Pro"}}, nil
+		},
+	}
+	m := New(Dependencies{ConfigPath: path, Catalog: old, CatalogFactory: func(string) Catalog { return current }}, config.Defaults())
+	defer m.Close()
+	m, cmd := step(m, m.Init()())
+	oldSearch := cmd()
+	m = send(m, oldSearch)
+	m, cmd = step(m, SelectBuildMsg{UpdateID: firstID})
+	oldLanguages := cmd()
+	m = send(m, oldLanguages)
+	m, cmd = step(m, SelectLanguageMsg{Language: "en-us"})
+	oldEditions := cmd()
+	m = send(m, oldEditions)
+	m = send(m, ToggleEditionMsg{Edition: "professional"})
+	before := m.Snapshot().Revision
+	m, cmd = step(m, LoadConfigMsg{})
+	m, cmd = step(m, cmd())
+	currentResults := runCommands(cmd)
+	if snapshot := m.Snapshot(); snapshot.ImageReady || snapshot.HasCatalogRecord || snapshot.Revision <= before || snapshot.Config.Image.UpdateID != firstID {
+		t.Fatalf("endpoint reload did not invalidate the same UUID's old validation: %+v", snapshot)
+	}
+	for _, result := range []tea.Msg{oldSearch, oldLanguages, oldEditions} {
+		m = send(m, result)
+	}
+	if m.source != nil || len(m.builds.records) != 0 || len(m.image.languages) != 0 || len(m.image.editions) != 0 || m.Snapshot().ImageReady {
+		t.Fatal("old endpoint results restored selectors before replacement discovery")
+	}
+	// The loaded language/editions are still requests. Receiving their lists
+	// before the new build list must not validate the old endpoint's record.
+	for _, result := range currentResults {
+		if _, ok := result.(languagesResultMsg); !ok {
+			continue
+		}
+		m, cmd = step(m, result)
+		for _, edition := range runCommands(cmd) {
+			m = send(m, edition)
+		}
+	}
+	if m.Snapshot().ImageReady {
+		t.Error("new endpoint choices reused the old endpoint's source validation")
+	}
+	for _, result := range currentResults {
+		if _, ok := result.(searchResultMsg); ok {
+			m = send(m, result)
+		}
+	}
+	for _, result := range []tea.Msg{oldSearch, oldLanguages, oldEditions} {
+		m = send(m, result)
+	}
+	snapshot := m.Snapshot()
+	if !snapshot.ImageReady || !snapshot.HasCatalogRecord || snapshot.Source.UpdateID != firstID || snapshot.Source.Architecture != model.ArchitectureAMD64 || snapshot.Source.Language != "en-us" {
+		t.Fatalf("new endpoint's exact selection was not validated: %+v", snapshot)
+	}
+	if m.image.languages[0].Name != "Current English" || m.image.editions[0].Name != "Current Home" || !reflect.DeepEqual(snapshot.Config.Image.Editions, []string{"core", "professional"}) {
+		t.Fatal("late old endpoint selectors replaced the current lists or changed edition intent")
+	}
+	if snapshot.AppsApplicable || snapshot.AppsNotice == "" || !reflect.DeepEqual(snapshot.Config.Apps.Include, []string{"Requested.Family"}) {
+		t.Fatal("endpoint reload lost requested app intent or its applicability invalidation")
 	}
 }
