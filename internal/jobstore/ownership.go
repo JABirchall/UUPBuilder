@@ -86,6 +86,35 @@ func (tx *Transaction) ClaimMount(relative string) (platform.OwnedMount, error) 
 	return claim, nil
 }
 
+// OwnedMounts returns independent PRIVATE recovery capabilities recorded by
+// ClaimMount. Each original directory identity is revalidated; no partial list
+// is returned on uncertainty. This does not inspect native mount state, adopt
+// resources, resume mutation, or authorize unmounting. Callers must separately
+// bind a trusted request, interrupted intent and actual OS image/index/path.
+func (s *Store) OwnedMounts(ctx context.Context, jobID string) ([]platform.OwnedMount, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.check(ctx, jobID); err != nil {
+		return nil, err
+	}
+	var out []platform.OwnedMount
+	for _, stage := range s.state.Stages {
+		for _, claim := range stage.Mounts {
+			if err := s.check(ctx, jobID); err != nil {
+				return nil, err
+			}
+			if err := s.w.RestoreMount(claim); err != nil {
+				return nil, err
+			}
+			if err := s.w.ValidateMount(claim); err != nil {
+				return nil, err
+			}
+			out = append(out, claim)
+		}
+	}
+	return out, nil
+}
+
 func normalizedAbsolute(path string) (string, error) {
 	if strings.HasPrefix(path, `\\?\UNC\`) {
 		path = `\\` + path[8:]

@@ -119,3 +119,30 @@ No downloaded code, source DLL, setup, image mount/apply/servicing or elevated
 operation ran. Native provider/dependency closure, independent configuration
 before/after expectations, modification persistence, complete media mastering,
 actual boot and UUP-family acceptance all remain unverified.
+
+## Prepared fixed control runner
+
+The private `nativecontrol` probe now prepares a sealed request and protected
+local NTFS bundle, journal, provider scratch/log and reapply scopes. Preparation
+only reads the pinned ESD, installed DISM, compiled runner, host/token and retained
+hives; it starts no image operation or elevation. The opt-in run entry requires
+the exact executable/request identities and a measured same-user elevated token.
+It uses J1 durable intent, genuine owned mount claims and one retained process
+session for a fixed export/copy/mount/input-locale/commit/export/reapply graph.
+
+[DISM input servicing](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-languages-and-international-servicing-command-line-options?view=windows-11)
+documents the intended input-profile change. The independent default-user hive
+assertion is a prebound hypothesis: Preload value `1` must durably become
+`00000809`, with no substitution, after reapply. DEFAULT input observations are
+retained without assuming they change; identity and en-US UI/system/user-locale
+invariants remain required. The bounded pure-Go REGF reader rejects dirty,
+corrupt, ambiguous and unsupported selected data without host hive loading.
+
+Failure recovery intersects the sealed request, exact interrupted J1 intent,
+original directory identities and actual image/index/path inventory. Unknown
+state preserves resources. It offers only exact owned discard, with no global
+cleanup or interrupted mutation resume. Provider and applied trees are retained.
+Sampled process/module facts and DISM logs support diagnosis; neither static
+inventory nor sampled observations establish complete dependency closure.
+The compiled private runner and action/recovery proposal await review and a
+separate concrete execution approval. No native control success is claimed.
