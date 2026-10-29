@@ -214,7 +214,7 @@ func BindCanonical(ctx context.Context, in Inputs, limits Limits) (*BoundRecipe,
 	d.XMLBytes = uint64(len(xml))
 	d.ResourceDigest = digest(resources)
 	d.ProofDigest = digest(d)
-	result := &BoundRecipe{state: d, metadata: in.Metadata, view: in.References, resources: resources, xml: xml, flags: receipt.Header.Flags & 0x80}
+	result := &BoundRecipe{state: d, metadata: in.Metadata, oracle: in.Oracle, view: in.References, resources: resources, xml: xml, flags: receipt.Header.Flags & 0x80}
 	if e = verifyMetadata(ctx, in.Metadata, receipt); e != nil {
 		return nil, e
 	}

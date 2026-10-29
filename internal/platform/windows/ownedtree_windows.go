@@ -32,6 +32,7 @@ type treeEntry struct {
 	size        uint64
 	streams     map[string]uint64
 	streamFiles []*os.File
+	streamNames []string
 	alias       bool
 }
 

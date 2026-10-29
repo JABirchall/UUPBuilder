@@ -1,0 +1,5 @@
+ok  	uupbuilder/internal/engine	17.012s
+ok  	uupbuilder/internal/engine/source	1.592s
+ok  	uupbuilder/internal/metadata/wimmeta	0.276s
+ok  	uupbuilder/internal/platform/windows	11.395s
+ok  	uupbuilder/internal/jobstore	32.159s

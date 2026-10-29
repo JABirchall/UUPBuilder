@@ -153,6 +153,7 @@ func (t *OwnedTree) CreateNamedStream(ctx context.Context, name, stream string, 
 		return e
 	}
 	v.streamFiles = append(v.streamFiles, f)
+	v.streamNames = append(v.streamNames, s)
 	t.resultBytes += cost
 	v.streams[strings.ToLower(s)] = uint64(len(data))
 	t.logical += uint64(len(data))

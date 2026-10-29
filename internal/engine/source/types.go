@@ -90,6 +90,7 @@ func (r boundResource) MarshalJSON() ([]byte, error) {
 type BoundRecipe struct {
 	state     Descriptor
 	metadata  *wimindex.MetadataArtifact
+	oracle    *wimmeta.Oracle
 	view      *wimcontent.ReferenceView
 	resources []boundResource
 	xml       []byte
@@ -107,13 +108,62 @@ func (r *BoundRecipe) Descriptor() Descriptor {
 func (r *BoundRecipe) XML() []byte         { return slices.Clone(r.xml) }
 func (r *BoundRecipe) HeaderFlags() uint32 { return r.flags }
 func (r *BoundRecipe) CheckLive() error {
-	if r == nil || r.metadata == nil || r.view == nil {
+	if r == nil || r.metadata == nil || r.view == nil || r.oracle == nil || r.oracle.Claim() != r.state.Oracle {
 		return ErrInput
 	}
 	if _, e := r.metadata.ReadAt(nil, 0); e != nil {
 		return e
 	}
 	return r.view.CheckLive()
+}
+
+// OriginalRecords and the bounded accessors retain the exact original Oracle,
+// and borrow the same metadata/reference lifetimes as Resource. They cannot
+// construct an Oracle or close either parent.
+func (r *BoundRecipe) OriginalRecords() (wimmeta.Claim, wimmeta.RecordCounts, error) {
+	if e := r.CheckLive(); e != nil {
+		return wimmeta.Claim{}, wimmeta.RecordCounts{}, e
+	}
+	return r.oracle.Claim(), r.oracle.RecordCounts(), nil
+}
+func (r *BoundRecipe) OriginalEntryAt(n int, allowance uint64) (wimmeta.Entry, uint64, error) {
+	if e := r.CheckLive(); e != nil {
+		return wimmeta.Entry{}, 0, e
+	}
+	v, cost, e := r.oracle.EntryAt(n, allowance)
+	if e == nil {
+		e = r.CheckLive()
+	}
+	if e != nil {
+		return wimmeta.Entry{}, 0, e
+	}
+	return v, cost, nil
+}
+func (r *BoundRecipe) OriginalSecurityAt(n int, allowance uint64) (wimmeta.Security, uint64, error) {
+	if e := r.CheckLive(); e != nil {
+		return wimmeta.Security{}, 0, e
+	}
+	v, cost, e := r.oracle.SecurityAt(n, allowance)
+	if e == nil {
+		e = r.CheckLive()
+	}
+	if e != nil {
+		return wimmeta.Security{}, 0, e
+	}
+	return v, cost, nil
+}
+func (r *BoundRecipe) OriginalGapAt(n int, allowance uint64) (wimmeta.Gap, uint64, error) {
+	if e := r.CheckLive(); e != nil {
+		return wimmeta.Gap{}, 0, e
+	}
+	v, cost, e := r.oracle.GapAt(n, allowance)
+	if e == nil {
+		e = r.CheckLive()
+	}
+	if e != nil {
+		return wimmeta.Gap{}, 0, e
+	}
+	return v, cost, nil
 }
 func (r *BoundRecipe) Resource(n int) (ResourceIdentity, io.ReaderAt, error) {
 	if e := r.CheckLive(); e != nil {

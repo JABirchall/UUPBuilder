@@ -25,10 +25,12 @@ type testNode struct {
 	link      uint64
 	hash, ads []byte
 	tag       bool
+	tagCode   uint32
+	tagData   []byte
 	children  []testNode
 }
 
-func preservationFixture(t *testing.T, emptyKernel bool) (source.Inputs, []byte, func()) {
+func preservationFixture(t *testing.T, emptyKernel bool, clean ...bool) (source.Inputs, []byte, func()) {
 	t.Helper()
 	ctx := context.Background()
 	le := binary.LittleEndian
@@ -39,25 +41,39 @@ func preservationFixture(t *testing.T, emptyKernel bool) (source.Inputs, []byte,
 		kernel = nil
 	}
 	nodes := testNode{attrs: 16, children: []testNode{{name: "Windows", attrs: 16, children: []testNode{{name: "System32", attrs: 16, children: []testNode{{name: "ntoskrnl.exe", attrs: 32, hash: kernel, link: 7}, {name: "kernel.link", attrs: 32, hash: kernel, link: 7}, {name: "config", attrs: 16, children: []testNode{{name: "SOFTWARE", attrs: 32, hash: h1[:]}, {name: "SYSTEM", attrs: 32, hash: h1[:]}}}, {name: "named", attrs: 32, hash: h1[:], ads: h2[:], tag: true}, {name: "empty", attrs: 32}, {name: "reparse", attrs: 0x420, hash: h3[:]}}}}}}}
+	if len(clean) > 0 && clean[0] {
+		nodes.children[0].children[0].children[3].tag = false
+	}
+	if len(clean) > 1 && clean[1] {
+		v := &nodes.children[0].children[0].children[3]
+		v.tag = true
+		v.tagCode = 2
+		v.tagData = []byte{3, 0, 1, 0x80, 'X', 0, 9, 8, 7}
+	}
 	// One literal self-relative descriptor with a bounded callback ACE. Its
 	// application data is opaque to the oracle and must remain byte-identical.
 	meta := make([]byte, 80)
 	le.PutUint32(meta, 80)
 	le.PutUint32(meta[4:], 1)
-	le.PutUint64(meta[8:], 60)
+	le.PutUint64(meta[8:], 64)
 	meta[16] = 1
 	le.PutUint16(meta[18:], 0x8004)
 	le.PutUint32(meta[32:], 32)
 	meta[48] = 2
-	le.PutUint16(meta[50:], 28)
+	le.PutUint16(meta[50:], 32)
 	le.PutUint16(meta[52:], 1)
 	meta[56] = 9
-	le.PutUint16(meta[58:], 20)
+	le.PutUint16(meta[58:], 24)
 	le.PutUint32(meta[60:], 0x120089)
 	meta[64] = 1
 	meta[65] = 1
 	meta[71] = 5
 	le.PutUint32(meta[72:], 32)
+	copy(meta[76:], []byte{0xde, 0xad, 0xca, 0xfe})
+	if len(clean) > 2 && clean[2] {
+		le.PutUint64(meta[8:], 0)
+		clear(meta[16:])
+	}
 	var list func([]testNode) uint64
 	list = func(nodes []testNode) uint64 {
 		start := uint64(len(meta))
@@ -72,6 +88,9 @@ func preservationFixture(t *testing.T, emptyKernel bool) (source.Inputs, []byte,
 			extra := 0
 			if n.tag {
 				extra = 16
+				if n.tagCode != 0 {
+					extra = 8 + ((len(n.tagData) + 7) &^ 7)
+				}
 			}
 			b := make([]byte, length+extra)
 			le.PutUint64(b, uint64(len(b)))
@@ -90,9 +109,14 @@ func preservationFixture(t *testing.T, emptyKernel bool) (source.Inputs, []byte,
 				le.PutUint16(b[102+j*2:], v)
 			}
 			if n.tag {
-				le.PutUint32(b[length:], 0xffff)
-				le.PutUint32(b[length+4:], 3)
-				copy(b[length+8:], []byte{9, 8, 7})
+				code, data := n.tagCode, n.tagData
+				if code == 0 {
+					code = 0xffff
+					data = []byte{9, 8, 7}
+				}
+				le.PutUint32(b[length:], code)
+				le.PutUint32(b[length+4:], uint32(len(data)))
+				copy(b[length+8:], data)
 			}
 			if n.ads != nil {
 				le.PutUint16(b[96:], 1)
