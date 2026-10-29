@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "scope": "U07 source-media file component; historical observations, never capability authority or completed assembly",
+  "source": {
+    "update_id": "3d12aa3e-806a-46c9-900e-bf7613959273",
+    "build_label": "19045.7811",
+    "architecture": "x86",
+    "language": "en-us"
+  },
+  "manifest_sha256": "675cf6f2462def2f1a07f533d477488cde9e30217dd272acee2857c5fe8abef9",
+  "payload": {
+    "name": "professional_en-us.esd",
+    "bytes": 338670400,
+    "sha256": "edf4967f0d9f8b8703d24489f727786cd314c43a26cfdc111e5d3b8e40d13dc0"
+  },
+  "original_xml_sha256": "90a802d3b9f7ef0c8f5a6508579c6516bc2f1f3dc4f1dbd4769363e7fc03e3d8",
+  "original_image_index": 1,
+  "metadata_sha1": "6b93a6e6dd9a81d583ee68c9ca6d0a717f48ecbe",
+  "metadata_sha256": "b096da87bc09794245304d5f228c3927feef6ce70325007e508553dae0db5688",
+  "metadata_bytes": 157232,
+  "files": 900,
+  "directories_excluding_root": 85,
+  "unique_nonempty_streams": 875,
+  "materialized_bytes_including_original_metadata": 209868596,
+  "setup_file_facts": [
+    {"path": "setup.exe", "bytes": 72856, "sha256": "04eb8b466619d2479eb3b4f352118fc0306bfa97e7128c0f3d63332ccc3c3cd4", "pe_machine": 332},
+    {"path": "sources/setup.exe", "bytes": 240952, "sha256": "401ed60ead16fcd2ea360b8141f3eae70c9f0f60a8dcd1ddde1ab13ccb85b816", "pe_machine": 332}
+  ],
+  "complete_media": false,
+  "native_filesystem_preservation": false,
+  "missing_generated_images": ["sources/boot.wim", "sources/install.wim"],
+  "remaining": ["semantic Setup/PE role and transformation proof", "operational Toolchain", "Normalize/Assembler and transaction integration", "production cleanup acceptance", "ISO mastering and publication"]
+}
