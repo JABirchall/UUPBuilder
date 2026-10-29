@@ -1,0 +1,6 @@
+FAIL	uupbuilder/internal/jobstore [build failed]
+FAIL
+# uupbuilder/internal/jobstore [uupbuilder/internal/jobstore.test]
+internal\jobstore\directory_pair_windows_test.go:23:12: tx.ClaimFixedSourceApplyDirectories undefined (type *Transaction has no field or method ClaimFixedSourceApplyDirectories)
+internal\jobstore\directory_pair_windows_test.go:27:15: tx.ClaimFixedSourceApplyDirectories undefined (type *Transaction has no field or method ClaimFixedSourceApplyDirectories)
+internal\jobstore\directory_pair_windows_test.go:45:13: tx.ClaimFixedSourceApplyDirectories undefined (type *Transaction has no field or method ClaimFixedSourceApplyDirectories)

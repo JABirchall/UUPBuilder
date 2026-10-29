@@ -1,0 +1,8 @@
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent
+    directory_pair_windows_test.go:103: failure accepted
+--- FAIL: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve (0.34s)
+    --- FAIL: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent (0.34s)
+FAIL
+FAIL	uupbuilder/internal/jobstore	0.356s
+FAIL

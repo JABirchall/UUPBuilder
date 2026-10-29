@@ -32,8 +32,7 @@ type PrivilegeObservation struct {
 	ProviderSufficiencyProved bool
 }
 
-// Adjustment is deliberately a private native-call port with no real adapter in
-// this slice. In particular no TOKEN_ADJUST_PRIVILEGES handle is opened here.
+// Native adjustment remains behind the fixed, separately invoked adapter.
 type privilegePorts struct {
 	query  func() ([]PrivilegeState, error)
 	adjust func([]PrivilegeState) ([]PrivilegeState, error)
@@ -43,6 +42,7 @@ type ImagePrivilegeLease struct {
 	mu             sync.Mutex
 	ports          privilegePorts
 	original       []PrivilegeState
+	baseline       []PrivilegeState
 	active, closed bool
 	closeErr       error
 }
@@ -63,6 +63,7 @@ func acquirePreservationPrivileges(ctx context.Context, p privilegePorts, enable
 	if e = validatePrivilegeStates(state, false); e != nil {
 		return fail(e)
 	}
+	l.baseline = slices.Clone(state)
 	var next []PrivilegeState
 	for _, s := range state {
 		if s.Attributes&windows.SE_PRIVILEGE_ENABLED == 0 {
@@ -115,8 +116,13 @@ func validatePrivilegeStates(s []PrivilegeState, enabled bool) error {
 		return ErrPrivilegeRequirement
 	}
 	for n, name := range names {
-		if s[n].Name != name || !s[n].Present || s[n].Attributes&windows.SE_PRIVILEGE_REMOVED != 0 || enabled && s[n].Attributes&windows.SE_PRIVILEGE_ENABLED == 0 {
+		if s[n].Name != name || !s[n].Present || s[n].LUID == (windows.LUID{}) || s[n].Attributes&windows.SE_PRIVILEGE_REMOVED != 0 || enabled && s[n].Attributes&windows.SE_PRIVILEGE_ENABLED == 0 {
 			return fmt.Errorf("%w: %s", ErrPrivilegeRequirement, name)
+		}
+		for j := 0; j < n; j++ {
+			if s[j].LUID == s[n].LUID {
+				return ErrPrivilegeRequirement
+			}
 		}
 	}
 	return nil
@@ -184,23 +190,15 @@ func (l *ImagePrivilegeLease) Close() error {
 				l.closeErr = ErrPrivilegeRequirement
 			} else {
 				_, l.closeErr = l.ports.adjust(slices.Clone(l.original))
-				if l.closeErr == nil {
-					actual, e := l.ports.query()
-					l.closeErr = e
-					if e == nil {
-						for _, old := range l.original {
-							found := false
-							for _, v := range actual {
-								if old == v {
-									found = true
-								}
-							}
-							if !found {
-								l.closeErr = errors.Join(l.closeErr, fmt.Errorf("%w: %s restoration not observed", ErrPrivilegeRequirement, old.Name))
-							}
-						}
-					}
-				}
+			}
+		}
+		// Query even after native restore failure. Check every original required
+		// privilege, including those already enabled before acquisition.
+		if len(l.baseline) != 0 && l.ports.query != nil {
+			actual, e := l.ports.query()
+			l.closeErr = errors.Join(l.closeErr, e)
+			if e == nil && !slices.Equal(actual, l.baseline) {
+				l.closeErr = errors.Join(l.closeErr, fmt.Errorf("%w: exact original privilege state not observed", ErrPrivilegeRequirement))
 			}
 		}
 		if l.ports.close != nil {
@@ -229,8 +227,7 @@ func ObserveImagePreservationPrivileges(ctx context.Context) (PrivilegeObservati
 	return o, e
 }
 
-// GuardImagePreservationPrivileges borrows already enabled requirements. Real
-// adjustment is unavailable: a disabled/missing requirement returns an error.
+// GuardImagePreservationPrivileges borrows already enabled requirements.
 // Close releases the held query handle and latches cleanup failures.
 func GuardImagePreservationPrivileges(ctx context.Context) (*ImagePrivilegeLease, error) {
 	p, e := openPreservationQuery()
@@ -268,11 +265,18 @@ func tokenData(t windows.Token, class uint32) ([]byte, error) {
 	return b[:n], nil
 }
 func openPreservationQuery() (privilegePorts, error) {
+	return openPreservationToken(false)
+}
+func openPreservationToken(adjust bool) (privilegePorts, error) {
 	if e := noImpersonation(); e != nil {
 		return privilegePorts{}, e
 	}
 	var t windows.Token
-	if e := windows.OpenProcessToken(windows.CurrentProcess(), windows.TOKEN_QUERY, &t); e != nil {
+	access := uint32(windows.TOKEN_QUERY)
+	if adjust {
+		access |= windows.TOKEN_ADJUST_PRIVILEGES
+	}
+	if e := windows.OpenProcessToken(windows.CurrentProcess(), access, &t); e != nil {
 		return privilegePorts{}, e
 	}
 	stats, e := tokenData(t, windows.TokenStatistics)
@@ -282,6 +286,8 @@ func openPreservationQuery() (privilegePorts, error) {
 	id := binary.LittleEndian.Uint64(stats)
 	p := privilegePorts{close: t.Close}
 	p.query = func() ([]PrivilegeState, error) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 		if e := noImpersonation(); e != nil {
 			return nil, e
 		}
@@ -321,6 +327,17 @@ func openPreservationQuery() (privilegePorts, error) {
 			}
 		}
 		return out, nil
+	}
+	if adjust {
+		p.adjust = func(next []PrivilegeState) ([]PrivilegeState, error) {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			known, e := p.query() // Rechecks identity and impersonation before every change.
+			if e != nil {
+				return nil, e
+			}
+			return fixedPrivilegeAdjustment(next, known, func(in, out []byte) (uint32, error) { return preservationAdjustCall(t, in, out) })
+		}
 	}
 	return p, nil
 }

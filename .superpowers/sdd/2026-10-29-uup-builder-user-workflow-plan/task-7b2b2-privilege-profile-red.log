@@ -1,0 +1,18 @@
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/duplicate-known-luid
+    preservation_adjust_windows_test.go:101: unchecked fixed profile/PreviousState duplicate-known-luid
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/removed
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/foreign-request
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/unrequested-previous
+    preservation_adjust_windows_test.go:101: unchecked fixed profile/PreviousState unrequested-previous
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/wrong-previous-attributes
+    preservation_adjust_windows_test.go:101: unchecked fixed profile/PreviousState wrong-previous-attributes
+--- FAIL: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious (0.00s)
+    --- FAIL: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/duplicate-known-luid (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/removed (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/foreign-request (0.00s)
+    --- FAIL: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/unrequested-previous (0.00s)
+    --- FAIL: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/wrong-previous-attributes (0.00s)
+FAIL
+FAIL	uupbuilder/internal/platform/windows	0.017s
+FAIL

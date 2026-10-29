@@ -1,0 +1,11 @@
+FAIL	uupbuilder/internal/engine [build failed]
+# uupbuilder/internal/engine [uupbuilder/internal/engine.test]
+internal\engine\fixed_apply_selected_windows_test.go:49:7: undefined: prepareFixedApplyObservation
+internal\engine\fixed_apply_selected_windows_test.go:50:20: b.prepared undefined (type *fixedApplyBinding has no field or method prepared)
+internal\engine\fixed_apply_selected_windows_test.go:51:172: b.preflight undefined (type *fixedApplyBinding has no field or method preflight)
+internal\engine\fixed_apply_windows_test.go:309:6: undefined: prepareFixedApplyObservation
+internal\engine\fixed_apply_windows_test.go:310:33: b.prepared undefined (type *fixedApplyBinding has no field or method prepared)
+internal\engine\fixed_apply_windows_test.go:310:50: b.preflight undefined (type *fixedApplyBinding has no field or method preflight)
+internal\engine\fixed_apply_windows_test.go:310:98: b.prepared undefined (type *fixedApplyBinding has no field or method prepared)
+internal\engine\fixed_apply_windows_test.go:326:10: undefined: mintObservedSourceContract
+FAIL

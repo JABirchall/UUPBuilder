@@ -1,0 +1,25 @@
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/length
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/good
+--- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/length (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/good (0.00s)
+=== RUN   TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal
+--- PASS: TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRollsBackPartialAndLatchesClose
+--- PASS: TestPreservationPrivilegeLeaseRollsBackPartialAndLatchesClose (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRestoresExactOriginalAndGuardsMissing
+--- PASS: TestPreservationPrivilegeLeaseRestoresExactOriginalAndGuardsMissing (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRejectsMalformedPreviousAndUnrestoredState
+--- PASS: TestPreservationPrivilegeLeaseRejectsMalformedPreviousAndUnrestoredState (0.00s)
+=== RUN   TestPreservationPrivilegeGuardNeverAdjustsAndReportsActualToken
+    preservation_privileges_windows_test.go:135: QUERY ONLY: token=process (no impersonation) requirements=[{Name:SeBackupPrivilege LUID:{LowPart:17 HighPart:0} Present:false Attributes:0} {Name:SeRestorePrivilege LUID:{LowPart:18 HighPart:0} Present:false Attributes:0} {Name:SeSecurityPrivilege LUID:{LowPart:8 HighPart:0} Present:false Attributes:0}]; WIMGAPI sufficiency=false
+--- PASS: TestPreservationPrivilegeGuardNeverAdjustsAndReportsActualToken (0.00s)
+PASS
+ok  	uupbuilder/internal/platform/windows	0.020s

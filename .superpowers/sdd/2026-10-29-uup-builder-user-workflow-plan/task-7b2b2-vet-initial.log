@@ -1,0 +1,3 @@
+internal\engine\fixed_apply_callback_windows.go:181:24: possible misuse of unsafe.Pointer
+internal\engine\fixed_apply_callback_windows.go:187:80: possible misuse of unsafe.Pointer
+internal\engine\fixed_apply_callback_windows.go:243:19: possible misuse of unsafe.Pointer

@@ -1,0 +1,4 @@
+=== RUN   TestFixedApplyDuplicateRunCannotTakeActiveNativeLifetimes
+--- PASS: TestFixedApplyDuplicateRunCannotTakeActiveNativeLifetimes (0.43s)
+PASS
+ok  	uupbuilder/internal/engine	0.444s

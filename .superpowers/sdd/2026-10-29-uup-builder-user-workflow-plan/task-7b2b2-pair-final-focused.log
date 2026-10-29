@@ -1,0 +1,20 @@
+=== RUN   TestFixedSourceApplyPairDurableRolesAndRefusals
+--- PASS: TestFixedSourceApplyPairDurableRolesAndRefusals (0.72s)
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/proof
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/intent
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/closed-writer
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-before-create
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-intent-journal
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-identity-journal
+--- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve (2.00s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/proof (0.27s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/intent (0.24s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent (0.16s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/closed-writer (0.18s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-before-create (0.35s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-intent-journal (0.50s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-identity-journal (0.30s)
+PASS
+ok  	uupbuilder/internal/jobstore	2.732s

@@ -1,0 +1,14 @@
+FAIL	uupbuilder/internal/engine [build failed]
+# uupbuilder/internal/engine [uupbuilder/internal/engine.test]
+internal\engine\fixed_apply_windows_test.go:21:39: undefined: fixedApplyBinding
+internal\engine\fixed_apply_windows_test.go:31:24: undefined: fixedApplyIntent
+internal\engine\fixed_apply_windows_test.go:37:10: undefined: bindFixedApply
+internal\engine\fixed_apply_windows_test.go:42:24: undefined: fixedApplyBinding
+internal\engine\fixed_apply_windows_test.go:42:61: undefined: fixedApplyPorts
+internal\engine\fixed_apply_windows_test.go:44:10: undefined: fixedApplyPorts
+internal\engine\fixed_apply_windows_test.go:46:84: undefined: claimApplyPath
+internal\engine\fixed_apply_windows_test.go:49:23: undefined: fixedApplyBinding
+internal\engine\fixed_apply_windows_test.go:49:66: undefined: nativeApplyCompletion
+internal\engine\fixed_apply_windows_test.go:65:26: undefined: fixedApplyBinding
+internal\engine\fixed_apply_windows_test.go:65:26: too many errors
+FAIL

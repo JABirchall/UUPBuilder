@@ -1,0 +1,5 @@
+ok  	uupbuilder/internal/platform/windows	4.230s
+ok  	uupbuilder/internal/jobstore	29.730s
+ok  	uupbuilder/internal/engine	28.284s
+ok  	uupbuilder/internal/engine/source	0.636s
+ok  	uupbuilder/internal/worker	7.915s

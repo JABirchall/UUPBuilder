@@ -13,8 +13,16 @@ import (
 
 type directoryRecord struct {
 	Path, SourceDigest, IntentDigest string
+	Role                             string `json:",omitempty"`
 	Identity                         platform.FileIdentity
 	Released                         bool
+}
+
+func (c *DirectoryClaim) Role() string {
+	if c == nil {
+		return ""
+	}
+	return c.record.Role
 }
 
 // DirectoryClaim borrows the active transaction's single writer. It is not a
@@ -127,11 +135,87 @@ func (tx *Transaction) ClaimDirectory(ctx context.Context, source string) (*Dire
 	if e := s.clearResources(ctx); e != nil {
 		return nil, e
 	}
+	return tx.claimDirectoryLocked(ctx, source, "")
+}
+
+// ClaimFixedSourceApplyDirectories is the fixed destination/cache pair only.
+// The unchanged resource guard runs once before either durable creation intent.
+// Each published/partial claim retains its own role, record and native custody.
+// It cannot append to an unresolved pair or authorize native descendants.
+func (tx *Transaction) ClaimFixedSourceApplyDirectories(ctx context.Context, source string) (destination, cache *DirectoryClaim, runErr error) {
+	if tx == nil || tx.store == nil || ctx == nil {
+		return nil, nil, platform.ErrTreePreserved
+	}
+	s := tx.store
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if e := s.check(ctx, tx.intent.JobID); e != nil {
+		return nil, nil, e
+	}
+	if e := tx.usable(); e != nil {
+		return nil, nil, e
+	}
+	if s.lock == nil {
+		return nil, nil, platform.ErrTreePreserved
+	}
+	if _, e := s.lock.Stat(); e != nil {
+		return nil, nil, e
+	}
+	if !validDigest(source) || !fixedSourceApplyPairIntent(tx.intent, source) {
+		return nil, nil, platform.ErrTreePreserved
+	}
+	if e := tx.checkFixedPairStageLocked(); e != nil {
+		return nil, nil, e
+	}
+	if e := s.clearResources(ctx); e != nil {
+		return nil, nil, e
+	}
+	destination, runErr = tx.claimDirectoryLocked(ctx, source, "destination")
+	if runErr != nil {
+		return destination, nil, runErr
+	}
+	if e := tx.checkFixedPairStageLocked(); e != nil {
+		return destination, nil, e
+	}
+	cache, runErr = tx.claimDirectoryLocked(ctx, source, "wimgapi-cache")
+	return destination, cache, runErr
+}
+func (tx *Transaction) checkFixedPairStageLocked() error {
+	i := tx.store.stageIndex(tx.id)
+	if i < 0 {
+		return platform.ErrTreePreserved
+	}
+	stage := tx.store.state.Stages[i]
+	if stage.Committed || stage.Scratch != tx.scratch || intentDigest(stage.Intent) != intentDigest(tx.intent) {
+		return platform.ErrTreePreserved
+	}
+	return nil
+}
+func fixedSourceApplyPairIntent(in MutationIntent, source string) bool {
+	if in.StageID != "fixed-source-contract-apply" || in.PlanDigest != source || len(in.Tools) != 1 || len(in.Rules) != 1 || len(in.Inputs) != 7 || len(in.OwnedPaths) != 1 || in.OwnedPaths[0] != "unused-component-output" {
+		return false
+	}
+	t, r := in.Tools[0], in.Rules[0]
+	if t.Name != "installed-wimgapi.dll" || t.Version != "measured-fixed-apply" || !validDigest(t.Digest) || r.Name != "fixed-apply-profile" || r.Version != "1" || r.Digest != in.ConfigDigest {
+		return false
+	}
+	for j, name := range []string{"generated-wim", "original-index", "original-manifest", "original-oracle", "original-recipe", "original-references", "preservation-proof"} {
+		if in.Inputs[j].Name != name || !validDigest(in.Inputs[j].Digest) {
+			return false
+		}
+	}
+	return in.Inputs[6].Digest == source
+}
+
+// Caller holds the store lock and has checked unchanged global resources.
+// Used by the ordinary one-claim API and the exact fixed pair above.
+func (tx *Transaction) claimDirectoryLocked(ctx context.Context, source, role string) (*DirectoryClaim, error) {
+	s := tx.store
 	id, e := token()
 	if e != nil {
 		return nil, e
 	}
-	r := directoryRecord{Path: tx.scratch + "/tree-" + id, SourceDigest: source, IntentDigest: intentDigest(tx.intent)}
+	r := directoryRecord{Path: tx.scratch + "/tree-" + id, SourceDigest: source, IntentDigest: intentDigest(tx.intent), Role: role}
 	for _, p := range tx.intent.OwnedPaths {
 		if directoryOverlap(r.Path, tx.scratch+"/"+p) {
 			return nil, platform.ErrTreePreserved

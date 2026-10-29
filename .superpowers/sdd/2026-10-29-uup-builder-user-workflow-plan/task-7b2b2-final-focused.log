@@ -1,0 +1,161 @@
+=== RUN   TestFixedApplyCallbackCopiesBoundsAndDocumentedAbortPoints
+--- PASS: TestFixedApplyCallbackCopiesBoundsAndDocumentedAbortPoints (0.00s)
+=== RUN   TestFixedApplyCallbackConcurrentDrainAndQuarantine
+--- PASS: TestFixedApplyCallbackConcurrentDrainAndQuarantine (0.01s)
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unknown-name
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/nil-process
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/nil-fileinfo
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/invalid-pointer
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unterminated
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/malformed-utf16
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unknown-message
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/native-error
+=== RUN   TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/warning
+--- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unknown-name (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/nil-process (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/nil-fileinfo (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/invalid-pointer (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unterminated (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/malformed-utf16 (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/unknown-message (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/native-error (0.00s)
+    --- PASS: TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse/warning (0.00s)
+=== RUN   TestConfiguredFixedSelectedSourceApply
+    fixed_apply_selected_windows_test.go:29: NOT RUN: exact selected-source native apply is unconfigured; code-only slice
+--- SKIP: TestConfiguredFixedSelectedSourceApply (0.00s)
+=== RUN   TestFixedApplyRejectsSyntheticCompletionAndPreservesScopes
+--- PASS: TestFixedApplyRejectsSyntheticCompletionAndPreservesScopes (1.52s)
+=== RUN   TestFixedApplyCancellationWaitsForActualReturn
+--- PASS: TestFixedApplyCancellationWaitsForActualReturn (3.91s)
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/zero
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/proof
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/foreign-expectation
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/same-root
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/closed-claim
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/closed-source
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/output
+    fixed_apply_windows_test.go:220: native sharing prevented mutation open \\?\C:\Users\owner\AppData\Local\Temp\uupbuilder-2f62ee94342a12ab4e0e1de02f37c584\member-00000001.data: The process cannot access the file because it is being used by another process.
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/provider
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/profile
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/intent
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/preexisting
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/privilege
+=== RUN   TestFixedApplyRejectsChangedBindingsBeforeNativeCall/read-budget
+--- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall (8.85s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/zero (1.44s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/proof (1.32s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/foreign-expectation (0.61s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/same-root (0.62s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/closed-claim (0.58s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/closed-source (0.54s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/output (0.69s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/provider (0.48s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/profile (0.54s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/intent (0.45s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/preexisting (0.44s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/privilege (0.57s)
+    --- PASS: TestFixedApplyRejectsChangedBindingsBeforeNativeCall/read-budget (0.56s)
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/open
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/temporary
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/load
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/register
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/apply
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/modules
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/unregister
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/close-image
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/close-wim
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/privilege-close
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/provider-close
+--- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation (5.58s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/open (0.68s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/temporary (0.42s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/load (0.46s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/register (0.55s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/apply (0.54s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/modules (0.48s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/unregister (0.61s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/close-image (0.46s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/close-wim (0.50s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/privilege-close (0.43s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/provider-close (0.44s)
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/result
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/entry
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/handle
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/read
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/export
+=== RUN   TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/valid
+--- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion (3.39s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/result (0.52s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/entry (0.58s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/handle (0.58s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/read (0.77s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/export (0.42s)
+    --- PASS: TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion/valid (0.52s)
+=== RUN   TestObservedSourceContractRejectsCounterfeitCompletionAndComparison
+--- PASS: TestObservedSourceContractRejectsCounterfeitCompletionAndComparison (0.42s)
+=== RUN   TestFixedApplyPartialOutputPreservesBothClaims
+--- PASS: TestFixedApplyPartialOutputPreservesBothClaims (0.45s)
+PASS
+ok  	uupbuilder/internal/engine	24.159s
+=== RUN   TestFixedSourceApplyPairDurableRolesAndRefusals
+--- PASS: TestFixedSourceApplyPairDurableRolesAndRefusals (1.60s)
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/proof
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/intent
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/closed-writer
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-before-create
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-intent-journal
+=== RUN   TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-identity-journal
+--- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve (6.33s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/proof (0.37s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/intent (0.42s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/durable-intent (2.60s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/closed-writer (0.74s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-before-create (0.76s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-intent-journal (0.65s)
+    --- PASS: TestFixedSourceApplyPairWrongInputAndSecondFailurePreserve/second-identity-journal (0.80s)
+PASS
+ok  	uupbuilder/internal/jobstore	7.956s
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/length
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/good
+--- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/length (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/good (0.00s)
+=== RUN   TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal
+--- PASS: TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal (0.00s)
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/duplicate-known-luid
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/removed
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/foreign-request
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/unrequested-previous
+=== RUN   TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/wrong-previous-attributes
+--- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/duplicate-known-luid (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/removed (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/foreign-request (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/unrequested-previous (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentRejectsNonProfileAndUnrequestedPrevious/wrong-previous-attributes (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRollsBackPartialAndLatchesClose
+--- PASS: TestPreservationPrivilegeLeaseRollsBackPartialAndLatchesClose (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRestoresExactOriginalAndGuardsMissing
+--- PASS: TestPreservationPrivilegeLeaseRestoresExactOriginalAndGuardsMissing (0.00s)
+=== RUN   TestPreservationPrivilegeLeaseRejectsMalformedPreviousAndUnrestoredState
+--- PASS: TestPreservationPrivilegeLeaseRejectsMalformedPreviousAndUnrestoredState (0.00s)
+=== RUN   TestPreservationPrivilegeGuardNeverAdjustsAndReportsActualToken
+    preservation_privileges_windows_test.go:135: QUERY ONLY: token=process (no impersonation) requirements=[{Name:SeBackupPrivilege LUID:{LowPart:17 HighPart:0} Present:false Attributes:0} {Name:SeRestorePrivilege LUID:{LowPart:18 HighPart:0} Present:false Attributes:0} {Name:SeSecurityPrivilege LUID:{LowPart:8 HighPart:0} Present:false Attributes:0}]; WIMGAPI sufficiency=false
+--- PASS: TestPreservationPrivilegeGuardNeverAdjustsAndReportsActualToken (0.00s)
+PASS
+ok  	uupbuilder/internal/platform/windows	0.028s

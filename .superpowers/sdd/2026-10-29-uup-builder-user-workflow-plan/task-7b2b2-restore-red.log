@@ -1,0 +1,18 @@
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/length
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate
+=== RUN   TestFixedPrivilegeAdjustmentChecksNativePreviousState/good
+--- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/partial (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/foreign (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/length (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/duplicate (0.00s)
+    --- PASS: TestFixedPrivilegeAdjustmentChecksNativePreviousState/good (0.00s)
+=== RUN   TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal
+    preservation_adjust_windows_test.go:55: restore query or exact baseline omitted native restore error 2 2
+--- FAIL: TestFixedPrivilegeRestoreAlwaysQueriesAndChecksFullOriginal (0.00s)
+FAIL
+FAIL	uupbuilder/internal/platform/windows	0.016s
+FAIL
