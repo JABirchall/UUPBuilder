@@ -1,0 +1,16 @@
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ Choose included apps │
+│ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
+│ │Search (/) | source families / retained requests │ │
+│ 2 source-offered · 2 visible requests · applicability pending │
+│ Custom: checked families are explicit requests; source hint... │
+│ > [x] Example.App_pub │
+│ [ ] Example.Other_pub │
+│ Source: Windows example · 26100.1 │
+│ Target: amd64 | Language: en-us | Editions: professional │
+│ Apps: unchecked; requested policies retained. │
+│ ! App requests changed; manifest, licensing and provisionin... │
+│ ↑↓ move | space request | / search | tab control | d/c/n mode │
+│ | enter next | r retry | t TOML | esc back | ? help │

@@ -324,7 +324,7 @@ func (m Model) areaRows(width, height int) []row {
 	case Image:
 		return m.imageRows(width, height)
 	case Apps:
-		return []row{{text: heading.Render("Choose included apps")}, {}, {text: muted.Render("App inventory has not been resolved for this image.")}, {text: "Requested app policies are retained; applicability is unchecked."}}
+		return m.appsRows(width, height)
 	case Conversion:
 		return m.conversionRows(width, height)
 	case Review:

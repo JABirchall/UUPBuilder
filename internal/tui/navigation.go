@@ -30,9 +30,10 @@ func (m *Model) navigate(area Area) {
 	m.builds.search.Blur()
 	m.builds.filter.Blur()
 	m.conversion.input.Blur()
+	m.apps.search.Blur()
 }
 func (m Model) editing() bool {
-	return m.builds.search.Focused() || m.builds.filter.Focused() || m.conversion.input.Focused()
+	return m.builds.search.Focused() || m.builds.filter.Focused() || m.conversion.input.Focused() || m.apps.search.Focused()
 }
 func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
@@ -70,6 +71,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if m.editing() {
+		if m.apps.search.Focused() {
+			return m.updateAppInput(msg)
+		}
 		if m.conversion.input.Focused() {
 			return m.updateConversionInput(msg)
 		}
@@ -92,17 +96,26 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.Update(viewTOMLMsg{})
 	}
 	if len(key) == 1 && key[0] >= '1' && key[0] <= '6' {
-		m.navigate(Area(key[0] - '1'))
-		return m, nil
+		return m.Update(NavigateMsg{Area: Area(key[0] - '1')})
+	}
+	if m.area == Apps {
+		switch key {
+		case "d":
+			return m.Update(appModeMsg{mode: "default"})
+		case "c":
+			return m.Update(appModeMsg{mode: "custom"})
+		case "n":
+			return m.Update(appModeMsg{mode: "none"})
+		}
 	}
 	switch key {
 	case "ctrl+right":
-		m.navigate((m.area + 1) % 6)
+		return m.Update(NavigateMsg{Area: (m.area + 1) % 6})
 	case "ctrl+left", "shift+tab":
-		m.navigate((m.area + 5) % 6)
+		return m.Update(NavigateMsg{Area: (m.area + 5) % 6})
 	case "esc":
 		if m.area > Builds {
-			m.navigate(m.area - 1)
+			return m.Update(NavigateMsg{Area: m.area - 1})
 		}
 	case "r":
 		return m.Update(RefreshMsg{})
@@ -115,13 +128,18 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.image.focus = (m.image.focus + 1) % 3
 		} else if m.area == Conversion {
 			m.move(1)
+		} else if m.area == Apps {
+			m.apps.focus = (m.apps.focus + 1) % 3
 		} else {
-			m.navigate((m.area + 1) % 6)
+			return m.Update(NavigateMsg{Area: (m.area + 1) % 6})
 		}
 	case "/":
 		if m.area == Builds {
 			cmd := m.builds.search.Focus()
 			return m, cmd
+		}
+		if m.area == Apps {
+			return m, m.apps.search.Focus()
 		}
 	case "f":
 		if m.area == Builds {
@@ -135,6 +153,16 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		return m.activate()
 	case "space", " ":
+		if m.area == Apps {
+			if m.apps.focus < 2 {
+				return m.activateAppControl()
+			}
+			choices := m.appChoices()
+			if len(choices) > m.apps.cursor {
+				m.toggleApp(choices[m.apps.cursor].featureID)
+			}
+			return m, nil
+		}
 		if m.area == Conversion || (m.area == Image && m.image.focus < 2) {
 			return m.activate()
 		}
@@ -149,6 +177,9 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.apps.search.Focused() {
+		return m.updateAppInput(msg)
+	}
 	if m.conversion.input.Focused() {
 		return m.updateConversionInput(msg)
 	}
@@ -166,6 +197,9 @@ func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 func (m *Model) move(delta int) {
+	if m.area == Apps {
+		m.apps.cursor = max(0, min(m.apps.cursor+delta, len(m.appChoices())-1))
+	}
 	if m.area == Conversion {
 		m.conversion.cursor = max(0, min(m.conversion.cursor+delta, configControlCount+len(m.conversion.fields)-1))
 	}
@@ -184,6 +218,9 @@ func (m *Model) move(delta int) {
 	}
 }
 func (m Model) activate() (tea.Model, tea.Cmd) {
+	if m.area == Apps {
+		return m.activateAppControl()
+	}
 	if m.area == Conversion {
 		return m.activateConversion()
 	}
@@ -207,6 +244,7 @@ func (m Model) activate() (tea.Model, tea.Cmd) {
 		case 2:
 			if m.image.ready(m.cfg.Image) {
 				m.navigate(Apps)
+				return m, m.beginApps(false)
 			} else {
 				m.notice = "Choose an available language and at least one available edition before continuing."
 			}

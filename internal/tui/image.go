@@ -33,6 +33,7 @@ func (m *Model) invalidateSource() {
 	m.invalidateEditions()
 }
 func (m *Model) invalidateEditions() {
+	m.invalidateApps()
 	m.appsUnchecked = true
 	if m.image.editionCancel != nil {
 		m.image.editionCancel()
@@ -148,4 +149,5 @@ func (m *Model) toggleEdition(id string) {
 	}
 	m.revision++
 	m.notice = "Edition selection changed; app applicability must be checked again."
+	m.invalidateApps()
 }

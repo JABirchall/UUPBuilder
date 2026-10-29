@@ -9,6 +9,7 @@ import (
 
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/model"
+	"uupbuilder/internal/source"
 )
 
 // Catalog uses public discovery values. Planner/controller ports belong to
@@ -19,7 +20,9 @@ type Catalog interface {
 	Editions(context.Context, string, string) ([]catalog.Edition, error)
 }
 type Dependencies struct {
-	Catalog Catalog
+	Catalog           Catalog
+	AppCatalog        source.AppCatalog
+	AppCatalogFactory func(endpoint string) source.AppCatalog
 	// CatalogFactory recomposes the existing discovery port after a loaded
 	// endpoint change. A fixed injected Catalog can omit it and reject changes.
 	CatalogFactory func(endpoint string) Catalog

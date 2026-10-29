@@ -1,0 +1,19 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ Choose included apps │
+│ 01 Builds │ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
+│ │ │Search (/) | source families / retained requests │ │
+│ 02 Image │ 2 source-offered · 2 visible requests · applicability pending │
+│ │ Custom: checked families are explicit requests; source hints are not policy locks. │
+│ 03 Apps │ > [x] Example.App_pub │
+│ │ [ ] Example.Other_pub │
+│ 04 Conversion │ professional:MediaCreationRequired · 0 source dependencies │
+│ │ Manifest, package closure, licensing and provisioning checks remain pending. │
+│ 05 Review │ │
+│ 06 Progress │ │
+│ │ Source: Windows example · 26100.1 │
+│ unsaved draft │ ID: 11111111-1111-1111-1111-111111111111_rev.2 │
+│ Windows 10+ │ Target: amd64 | Language: en-us | Editions: professional │
+│ Host ≠ ISO target │ Apps: unchecked; requested policies retained. │
+│ │ ! App requests changed; manifest, licensing and provisioning applicability remain pending. │
+│ ↑↓ move | space request | / search | tab control | d/c/n mode | enter next | r retry | t TOML | esc back | ? help │

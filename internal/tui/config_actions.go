@@ -106,7 +106,19 @@ func (m Model) acceptConfigAction(msg configActionResultMsg) (tea.Model, tea.Cmd
 		return m, nil
 	}
 	producer := m.deps.Catalog
+	appProducer := m.deps.AppCatalog
 	if msg.cfg.Catalog.Endpoint != m.cfg.Catalog.Endpoint {
+		if appProducer != nil || m.deps.AppCatalogFactory != nil {
+			if m.deps.AppCatalogFactory == nil {
+				m.notice = "Load failed: catalog.endpoint changed, but the injected app catalogue cannot be recomposed."
+				return m, nil
+			}
+			appProducer = m.deps.AppCatalogFactory(msg.cfg.Catalog.Endpoint)
+			if appProducer == nil {
+				m.notice = "Load failed: catalog.endpoint app factory returned no catalogue."
+				return m, nil
+			}
+		}
 		if m.deps.CatalogFactory == nil {
 			m.notice = "Load failed: catalog.endpoint changed, but the injected catalogue cannot be recomposed."
 			return m, nil
@@ -128,6 +140,7 @@ func (m Model) acceptConfigAction(msg configActionResultMsg) (tea.Model, tea.Cmd
 	m.source = nil
 	m.cfg = cloneConfig(msg.cfg)
 	m.deps.Catalog = producer
+	m.deps.AppCatalog = appProducer
 	m.conversion = NewConversionModel(m.cfg, nil)
 	m.revision++
 	m.appsUnchecked = m.cfg.Image.UpdateID != ""

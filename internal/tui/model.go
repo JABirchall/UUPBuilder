@@ -43,6 +43,7 @@ type Model struct {
 	width, height int
 	builds        buildsState
 	image         imageState
+	apps          appsState
 	conversion    ConversionModel
 	configActions configActionsState
 	notice        string
@@ -63,7 +64,7 @@ func New(deps Dependencies, cfg config.Config) Model {
 		deps.Catalog = catalog.New(nil, cfg.Catalog.Endpoint)
 	}
 	ctx, cancel := context.WithCancel(deps.Context)
-	m := Model{deps: deps, cfg: cloneConfig(cfg), ctx: ctx, close: cancel, revision: 1, width: 110, height: 30, builds: newBuildsState()}
+	m := Model{deps: deps, cfg: cloneConfig(cfg), ctx: ctx, close: cancel, revision: 1, width: 110, height: 30, builds: newBuildsState(), apps: newAppsState()}
 	m.conversion = NewConversionModel(cfg, nil)
 	m.configActions.path = deps.ConfigPath
 	if m.cfg.Image.UpdateID == "" {
@@ -109,8 +110,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = max(1, msg.Width), max(1, msg.Height)
 		m.builds.search.SetWidth(max(1, m.contentWidth()-14))
 		m.builds.filter.SetWidth(max(1, m.contentWidth()-14))
+		m.apps.search.SetWidth(max(1, m.contentWidth()-16))
 	case NavigateMsg:
 		m.navigate(msg.Area)
+		if m.area == Apps {
+			return m, m.beginApps(false)
+		}
+	case appsResultMsg:
+		m.acceptApps(msg)
+	case appModeMsg:
+		m.setAppMode(msg.mode)
+	case appStubMsg:
+		m.setAppStub(msg.policy)
+	case appToggleMsg:
+		m.toggleApp(msg.featureID)
+	case appControlMsg:
+		m.apps.focus = msg.field
+		return m.activateAppControl()
+	case appSearchMsg:
+		return m, m.apps.search.Focus()
 	case viewTOMLMsg:
 		m.showTOML = !m.showTOML
 		m.showHelp = false
@@ -167,11 +185,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case editionsResultMsg:
 		m.acceptEditions(msg)
+		if m.area == Apps {
+			return m, m.beginApps(false)
+		}
 	case ToggleEditionMsg:
 		m.toggleEdition(msg.Edition)
+		if m.area == Apps {
+			return m, m.beginApps(false)
+		}
 	case RefreshMsg:
 		var cmd tea.Cmd
-		if m.area == Image && m.cfg.Image.UpdateID != "" {
+		if m.area == Apps {
+			cmd = m.beginApps(true)
+		} else if m.area == Image && m.cfg.Image.UpdateID != "" {
 			if m.image.focus == 2 && m.cfg.Image.Language != "" {
 				cmd = m.beginEditions(true)
 			} else {
