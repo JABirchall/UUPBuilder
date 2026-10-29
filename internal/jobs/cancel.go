@@ -44,9 +44,22 @@ func (c *Controller) Cancel(ctx context.Context, jobID string) error {
 func (c *Controller) Close(ctx context.Context) error {
 	c.mu.Lock()
 	active := c.active
-	c.mu.Unlock()
-	if active == nil {
-		return nil
+	if active != nil {
+		active.cancel()
 	}
-	return c.Cancel(ctx, active.id)
+	c.mu.Unlock()
+	if active != nil {
+		// Wait on the captured job rather than looking it up again: it may
+		// finish between this snapshot and cancellation/teardown.
+		select {
+		case <-ctx.Done():
+			c.mu.Lock()
+			defer c.mu.Unlock()
+			return errors.Join(ctx.Err(), c.cleanupErr)
+		case <-active.done:
+		}
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.cleanupErr
 }

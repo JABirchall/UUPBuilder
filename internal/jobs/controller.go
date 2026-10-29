@@ -28,10 +28,11 @@ type activeJob struct {
 	err    error
 }
 type Controller struct {
-	mu      sync.Mutex
-	options Options
-	active  *activeJob
-	last    JobView
+	mu         sync.Mutex
+	options    Options
+	active     *activeJob
+	last       JobView
+	cleanupErr error
 }
 
 func NewController(options Options) *Controller { return &Controller{options: options} }
@@ -127,6 +128,9 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 		}
 	}
 	active.err = runErr
+	if containsCleanupFailure(runErr) {
+		c.cleanupErr = errors.Join(c.cleanupErr, runErr)
+	}
 	c.active = nil
 	close(active.done)
 }

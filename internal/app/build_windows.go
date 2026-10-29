@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/jobs"
@@ -27,20 +26,18 @@ func inspectBuildStorage(ctx context.Context, path string) (planner.Volume, erro
 	v, err := platform.InspectStorage(path)
 	return planner.Volume{Path: v.Path, ID: v.ID, FileSystem: v.Capabilities, AvailableBytes: v.AvailableBytes, MaxFileBytes: v.MaxFileBytes}, err
 }
-func composeInteractiveBuild(opts *Options) func() {
+func composeInteractiveBuild(opts *Options) func() error {
 	if opts.Dependencies.Builder != nil {
-		return func() {}
+		return closeBuildService(opts.Dependencies.Builder)
 	}
 	base, _ := os.UserCacheDir()
 	p := &planner.Planner{InspectStorage: inspectBuildStorage, DefaultWorkspace: base, DefaultCache: base}
 	controller := jobs.NewController(jobs.Options{Registry: operationRegistry(), InspectStorage: inspectBuildStorage})
 	opts.Dependencies.Builder = &buildService{planner: p, controller: controller}
-	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		_ = controller.Close(ctx)
-	}
+	return closeBuildService(opts.Dependencies.Builder)
 }
+
+func (s *buildService) Close(ctx context.Context) error { return s.controller.Close(ctx) }
 
 // All stage registrations are composed here for both the normal application
 // and private worker. U06-U10 provide real producers; absence stays a blocker.

@@ -195,3 +195,71 @@ func TestUnverifiedArtifactDescriptorCannotCompleteISO(t *testing.T) {
 		t.Fatal("unverified publication created workspace")
 	}
 }
+
+func TestCloseRetainsCompletedCleanupFailure(t *testing.T) {
+	plan := jobPlan(t)
+	inspector := &changingMounts{}
+	inspector.complete.Store(true)
+	entered := make(chan struct{})
+	registry := worker.NewRegistry()
+	_ = registry.Register(planner.DownloadPayloads, worker.Handler{Run: func(ctx context.Context, stage worker.Stage) (worker.Result, error) {
+		file, err := stage.Transaction.OpenFile("result.json", os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			return worker.Result{}, err
+		}
+		if err := file.Close(); err != nil {
+			return worker.Result{}, err
+		}
+		inspector.complete.Store(false)
+		close(entered)
+		<-ctx.Done()
+		return worker.Result{}, ctx.Err()
+	}})
+	c := NewController(Options{Registry: registry, InspectStorage: storage, MountInspector: inspector})
+	view, err := c.Start(context.Background(), plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("handler not entered")
+	}
+	if err := c.Cancel(context.Background(), view.ID); !errors.Is(err, errCleanup) {
+		t.Fatalf("cancel did not retain preservation failure: %v", err)
+	}
+	// The job has already completed before teardown observes the controller.
+	if err := c.Close(context.Background()); !errors.Is(err, errCleanup) {
+		t.Fatalf("completed cleanup failure disappeared during close: %v", err)
+	}
+	if err := c.Close(context.Background()); !errors.Is(err, errCleanup) {
+		t.Fatalf("repeated close forgot cleanup failure: %v", err)
+	}
+}
+
+func TestCloseReportsActiveCancellationTimeout(t *testing.T) {
+	plan := jobPlan(t)
+	entered, release := make(chan struct{}), make(chan struct{})
+	registry := worker.NewRegistry()
+	_ = registry.Register(planner.DownloadPayloads, worker.Handler{Run: func(ctx context.Context, _ worker.Stage) (worker.Result, error) {
+		close(entered)
+		<-release
+		return worker.Result{}, ctx.Err()
+	}})
+	c := NewController(Options{Registry: registry, InspectStorage: storage, MountInspector: mounts{true}})
+	view, err := c.Start(context.Background(), plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { close(release); _ = c.Cancel(context.Background(), view.ID) }()
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("handler not entered")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	if err := c.Close(ctx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("active cleanup wait timeout was lost: %v", err)
+	}
+}

@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/config"
+	"uupbuilder/internal/planner"
 	"uupbuilder/internal/tui"
 )
 
@@ -125,6 +126,26 @@ func TestInteractiveQuitClosesDiscovery(t *testing.T) {
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("ordinary quit left discovery running")
+	}
+}
+
+type failedBuildTeardown struct{}
+
+func (failedBuildTeardown) Prepare(context.Context, tui.BuildDraft) (planner.ReadyPlan, error) {
+	return planner.ReadyPlan{}, errors.New("unexpected preflight")
+}
+func (failedBuildTeardown) Execute(context.Context, planner.ReadyPlan) (tui.BuildResult, error) {
+	return tui.BuildResult{}, errors.New("unexpected execution")
+}
+func (failedBuildTeardown) Close(context.Context) error { return context.DeadlineExceeded }
+
+func TestInteractiveExitJoinsBuildCleanupTimeoutWithProgramError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	deps := tui.Dependencies{Builder: failedBuildTeardown{}, Catalog: startupCatalog{search: func(context.Context, string) ([]catalog.Build, error) { cancel(); return nil, context.Canceled }}}
+	err := runInteractive(ctx, Options{Config: config.Defaults(), Dependencies: deps}, headlessProgramOptions()...)
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("program or cleanup timeout error was lost: %v", err)
 	}
 }
 
