@@ -409,14 +409,17 @@ func renameHandle(h, parent windows.Handle, name string, replace bool) error {
 	var layout renameInfo
 	offset := int(unsafe.Offsetof(layout.FileName))
 	filename := dst[:len(dst)-1]
-	buffer := make([]byte, offset+2*len(filename))
+	// The Win32 FILE_RENAME_INFO path is NUL-terminated even though its byte
+	// length excludes that terminator. Do not rely on allocator padding: at
+	// exact allocation boundaries it can be read as an invalid path suffix.
+	buffer := make([]byte, max(int(unsafe.Sizeof(layout)), offset+2*len(dst)))
 	info := (*renameInfo)(unsafe.Pointer(&buffer[0]))
 	if replace {
 		info.ReplaceIfExists = 1
 	}
 	info.RootDirectory = parent
 	info.FileNameLength = uint32(2 * len(filename))
-	copy(unsafe.Slice(&info.FileName[0], len(filename)), filename)
+	copy(unsafe.Slice(&info.FileName[0], len(dst)), dst)
 	if parent != 0 {
 		// NtSetInformationFile supports an explicit destination directory
 		// handle on the Windows 10 baseline; no path re-resolution is needed.

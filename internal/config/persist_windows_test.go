@@ -45,6 +45,26 @@ func TestWindowsRenameCreatesAndReplacesLongUnicodePath(t *testing.T) {
 	}
 }
 
+// App requests are saved from a variety of user-selected path lengths. Native
+// publication must not depend on padding beyond its rename-name buffer.
+func TestWindowsAppRequestRenameBoundaries(t *testing.T) {
+	root := t.TempDir()
+	for n := 0; n < 64; n++ {
+		path := filepath.Join(root, "app-requests"+strings.Repeat("a", n)+".toml")
+		cfg := Defaults()
+		cfg.Apps.Mode = "custom"
+		cfg.Apps.Preset = "all-offered"
+		cfg.Apps.Include = []string{"Microsoft.WindowsNotepad_8wekyb3d8bbwe"}
+		if _, err := Save(path, cfg); err != nil {
+			t.Fatalf("destination units=%d: %v", len(path), err)
+		}
+		loaded, err := Load(path)
+		if err != nil || loaded.Apps.Preset != "all-offered" || len(loaded.Apps.Include) != 1 {
+			t.Fatalf("published request missing at destination units=%d: %+v %v", len(path), loaded.Apps, err)
+		}
+	}
+}
+
 func TestWindowsRenamePreservesFilesOnInitialCollision(t *testing.T) {
 	root := t.TempDir()
 	source := filepath.Join(root, "new.tmp")
