@@ -30,7 +30,7 @@ type treeEntry struct {
 	id          FileIdentity
 	directory   bool
 	size        uint64
-	streams     map[string]bool
+	streams     map[string]uint64
 	streamFiles []*os.File
 	alias       bool
 }
@@ -256,7 +256,7 @@ func (t *OwnedTree) Close() error {
 			t.closeErr = errors.Join(t.closeErr, p.Close())
 		}
 		if !t.removed {
-			t.closeErr = errors.Join(t.closeErr, fmt.Errorf("%w: %s", ErrTreePreserved, t.identity.RelativePath))
+			t.closeErr = errors.Join(t.closeErr, fmt.Errorf("%w: %s [volume=%d file=%d]", ErrTreePreserved, t.identity.RelativePath, t.identity.Root.VolumeSerial, t.identity.Root.FileIndex))
 		}
 	}
 	return t.closeErr

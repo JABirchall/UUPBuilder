@@ -222,6 +222,38 @@ func securityField(h windows.Handle, mask windows.SECURITY_INFORMATION, maxBytes
 	return f
 }
 
+// Retain the bounded native prefix/tag before interpreting any framing. Third
+// parties require the 24-byte GUID header; Microsoft permits the 8-byte form
+// and may also use the GUID form. Payload semantics remain opaque here.
+func reparseObservation(buffer []byte, returned uint32, callErr error) (field MetadataField, tag uint32) {
+	count := min(uint64(returned), uint64(len(buffer)), uint64(16384))
+	raw := buffer[:int(count)]
+	if len(raw) >= 4 {
+		tag = binary.LittleEndian.Uint32(raw)
+	}
+	finish := func(e error) (MetadataField, uint32) { f := fieldError(e); f.Raw = raw; return f, tag }
+	if uint64(returned) > uint64(len(buffer)) || returned > 16384 {
+		return finish(errors.Join(callErr, ErrTreeLimit))
+	}
+	if callErr != nil {
+		return finish(callErr)
+	}
+	if len(raw) < 8 {
+		return finish(fmt.Errorf("%w: incomplete reparse header", ErrTreePreserved))
+	}
+	length := int(binary.LittleEndian.Uint16(raw[4:]))
+	form := "REPARSE_GUID_DATA_BUFFER"
+	valid := len(raw) >= 24 && length+24 == len(raw)
+	if tag&0x80000000 != 0 && length+8 == len(raw) {
+		form = "REPARSE_DATA_BUFFER"
+		valid = true
+	}
+	if !valid {
+		return finish(fmt.Errorf("%w: reparse length does not match documented header", ErrTreePreserved))
+	}
+	return MetadataField{Status: "complete", Detail: form + "; opaque payload", Raw: raw}, tag
+}
+
 // Observe reads only an exact held owned object or root. It never accepts an
 // arbitrary path, opens an executable, follows a reparse target, or adjusts the
 // effective token. Incomplete/denied fields remain explicit and Complete=false.
@@ -363,15 +395,7 @@ func (t *OwnedTree) Observe(ctx context.Context, name string, limits MetadataLim
 		b := make([]byte, 16384)
 		var n uint32
 		e = windows.DeviceIoControl(h, windows.FSCTL_GET_REPARSE_POINT, nil, 0, &b[0], uint32(len(b)), &n, nil)
-		out.Reparse = fieldError(e)
-		if e == nil {
-			if n < 8 || n > uint32(len(b)) || int(binary.LittleEndian.Uint16(b[4:]))+8 != int(n) {
-				out.Reparse = fieldError(ErrTreePreserved)
-			} else {
-				out.Reparse.Raw = b[:n]
-				out.ReparseTag = binary.LittleEndian.Uint32(b)
-			}
-		}
+		out.Reparse, out.ReparseTag = reparseObservation(b, n, e)
 	}
 	if e = ctx.Err(); e != nil {
 		return out, e

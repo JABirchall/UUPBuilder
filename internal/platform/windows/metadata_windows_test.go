@@ -50,6 +50,49 @@ func TestMetadataRejectsMalformedStreamAndEARecordsBeforeCopy(t *testing.T) {
 	}
 }
 
+func TestReparseObservationPreservesGUIDAndMicrosoftRawFraming(t *testing.T) {
+	for _, fixture := range []struct {
+		name   string
+		tag    uint32
+		header int
+	}{{"third-party-guid", 0x42, 24}, {"microsoft", 0x80000042, 8}, {"microsoft-guid", 0x80000042, 24}} {
+		t.Run(fixture.name, func(t *testing.T) {
+			raw := make([]byte, fixture.header+3)
+			binary.LittleEndian.PutUint32(raw, fixture.tag)
+			binary.LittleEndian.PutUint16(raw[4:], 3)
+			if fixture.header == 24 {
+				for n := 8; n < 24; n++ {
+					raw[n] = byte(n)
+				}
+			}
+			copy(raw[fixture.header:], []byte{9, 8, 7})
+			field, tag := reparseObservation(raw, uint32(len(raw)), nil)
+			if field.Status != "complete" || tag != fixture.tag || !slices.Equal(field.Raw, raw) {
+				t.Fatal("documented raw reparse framing lost", field, tag)
+			}
+			malformed := slices.Clone(raw)
+			binary.LittleEndian.PutUint16(malformed[4:], 4)
+			field, tag = reparseObservation(malformed, uint32(len(malformed)), nil)
+			if field.Status == "complete" || tag != fixture.tag || !slices.Equal(field.Raw, malformed) {
+				t.Fatal("malformed length lost raw evidence or became complete", field, tag)
+			}
+		})
+	}
+	short := []byte{0x42, 0, 0, 0, 0, 0, 0, 0}
+	field, tag := reparseObservation(short, uint32(len(short)), nil)
+	if field.Status == "complete" || tag != 0x42 || !slices.Equal(field.Raw, short) {
+		t.Fatal("third-party tag incorrectly accepted short header", field, tag)
+	}
+	field, tag = reparseObservation(short, ^uint32(0), nil)
+	if field.Status == "complete" || tag != 0x42 || len(field.Raw) != len(short) {
+		t.Fatal("unbounded returned count or raw loss", field, tag)
+	}
+	field, tag = reparseObservation(short, 6, windows.ERROR_MORE_DATA)
+	if field.Status == "complete" || tag != 0x42 || field.NativeCode != uint32(windows.ERROR_MORE_DATA) || !slices.Equal(field.Raw, short[:6]) {
+		t.Fatal("native partial response lost", field, tag)
+	}
+}
+
 func TestMetadataObservesOwnedHardlinkADSAndReparseWithoutFollowing(t *testing.T) {
 	ctx := context.Background()
 	w, e := CreateWorkspace(t.TempDir(), "metadata-fixture")
@@ -110,11 +153,11 @@ func TestMetadataObservesOwnedHardlinkADSAndReparseWithoutFollowing(t *testing.T
 		t.Fatal("reparse followed or deleted", e)
 	}
 	deleteFixtureJunction(t, tree.entries["reparse"].file)
-	if e = tree.Cleanup(ctx); e != nil {
-		t.Fatal(e)
+	if e = tree.Cleanup(ctx); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("file-containing cleanup falsely complete", e)
 	}
-	if e = tree.RemoveEmpty(ctx); e != nil {
-		t.Fatal(e)
+	if e = tree.RemoveEmpty(ctx); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("file-containing scope falsely released", e)
 	}
 	t.Log("ordinary synthetic NTFS: hardlink IDs equal with 2 links; identical bytes independent ID; named ADS size=11; mountpoint raw bytes read without target traversal")
 }
@@ -185,10 +228,10 @@ func TestMetadataObservesActualOwnedNTFSFieldsAndDenials(t *testing.T) {
 	if _, e = tree.Observe(ctx, "file", MetadataLimits{MaxResultBytes: 1}); !errors.Is(e, ErrTreeLimit) {
 		t.Fatal("exhausted observation result budget", e)
 	}
-	if e = tree.Cleanup(ctx); e != nil {
-		t.Fatal(e)
+	if e = tree.Cleanup(ctx); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("file-containing cleanup falsely complete", e)
 	}
-	if e = tree.RemoveEmpty(ctx); e != nil {
-		t.Fatal(e)
+	if e = tree.RemoveEmpty(ctx); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("file-containing scope falsely released", e)
 	}
 }

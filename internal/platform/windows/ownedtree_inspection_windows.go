@@ -25,17 +25,40 @@ func (t *OwnedTree) checkTopology(ctx context.Context) error {
 	}
 	seen := map[string]bool{}
 	links := map[FileIdentity]uint32{}
-	var read, result uint64
+	var read, result, logical uint64
+	chargeLogical := func(size uint64) error {
+		if logical > t.limits.MaxLogicalBytes || size > t.limits.MaxLogicalBytes-logical {
+			return ErrTreeLimit
+		}
+		logical += size
+		return nil
+	}
 	checkStreams := func(v *treeEntry) error {
+		info, e := nativeInfo(v.file)
+		if e != nil {
+			return e
+		}
+		actual := uint64(info.FileSizeHigh)<<32 | uint64(info.FileSizeLow)
+		if !v.directory {
+			if e = chargeLogical(actual); e != nil {
+				return e
+			}
+			if actual != v.size {
+				return fmt.Errorf("%w: recorded file length changed", ErrTreePreserved)
+			}
+		}
 		const size = 16 << 10
 		if size > t.limits.MaxReadBytes-read || size > t.limits.MaxResultBytes-result {
 			return ErrTreeLimit
 		}
 		read += size
 		b := alignedNativeBuffer(size)
-		e := windows.GetFileInformationByHandleEx(windows.Handle(v.file.Fd()), windows.FileStreamInfo, &b[0], uint32(len(b)))
+		e = windows.GetFileInformationByHandleEx(windows.Handle(v.file.Fd()), windows.FileStreamInfo, &b[0], uint32(len(b)))
 		if errors.Is(e, windows.ERROR_HANDLE_EOF) {
-			return nil
+			if v.directory && len(v.streams) == 0 {
+				return nil
+			}
+			return ErrTreePreserved
 		}
 		if e != nil {
 			return e
@@ -45,6 +68,7 @@ func (t *OwnedTree) checkTopology(ctx context.Context) error {
 			return e
 		}
 		seen := map[string]bool{}
+		defaultSeen := false
 		for _, s := range streams {
 			name, e := safeStreamName(string(utf16.Decode(s.Name)))
 			if e != nil {
@@ -52,18 +76,27 @@ func (t *OwnedTree) checkTopology(ctx context.Context) error {
 			}
 			if name != "" {
 				key := strings.ToLower(name)
-				if !v.streams[key] || seen[key] {
+				if e = chargeLogical(s.Size); e != nil {
+					return e
+				}
+				expected, exists := v.streams[key]
+				if !exists || seen[key] || s.Size != expected {
 					return ErrTreePreserved
 				}
 				seen[key] = true
+			} else {
+				if defaultSeen || !v.directory && s.Size != actual {
+					return ErrTreePreserved
+				}
+				defaultSeen = true
 			}
 		}
-		if len(seen) != len(v.streams) {
+		if len(seen) != len(v.streams) || !v.directory && !defaultSeen {
 			return ErrTreePreserved
 		}
 		return nil
 	}
-	if e := checkStreams(&treeEntry{file: t.root}); e != nil {
+	if e := checkStreams(&treeEntry{file: t.root, directory: true}); e != nil {
 		return errors.Join(ErrTreePreserved, e)
 	}
 	for _, v := range t.entries {
@@ -127,6 +160,9 @@ func (t *OwnedTree) checkTopology(ctx context.Context) error {
 	if len(seen) != len(t.entries) {
 		return ErrTreePreserved
 	}
+	if logical != t.logical {
+		return fmt.Errorf("%w: logical-byte ledger total changed", ErrTreePreserved)
+	}
 	return nil
 }
 
@@ -189,10 +225,10 @@ func treeNames(ctx context.Context, f *os.File, l TreeLimits, read, result *uint
 	}
 }
 
-// Cleanup first proves the complete namespace and internal link equivalence.
-// It then deletes only exact held objects, never recursively deleting a path.
-// Reparse points and any unknown, foreign, replaced or linked-outside object
-// preserve the entire scope before the first deletion.
+// Cleanup proves actual lengths, namespace and internal link equivalence.
+// File-containing scopes are deliberately preserved: per-stream sharing pins
+// stabilize the recorded objects, but do not establish an atomic complete stream
+// namespace through deletion. Only proven directory-only trees can be removed.
 func (t *OwnedTree) Cleanup(ctx context.Context) error {
 	if t == nil {
 		return ErrTreePreserved
@@ -202,88 +238,48 @@ func (t *OwnedTree) Cleanup(ctx context.Context) error {
 	if e := t.checkTopology(ctx); e != nil {
 		return e
 	}
+	if e := ctx.Err(); e != nil {
+		return errors.Join(ErrTreePreserved, e)
+	}
+	for _, v := range t.entries {
+		if !v.directory {
+			return fmt.Errorf("%w: %s [volume=%d file=%d]: file-containing cleanup is unimplemented; whole stream namespace cannot be stabilized", ErrTreePreserved, t.identity.RelativePath, t.identity.Root.VolumeSerial, t.identity.Root.FileIndex)
+		}
+	}
 	names := make([]string, 0, len(t.entries))
 	for n := range t.entries {
 		names = append(names, n)
 	}
-	rank := func(n string) int {
-		v := t.entries[n]
-		if v.directory {
-			return 2
-		}
-		if v.alias {
-			return 1
-		}
-		return 0
-	}
-	sort.Slice(names, func(i, j int) bool {
-		a, b := rank(names[i]), rank(names[j])
-		if a != b {
-			return a < b
-		}
-		return len(names[i]) > len(names[j])
-	})
+	sort.Slice(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
 	for _, n := range names {
 		if e := ctx.Err(); e != nil {
 			return errors.Join(ErrTreePreserved, e)
 		}
 		v := t.entries[n]
 		info, e := nativeInfo(v.file)
-		links := uint32(0)
-		for _, other := range t.entries {
-			if other.id == v.id && !other.directory {
-				links++
-			}
-		}
-		if e != nil || nativeIdentity(info) != v.id || info.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 || !v.directory && info.NumberOfLinks != links {
+		if e != nil || !v.directory || nativeIdentity(info) != v.id || info.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
 			return errors.Join(ErrTreePreserved, e)
 		}
-		for _, f := range v.streamFiles {
-			if e := f.Close(); e != nil {
-				return errors.Join(ErrTreePreserved, e)
-			}
+		parent, leaf, e := t.parent(n)
+		if e != nil {
+			return e
 		}
-		v.streamFiles = nil
-		deletion := v.file
-		if v.alias || v.directory {
-			parent, leaf, e := t.parent(n)
-			if e != nil {
-				return e
-			}
-			if v.directory {
-				if e = v.file.Close(); e != nil {
-					return errors.Join(ErrTreePreserved, e)
-				}
-			}
-			options := uint32(windows.FILE_NON_DIRECTORY_FILE)
-			if v.directory {
-				options = windows.FILE_DIRECTORY_FILE
-			}
-			deletion, e = nativeTreeOpen(windows.Handle(parent.Fd()), leaf, windows.DELETE|windows.FILE_READ_ATTRIBUTES, windows.FILE_OPEN, options, nil)
-			if e != nil {
-				return errors.Join(ErrTreePreserved, e)
-			}
-			got, e := nativeInfo(deletion)
-			if e != nil || nativeIdentity(got) != v.id {
-				deletion.Close()
-				return errors.Join(ErrTreePreserved, e)
-			}
+		if e = v.file.Close(); e != nil {
+			return errors.Join(ErrTreePreserved, e)
+		}
+		deletion, e := t.openRemoval(windows.Handle(parent.Fd()), leaf, true)
+		if e != nil {
+			return errors.Join(ErrTreePreserved, e)
+		}
+		got, e := nativeInfo(deletion)
+		if e != nil || nativeIdentity(got) != v.id || got.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+			return errors.Join(ErrTreePreserved, e, deletion.Close())
 		}
 		if e := deleteHeld(deletion); e != nil {
-			if deletion != v.file {
-				deletion.Close()
-			}
-			return errors.Join(ErrTreePreserved, fmt.Errorf("delete exact held entry %s: %w", n, e))
+			return errors.Join(ErrTreePreserved, fmt.Errorf("delete exact held directory %s: %w", n, e), deletion.Close())
 		}
-		if deletion != v.file {
-			if e := deletion.Close(); e != nil {
-				return errors.Join(ErrTreePreserved, e)
-			}
-		}
-		if !v.directory {
-			if e := v.file.Close(); e != nil {
-				return errors.Join(ErrTreePreserved, e)
-			}
+		if e := deletion.Close(); e != nil {
+			return errors.Join(ErrTreePreserved, e)
 		}
 		delete(t.entries, n)
 	}

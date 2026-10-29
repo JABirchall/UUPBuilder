@@ -6,10 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	platform "uupbuilder/internal/platform/windows"
 )
 
 func TestDirectoryClaimDurableRefusalAndCheckedRelease(t *testing.T) {
-	s, inventory := newStore(t)
+	s, _ := newStore(t)
 	in := intent("preservation")
 	in.Inputs = append(in.Inputs, NamedDigest{Name: "preservation-proof", Digest: digest("proof")})
 	tx, e := s.Begin(testContext, in)
@@ -32,6 +33,26 @@ func TestDirectoryClaimDurableRefusalAndCheckedRelease(t *testing.T) {
 	}
 	if e = c.Release(testContext); e == nil {
 		t.Fatal("nonempty release succeeded")
+	}
+	if e = c.Tree().Cleanup(testContext); !errors.Is(e, platform.ErrTreePreserved) {
+		t.Fatal("file-containing cleanup falsely complete", e)
+	}
+	if e = c.Release(testContext); e == nil {
+		t.Fatal("preserved file-containing scope released")
+	}
+	if e = s.Close(); !errors.Is(e, platform.ErrTreePreserved) {
+		t.Fatal("preserved store Close falsely clean", e)
+	}
+	// A separate fresh directory-only claim exercises actual safe release;
+	// test TempDir teardown of the preserved first tree is not cleanup proof.
+	emptyStore, inventory := newStore(t)
+	emptyTx, e := emptyStore.Begin(testContext, in)
+	if e != nil {
+		t.Fatal(e)
+	}
+	c, e = emptyTx.ClaimDirectory(testContext, digest("proof"))
+	if e != nil {
+		t.Fatal(e)
 	}
 	if e = c.Tree().Cleanup(testContext); e != nil {
 		t.Fatal(e)

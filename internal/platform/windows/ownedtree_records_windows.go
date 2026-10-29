@@ -44,7 +44,16 @@ func (t *OwnedTree) CreateHardlink(ctx context.Context, original, name string) e
 	}
 	key := strings.ToLower(n)
 	cost := uint64(1024 + len(n)*4)
-	if t.entries[key] != nil || len(t.entries) >= t.limits.MaxEntries || source.size > t.limits.MaxLogicalBytes-t.logical || cost > t.limits.MaxResultBytes-t.resultBytes {
+	// Logical bytes count every named file, including each hardlink alias, and
+	// every named stream attached to that name. This is not physical allocation.
+	logical := source.size
+	for _, size := range source.streams {
+		if logical > t.limits.MaxLogicalBytes || size > t.limits.MaxLogicalBytes-logical {
+			return ErrTreeLimit
+		}
+		logical += size
+	}
+	if t.entries[key] != nil || len(t.entries) >= t.limits.MaxEntries || t.logical > t.limits.MaxLogicalBytes || logical > t.limits.MaxLogicalBytes-t.logical || cost > t.limits.MaxResultBytes-t.resultBytes {
 		return ErrTreeLimit
 	}
 	parent, leaf, e := t.parent(n)
@@ -77,7 +86,10 @@ func (t *OwnedTree) CreateHardlink(ctx context.Context, original, name string) e
 	entry := &treeEntry{id: source.id, size: source.size, alias: true, streams: source.streams}
 	t.entries[key] = entry
 	t.resultBytes += cost
-	t.logical += source.size
+	t.logical += logical
+	// This read handle must consent to the source writer's write/delete access.
+	// It is an exact object reference, not an independent alias namespace pin.
+	// Cleanup consequently preserves every file-containing scope.
 	f, e := nativeTreeOpen(windows.Handle(parent.Fd()), leaf, windows.FILE_GENERIC_READ, windows.FILE_OPEN, windows.FILE_NON_DIRECTORY_FILE, nil)
 	if e != nil {
 		return errors.Join(ErrTreePreserved, e)
@@ -127,20 +139,22 @@ func (t *OwnedTree) CreateNamedStream(ctx context.Context, name, stream string, 
 	if len(v.streams) >= 256 || uint64(len(data)) > t.limits.MaxLogicalBytes-t.logical || cost > t.limits.MaxResultBytes-t.resultBytes {
 		return ErrTreeLimit
 	}
-	if v.streams[strings.ToLower(s)] {
+	if _, exists := v.streams[strings.ToLower(s)]; exists {
 		return ErrTreePreserved
 	}
 	p, leaf, e := t.parent(n)
 	if e != nil {
 		return e
 	}
-	f, e := nativeTreeOpenShared(windows.Handle(p.Fd()), leaf+":"+s+":$DATA", windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE, windows.FILE_CREATE, windows.FILE_NON_DIRECTORY_FILE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE, nil)
+	// Sharing is per stream. Keep this recorded stream write-stable while
+	// consenting to the already-held default stream's DELETE access.
+	f, e := nativeTreeOpenShared(windows.Handle(p.Fd()), leaf+":"+s+":$DATA", windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE, windows.FILE_CREATE, windows.FILE_NON_DIRECTORY_FILE, windows.FILE_SHARE_READ|windows.FILE_SHARE_DELETE, nil)
 	if e != nil {
 		return e
 	}
 	v.streamFiles = append(v.streamFiles, f)
 	t.resultBytes += cost
-	v.streams[strings.ToLower(s)] = true
+	v.streams[strings.ToLower(s)] = uint64(len(data))
 	t.logical += uint64(len(data))
 	actual, e := nativeInfo(f)
 	if e != nil || nativeIdentity(actual) != v.id {
@@ -186,9 +200,9 @@ func (t *OwnedTree) create(ctx context.Context, name string, data []byte, dir bo
 	if dir {
 		options = windows.FILE_DIRECTORY_FILE
 	}
-	share := uint32(windows.FILE_SHARE_READ | windows.FILE_SHARE_WRITE)
-	if !dir {
-		share |= windows.FILE_SHARE_DELETE
+	share := uint32(windows.FILE_SHARE_READ)
+	if dir {
+		share |= windows.FILE_SHARE_WRITE
 	}
 	access := uint32(windows.FILE_GENERIC_READ | windows.FILE_GENERIC_WRITE)
 	if !dir {
@@ -198,7 +212,9 @@ func (t *OwnedTree) create(ctx context.Context, name string, data []byte, dir bo
 	if e != nil {
 		return e
 	}
-	v := &treeEntry{file: f, directory: dir, size: uint64(len(data)), streams: map[string]bool{}}
+	// The ordinary file handle denies compatible write/delete opens through
+	// proof/refusal. Do not infer independent alias or whole-stream custody.
+	v := &treeEntry{file: f, directory: dir, size: uint64(len(data)), streams: map[string]uint64{}}
 	// Retain the scope and exact acquired handle before any fallible descendant IO.
 	t.entries[key] = v
 	t.resultBytes += cost

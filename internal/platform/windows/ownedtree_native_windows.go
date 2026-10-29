@@ -121,5 +121,7 @@ func (t *OwnedTree) openRemoval(parent windows.Handle, leaf string, dir bool) (*
 	if dir {
 		options = windows.FILE_DIRECTORY_FILE
 	}
-	return nativeTreeOpen(parent, leaf, windows.DELETE|windows.FILE_READ_ATTRIBUTES, windows.FILE_OPEN, options, nil)
+	// Keep namespace/size custody from the checked open through disposition;
+	// consenting to delete sharing here would leave a post-check rename race.
+	return nativeTreeOpenShared(parent, leaf, windows.DELETE|windows.FILE_READ_ATTRIBUTES, windows.FILE_OPEN, options, windows.FILE_SHARE_READ, nil)
 }
