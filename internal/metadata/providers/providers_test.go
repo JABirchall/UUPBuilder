@@ -293,3 +293,82 @@ func TestAppxDirectorySnapshotPinsValidatedMetadata(t *testing.T) {
 		t.Fatalf("mutable source replaced validated directory: entries=%v changed=%v %v", z, r.changed, err)
 	}
 }
+
+type betweenDirectoryReads struct {
+	body                    []byte
+	mutateAfter, tailOffset int64
+	mutate                  func([]byte)
+	changed, tailCopied     bool
+	readsAfterTail          int
+}
+
+func (r *betweenDirectoryReads) ReadAt(p []byte, off int64) (int, error) {
+	if r.tailCopied {
+		r.readsAfterTail++
+	}
+	n, err := bytes.NewReader(r.body).ReadAt(p, off)
+	if !r.changed && off == r.mutateAfter {
+		r.mutate(r.body)
+		r.changed = true
+	}
+	if off == r.tailOffset && int64(n) == int64(len(r.body))-r.tailOffset {
+		r.tailCopied = true
+	}
+	return n, err
+}
+
+// Initial descriptors authorize only the last of 4,097 central records. The
+// source changes after that descriptor copy but before the final tail copy.
+// The exact immutable metadata passed to archive/zip must be checked again.
+func TestAppxDirectoryRejectsBetweenReadDescriptorChanges(t *testing.T) {
+	const entries = 4097
+	ordinary := centralZIP(entries, 1)
+	oldOffset := int64(30 + (entries-1)*46)
+	end := len(ordinary) - 22
+	binary.LittleEndian.PutUint32(ordinary[end+12:], 46)
+	binary.LittleEndian.PutUint32(ordinary[end+16:], uint32(oldOffset))
+	z64 := zip64Directory(ordinary)
+	for _, tc := range []struct {
+		name   string
+		body   []byte
+		after  int64
+		mutate func([]byte)
+	}{
+		{"EOCD", ordinary, int64(len(ordinary) - min(len(ordinary), 65557)), func(b []byte) {
+			at := len(b) - 22
+			binary.LittleEndian.PutUint16(b[at+8:], entries)
+			binary.LittleEndian.PutUint16(b[at+10:], entries)
+			binary.LittleEndian.PutUint32(b[at+12:], entries*46)
+			binary.LittleEndian.PutUint32(b[at+16:], 30)
+		}},
+		{"ZIP64-end", z64, int64(len(z64) - 98), func(b []byte) {
+			at := len(b) - 98
+			binary.LittleEndian.PutUint64(b[at+24:], entries)
+			binary.LittleEndian.PutUint64(b[at+32:], entries)
+			binary.LittleEndian.PutUint64(b[at+40:], entries*46)
+			binary.LittleEndian.PutUint64(b[at+48:], 30)
+		}},
+		{"ZIP64-locator", z64, int64(len(z64) - 42), func(b []byte) { binary.LittleEndian.PutUint64(b[len(b)-34:], ^uint64(0)) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			allocs := testing.AllocsPerRun(1, func() {
+				r := &betweenDirectoryReads{body: append([]byte(nil), tc.body...), mutateAfter: tc.after, tailOffset: oldOffset, mutate: tc.mutate}
+				z, err := newAppxZIP(context.Background(), r, int64(len(r.body)))
+				count := 0
+				if z != nil {
+					count = len(z.File)
+				}
+				if !r.changed || !r.tailCopied || !errors.Is(err, metadata.ErrIntegrity) || z != nil {
+					t.Errorf("unchecked replacement descriptor reached constructor: changed=%v snapshot=%v entries=%d err=%v", r.changed, r.tailCopied, count, err)
+				}
+				if r.readsAfterTail != 0 {
+					t.Errorf("reader construction followed descriptor mismatch: source reads after snapshot=%d", r.readsAfterTail)
+				}
+			})
+			if allocs > 64 {
+				t.Fatalf("replacement descriptor allocated entries: allocations=%g", allocs)
+			}
+			t.Logf("between-read descriptor replacement refused with %g allocations", allocs)
+		})
+	}
+}

@@ -97,6 +97,11 @@ type appxZIPReaderAt struct {
 	tail       []byte
 }
 
+type appxZIPDescriptor struct {
+	offset int64
+	data   []byte
+}
+
 func (r appxZIPReaderAt) ReadAt(p []byte, off int64) (int, error) {
 	if err := r.ctx.Err(); err != nil {
 		return 0, err
@@ -164,6 +169,7 @@ func newAppxZIP(ctx context.Context, r io.ReaderAt, size int64) (*zip.Reader, er
 	directorySize := uint64(binary.LittleEndian.Uint32(e[12:]))
 	directoryOffset := uint64(binary.LittleEndian.Uint32(e[16:]))
 	endOffset := size - int64(len(endBytes)) + int64(end)
+	descriptors := []appxZIPDescriptor{{endOffset, e}}
 	if count == 0xffff || directorySize == 0xffffffff || directoryOffset == 0xffffffff {
 		if endOffset < 20 {
 			return nil, metadata.ErrMalformedMetadata
@@ -190,6 +196,7 @@ func newAppxZIP(ctx context.Context, r io.ReaderAt, size int64) (*zip.Reader, er
 		if binary.LittleEndian.Uint32(z64[:]) != 0x06064b50 || length < 44 || offset+12+length != uint64(endOffset-20) || binary.LittleEndian.Uint32(z64[16:]) != 0 || binary.LittleEndian.Uint32(z64[20:]) != 0 || binary.LittleEndian.Uint64(z64[24:]) != binary.LittleEndian.Uint64(z64[32:]) {
 			return nil, metadata.ErrMalformedMetadata
 		}
+		descriptors = append(descriptors, appxZIPDescriptor{endOffset - 20, locator[:]}, appxZIPDescriptor{int64(offset), z64[:]})
 		count = binary.LittleEndian.Uint64(z64[32:])
 		directorySize = binary.LittleEndian.Uint64(z64[40:])
 		directoryOffset = binary.LittleEndian.Uint64(z64[48:])
@@ -212,6 +219,17 @@ func newAppxZIP(ctx context.Context, r io.ReaderAt, size int64) (*zip.Reader, er
 	tail := make([]byte, int(tailSize))
 	if _, err := reader.ReadAt(tail, int64(directoryOffset)); err != nil {
 		return nil, err
+	}
+	// The initial reads only bound this allocation. Require the immutable
+	// snapshot consumed by archive/zip to contain those exact descriptors,
+	// including the EOCD comment and separately read ZIP64 locator/end fields.
+	// Otherwise a changed source could direct archive/zip outside the directory
+	// whose actual records we preflight below.
+	for _, descriptor := range descriptors {
+		start := descriptor.offset - int64(directoryOffset)
+		if start < 0 || start > int64(len(tail)) || int64(len(descriptor.data)) > int64(len(tail))-start || !bytes.Equal(tail[start:start+int64(len(descriptor.data))], descriptor.data) {
+			return nil, metadata.ErrIntegrity
+		}
 	}
 	var at uint64
 	actual := uint64(0)
