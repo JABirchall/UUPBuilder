@@ -357,6 +357,18 @@ type nativeTemp struct {
 }
 
 func newNativeTemp() (*nativeTemp, error) {
+	return newNativeTempWith(nativeTempConstructorOps{os.OpenRoot, (*os.Root).Close, (*platform.Workspace).Close})
+}
+
+// Private constructor-only filesystem seam; it cannot select a native provider
+// or change the fixed inspection operation.
+type nativeTempConstructorOps struct {
+	openRoot       func(string) (*os.Root, error)
+	closeRoot      func(*os.Root) error
+	closeWorkspace func(*platform.Workspace) error
+}
+
+func newNativeTempWith(ops nativeTempConstructorOps) (result *nativeTemp, runErr error) {
 	v, e := platform.InspectStorage(os.TempDir())
 	if e != nil {
 		return nil, e
@@ -368,19 +380,37 @@ func newNativeTemp() (*nativeTemp, error) {
 	if e != nil {
 		return nil, e
 	}
-	r, e := os.OpenRoot(w.Path())
+	// Until both extra roots are transferred to nativeTemp, this guard owns
+	// every acquired handle. An incomplete custody chain cannot authorize
+	// directory removal: preserve the fresh scope and report its exact identity.
+	var r, p *os.Root
+	constructorOwned := true
+	defer func() {
+		if !constructorOwned {
+			return
+		}
+		var closeErr error
+		if p != nil {
+			closeErr = errors.Join(closeErr, ops.closeRoot(p))
+		}
+		if r != nil {
+			closeErr = errors.Join(closeErr, ops.closeRoot(r))
+		}
+		closeErr = errors.Join(closeErr, ops.closeWorkspace(w))
+		result = nil
+		runErr = fmt.Errorf("native cache preserved at %s (scope=%s): %w", w.Path(), filepath.Base(w.Path()), errors.Join(runErr, closeErr))
+	}()
+	r, e = ops.openRoot(w.Path())
 	if e != nil {
-		w.Close()
 		return nil, e
 	}
-	p, e := os.OpenRoot(filepath.Dir(w.Path()))
+	p, e = ops.openRoot(filepath.Dir(w.Path()))
 	if e != nil {
-		r.Close()
-		w.Close()
 		return nil, e
 	}
 	info, e := r.Stat(".")
 	t := &nativeTemp{workspace: w, root: r, parent: p, initial: info}
+	constructorOwned = false
 	if e != nil {
 		return nil, errors.Join(e, t.Close())
 	}

@@ -134,3 +134,33 @@ Full U07 must compose prepared inputs and inventory under active predecessor/tra
 Every advertised target/family and nine logical host/target pairs remain obligations; other physical hosts are optional under current host-proof policy. ARM64 historical evidence was not relabeled as this active x86 selection. All unsupported families/layouts/namespace contexts are implementation gaps, not upstream-unavailable. The sanitized testdata descriptor is an observation, never live authority.
 
 No mount/apply/export/capture/servicing, privileges/elevation, source/target/downloaded DLL/helper/shim/script execution, host setup/install, publication, boot/Setup execution, recovery work or source mutation occurred outside deliberate synthetic test files. The stopped downloaded-wimlib route was not retried.
+
+## Fix round 1 — U07A-R1 constructor-failure custody
+
+FIX_BASE: `0f880426e4a51a92bff196fe4685a85c4171bfbf`. Read the exact Important/P2 finding in `task-7a-round-1-findings.md` and the full `task-7a-review.md`. Verified the cause against `Workspace.Close`: it closes a handle without removing its generated directory. The old root/parent opener failures discarded close errors and returned only the opener error, losing the generated scope identity before `InspectReadOnly` could receive a nativeTemp.
+
+Changed only `internal/engine/native_windows.go`, new `internal/engine/native_temp_test.go`, and this report. A constructor ownership guard is registered immediately after workspace creation. It owns every acquired handle until both extra roots are held by nativeTemp, attempts all applicable closes on an opener failure, joins their errors with the original failure, returns no cache, and explicitly reports `native cache preserved at <exact generated path> (scope=<generated directory ID>)`. Because that early chain lacks complete checked directory custody, it deliberately preserves the owner-marked directory rather than attempting deletion. Later fully constructed nativeTemp cleanup remains unchanged. The private filesystem opener/closer seam cannot choose a provider, image API, source or inspection operation.
+
+Tests use real fresh protected workspaces and deterministic root-open/parent-open failures, each with normal closes and reported close failures. They check the opener and close error chains, exactly one close attempt for every acquired handle, actually closed test handles, a nil result, explicit generated path/ID, unchanged directory identity and owner bytes. The injected close failures are reported after actual close so the tests do not strand handles. Test cleanup independently verifies its own exact flat fresh scope/owner and removes only that marker and empty directory; unknown or replaced entries are preserved. There is no recursive deletion.
+
+RED → GREEN evidence:
+
+```text
+go test ./internal/engine -run '^TestNativeTempConstructorRetainsOpenerFailureCustody$' -count=1 -v
+Initial missing-seam compile RED: undefined nativeTempConstructorOps / newNativeTempWith.
+After extracting only the old behavior into that seam, behavioral RED:
+  all four root-open|parent-open / close-ok|close-error cases failed
+  native_temp_test.go:81: constructor lost generated scope identity: injected constructor opener failure
+  FAIL ... (0.14s); package FAIL 0.155s
+After adding the immediate ownership/preservation/error-join guard:
+  all four cases PASS (0.12s); package ok 0.139s
+
+go test ./internal/engine/... -count=1
+ok uupbuilder/internal/engine 0.947s
+ok uupbuilder/internal/engine/source 0.980s
+affected packages exit=0
+```
+
+Exact retained outputs: `task-7a-fix-1-red.log`, `task-7a-fix-1-green.log`, `task-7a-fix-1-packages.log`. Self-review read the entire scoped production/test diff, checked ownership transfer and both early failure branches, and confirmed no unchecked close remains in either branch. `git diff --check` passed. Only focused and affected-package checks were run for this constructor fix, as directed; the full 27-package/native/reconstruction/vet/build bundle was not repeated.
+
+No provider, recipe, writer, Toolchain, operation graph or app behavior changed. The first native and final byte-only observations above retain their exact historical identities and chronology; this fix neither reruns nor promotes either observation. U07A awaits the controller's scoped rereview before further implementation.
