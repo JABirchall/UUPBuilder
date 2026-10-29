@@ -13,6 +13,7 @@ import (
 )
 
 type workspaceRemoval struct {
+	selectedParent                 string
 	parent                         *os.File
 	created, owner                 *os.File
 	parentID, rootID, ownerID      FileIdentity

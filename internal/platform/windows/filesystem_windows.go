@@ -109,7 +109,7 @@ func createWorkspace(parentRoot *os.Root, parentHandle *os.File, parent, jobID, 
 		return nil, err
 	}
 	// Custody begins at the native creation, before any fallible initialization.
-	w = &Workspace{identity: WorkspaceIdentity{Path: filepath.Join(parent, name), JobID: jobID, Token: token}, mounts: make(map[string]mountClaim), fresh: &workspaceRemoval{parent: parentHandle, parentID: nativeIdentity(parentInfo), created: os.NewFile(uintptr(created), name)}}
+	w = &Workspace{identity: WorkspaceIdentity{Path: filepath.Join(parent, name), JobID: jobID, Token: token}, mounts: make(map[string]mountClaim), fresh: &workspaceRemoval{selectedParent: parent, parent: parentHandle, parentID: nativeIdentity(parentInfo), created: os.NewFile(uintptr(created), name)}}
 	parentOwned = true
 	original, err := nativeInfo(w.fresh.created)
 	if err != nil {
