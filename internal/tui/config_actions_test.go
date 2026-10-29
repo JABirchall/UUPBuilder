@@ -221,6 +221,48 @@ func TestSaveNarrowViewKeepsSelectedActionVisible(t *testing.T) {
 	}
 }
 
+func TestConfigLoadOutcomesRemainVisibleInCompactViews(t *testing.T) {
+	for _, outcome := range []string{"failed", "stale"} {
+		t.Run(outcome, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "settings.toml")
+			if outcome == "stale" {
+				if err := os.WriteFile(path, []byte("schema_version = 1\n"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			m := New(Dependencies{Catalog: testCatalog{}, ConfigPath: path}, config.Defaults())
+			m = send(m, NavigateMsg{Area: Conversion})
+			m.conversion.cursor = 1
+			m, load := step(m, LoadConfigMsg{})
+			result := load()
+			want := "Load failed:"
+			if outcome == "stale" {
+				m = send(m, ConversionFieldChangedMsg{Key: "downloads.retries", Value: "8"})
+				want = "Load discarded:"
+			}
+			m = send(m, result)
+			if !strings.HasPrefix(m.notice, want) {
+				t.Fatalf("test did not produce the expected outcome: %q", m.notice)
+			}
+			for _, size := range [][2]int{{68, 24}, {40, 16}, {68, 20}} {
+				m = send(m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+				view := ansi.Strip(m.View().Content)
+				if !strings.Contains(view, want) || !strings.Contains(view, "> TOML | Load") {
+					t.Fatalf("%v: config outcome or focused action hidden:\n%s", size, view)
+				}
+				if len(strings.Split(view, "\n")) > size[1] {
+					t.Fatal("config feedback overflows the viewport height")
+				}
+				for _, line := range strings.Split(view, "\n") {
+					if ansi.StringWidth(line) > size[0] {
+						t.Fatal("config feedback overflows the viewport width")
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestConfigPathChangeInvalidatesReviewedDraft(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "new", "config.toml")

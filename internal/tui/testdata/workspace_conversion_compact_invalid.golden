@@ -5,7 +5,6 @@
 │ Downloads · downloads.parallel_files │
 │ requested: 0 | effective: unchecked (source applicability │
 │ unresolved) │
-│ │Output · Output dir… | . │ │
 │ │Output · Filename (… | auto │ │
 │ │Output · Volume lab… | auto │ │
 │ │Output · Edition or… | │ │
@@ -14,5 +13,6 @@
 │ │> Downloads · Paralle… | 0 │ │
 │ Source: none selected │
 │ Target: amd64 | Language: choose | Editions: choose │
+│ ! downloads.parallel_files: must be positive │
 │ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
 │ | ? help | ctrl+c quit │

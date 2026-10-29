@@ -154,8 +154,20 @@ func (m Model) layout() (string, []hit) {
 	if m.showTOML || m.showHelp {
 		summary = nil
 	}
-	if len(summary) > max(0, bodyHeight-3) {
-		summary = summary[:max(0, bodyHeight-3)]
+	summaryLimit := max(0, bodyHeight-3)
+	hasNotice := m.notice != "" && !m.showTOML && !m.showHelp
+	if hasNotice && bodyHeight > 0 {
+		summaryLimit = max(1, summaryLimit)
+	}
+	if len(summary) > summaryLimit {
+		if hasNotice && summaryLimit > 0 {
+			// Config outcomes must survive compact clipping; optional source
+			// details yield before the final sanitized notice row.
+			notice := summary[len(summary)-1]
+			summary = append(summary[:summaryLimit-1], notice)
+		} else {
+			summary = summary[:summaryLimit]
+		}
 	}
 	areaHeight := max(0, bodyHeight-len(summary))
 	rows := m.areaRows(width, areaHeight)
@@ -267,7 +279,7 @@ func (m Model) summaryRows(width int, dense bool) []row {
 	if m.appsUnchecked {
 		rows = append(rows, row{text: muted.Render(appsUncheckedNotice)})
 	}
-	if m.notice != "" && !dense {
+	if m.notice != "" {
 		rows = append(rows, row{text: muted.Render("! " + terminalText(m.notice))})
 	}
 	if !dense && m.area == Builds && width >= 76 {

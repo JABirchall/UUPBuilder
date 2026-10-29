@@ -2,7 +2,6 @@
 │ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
 │ 06 Progress │
 │ Configure the image │
-│ One target, one language, one or more editions. │
 │ │Target | amd64 arm64 future x86 │ │
 │ │Language | en-us · English [1/2] (selected) │ │
 │ Available (cache or network) | checked 12:30Z | r refresh │
@@ -14,5 +13,6 @@
 │ Source: Windows example · 26100.1 │
 │ Target: amd64 | Language: en-us | Editions: professional │
 │ Apps: unchecked; requested policies retained. │
+│ ! Edition selection changed; app applicability must be chec... │
 │ tab field | ↑↓ move | space toggle | enter choose/next | r │
 │ retry | t TOML | esc back | ? help │

@@ -5,7 +5,6 @@
 │ Output · output.directory │
 │ requested: C:\very-long-output- │
 │ name\directorydirectorydirectorydirectorydirectorydirectory... │
-│ │Drivers · Integrate… | false │ │
 │ │Drivers · Driver so… | │ │
 │ │Drivers · Targets (… | │ │
 │ │Output · Output kind | iso │ │
@@ -14,5 +13,6 @@
 │ │> Output · Output dir… | C:\very-long-output-name\directo...│ │
 │ Source: none selected │
 │ Target: amd64 | Language: choose | Editions: choose │
+│ ! output.directory: must be nonempty UTF-8 without surround... │
 │ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
 │ | ? help | ctrl+c quit │
