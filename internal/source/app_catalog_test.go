@@ -10,21 +10,65 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
+	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/model"
 )
 
 const appTestID = "11111111-1111-1111-1111-111111111111_rev.2"
 const appNS = `http://schemas.microsoft.com/embedded/2004/10/ImageUpdate`
+
+type appTestRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f appTestRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestAppCatalogDoesNotTruncateAttemptTimeout(t *testing.T) {
+	loader := NewAppCatalog("https://example.invalid/")
+	loader.metadata.RequestTimeout = 3 * time.Minute
+	loader.http.Timeout = 0
+	loader.http.Transport = appTestRoundTripper(func(r *http.Request) (*http.Response, error) {
+		deadline, ok := r.Context().Deadline()
+		if !ok || time.Until(deadline) < 165*time.Second {
+			t.Fatalf("whole-load timeout truncated a bounded attempt: %v", time.Until(deadline))
+		}
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"response":{"editionList":["PROFESSIONAL"]}}`)), Header: make(http.Header)}, nil
+	})
+	if _, err := loader.Load(context.Background(), appSelection()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type appPacingClock struct {
+	now     time.Time
+	onSleep func()
+}
+
+func newAppPacingClock() *appPacingClock { return &appPacingClock{now: time.Unix(1700000000, 0)} }
+func (c *appPacingClock) Now() time.Time { return c.now }
+func (c *appPacingClock) Sleep(ctx context.Context, d time.Duration) error {
+	if c.onSleep != nil {
+		c.onSleep()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c.now = c.now.Add(d)
+	return nil
+}
+func setAppTestPacer(loader *SourceAppCatalog, clock *appPacingClock) {
+	pacer := catalog.NewGetPacer(clock)
+	loader.metadata.Clock, loader.online.Clock = clock, clock
+	loader.metadata.Pacer, loader.online.Pacer = pacer, pacer
+}
 
 func appXML(features string) string {
 	return `<CompDB xmlns="` + appNS + `" SchemaVersion="1.2" Type="Build" Product="Desktop" BuildID="build-id" BuildArch="amd64" OSVersion="10.0.1.1">` + features + `</CompDB>`
@@ -169,106 +213,93 @@ func TestAppCatalogBodyRetryAfterPacesTheNextLoad(t *testing.T) {
 }
 
 func TestAppCatalogPacesActualRetryAndFollowingRequest(t *testing.T) {
-	for _, retryAfter := range []string{"0", "", "1"} {
-		t.Run("RetryAfter="+retryAfter, func(t *testing.T) {
-			var mu sync.Mutex
+	for _, header := range []string{"0", "", "1"} {
+		t.Run("RetryAfter="+header, func(t *testing.T) {
+			f := newAppHTTPFixture()
+			clock := newAppPacingClock()
 			var sends []time.Time
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				mu.Lock()
-				sends = append(sends, time.Now())
-				attempt := len(sends)
-				mu.Unlock()
-				if attempt == 1 {
-					if retryAfter != "" {
-						w.Header().Set("Retry-After", retryAfter)
+				if r.URL.Path == "/get.php" && r.URL.Query().Get("noLinks") == "0" {
+					sends = append(sends, clock.Now())
+					if len(sends) == 1 {
+						if header != "" {
+							w.Header().Set("Retry-After", header)
+						}
+						w.WriteHeader(429)
+						fmt.Fprint(w, `{"response":{"error":"USER_RATE_LIMITED"}}`)
+						return
 					}
-					w.WriteHeader(http.StatusTooManyRequests)
-					fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
-					return
 				}
-				if r.URL.Path == "/listeditions.php" {
-					fmt.Fprint(w, `{"response":{"editionList":["APP"]}}`)
-					return
-				}
-				fmt.Fprint(w, `{"response":{"error":"NO_FILES"}}`)
+				f.serve(w, r)
 			}))
 			defer server.Close()
 			loader := NewAppCatalog(server.URL)
-			if _, err := loader.Load(context.Background(), appSelection()); err == nil {
-				t.Fatal("fixture must stop after the request following the retry")
+			setAppTestPacer(loader, clock)
+			snapshot, err := loader.Load(context.Background(), appSelection())
+			if err != nil || snapshot.State != AppCatalogAvailable {
+				t.Fatalf("rate-limited app load failed: %v", err)
 			}
-			mu.Lock()
-			observed := append([]time.Time(nil), sends...)
-			mu.Unlock()
-			if len(observed) != 3 {
-				t.Fatalf("wrong actual HTTP sequence: %d", len(observed))
+			if len(sends) != 2 || sends[1].Sub(sends[0]) < 10250*time.Millisecond {
+				t.Fatalf("actual linked requests not paced: %v", sends)
 			}
-			retryGap, nextGap := observed[1].Sub(observed[0]), observed[2].Sub(observed[1])
-			minimum := 480 * time.Millisecond
-			if retryAfter == "1" {
-				minimum = 980 * time.Millisecond
-			}
-			// Small arrival-time tolerance accounts for the local server receiving the
-			// send after its transport start. The implementation interval stays 500 ms.
-			if retryGap < minimum || nextGap < 480*time.Millisecond {
-				t.Fatalf("actual HTTP requests not paced: retry=%v next=%v", retryGap, nextGap)
-			}
-			t.Logf("actual HTTP arrival gaps: retry=%v following=%v", retryGap, nextGap)
 		})
 	}
 }
 
 func TestAppCatalogCancellationStopsPacedImmediateRetry(t *testing.T) {
-	var mu sync.Mutex
+	f := newAppHTTPFixture()
 	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		calls++
-		mu.Unlock()
-		w.Header().Set("Retry-After", "0")
-		w.WriteHeader(http.StatusTooManyRequests)
-		fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
+		if r.URL.Path == "/get.php" && r.URL.Query().Get("noLinks") == "0" {
+			calls++
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(429)
+			fmt.Fprint(w, `{"response":{"error":"USER_RATE_LIMITED"}}`)
+			return
+		}
+		f.serve(w, r)
 	}))
 	defer server.Close()
-	loader := NewAppCatalog(server.URL)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	clock := newAppPacingClock()
+	clock.onSleep = func() {
+		if calls > 0 {
+			cancel()
+		}
+	}
+	loader := NewAppCatalog(server.URL)
+	setAppTestPacer(loader, clock)
 	_, err := loader.Load(ctx, appSelection())
-	mu.Lock()
-	observed := calls
-	mu.Unlock()
-	if !errors.Is(err, context.DeadlineExceeded) || observed != 1 {
-		t.Fatalf("cancellation sent an immediate retry: %v calls=%d", err, observed)
+	if !errors.Is(err, context.Canceled) || calls != 1 {
+		t.Fatalf("cancellation sent an immediate retry: %v calls=%d", err, calls)
 	}
 }
 
 func TestAppCatalogLongRetryAfterSurvivesToNextLoad(t *testing.T) {
-	for _, retryAfter := range []string{"121", "18446744073709551616"} {
-		t.Run(retryAfter, func(t *testing.T) {
-			var mu sync.Mutex
+	for _, header := range []string{"121", "18446744073709551616"} {
+		t.Run(header, func(t *testing.T) {
+			f := newAppHTTPFixture()
 			calls := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				mu.Lock()
-				calls++
-				mu.Unlock()
-				w.Header().Set("Retry-After", retryAfter)
-				w.WriteHeader(http.StatusTooManyRequests)
-				fmt.Fprint(w, `{"response":{"error":"RATE_LIMIT"}}`)
+				if r.URL.Path == "/get.php" && r.URL.Query().Get("noLinks") == "0" {
+					calls++
+					w.Header().Set("Retry-After", header)
+					w.WriteHeader(429)
+					fmt.Fprint(w, `{"response":{"error":"USER_RATE_LIMITED"}}`)
+					return
+				}
+				f.serve(w, r)
 			}))
 			defer server.Close()
 			loader := NewAppCatalog(server.URL)
-			loader.interval = 0
-			if _, err := loader.Load(context.Background(), appSelection()); err == nil {
-				t.Fatal("server delay beyond catalog retry window succeeded")
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
-			defer cancel()
-			_, err := loader.Load(ctx, appSelection())
-			mu.Lock()
-			observed := calls
-			mu.Unlock()
-			if !errors.Is(err, context.DeadlineExceeded) || observed != 1 {
-				t.Fatalf("longer server delay was lost between loads: %v calls=%d", err, observed)
+			setAppTestPacer(loader, newAppPacingClock())
+			for range 2 {
+				_, err := loader.Load(context.Background(), appSelection())
+				var later *catalog.RetryLaterError
+				if !errors.As(err, &later) || calls != 1 {
+					t.Fatalf("longer cooldown lost or not explained: %v calls=%d", err, calls)
+				}
 			}
 		})
 	}
@@ -328,12 +359,55 @@ func TestAppCatalogLiveCachedMetadata(t *testing.T) {
 	}
 	t.Logf("paced live cached metadata source=%s build=%s arch=%s language=%s choices=%d CAB=%s documents=%+v", snapshot.SelectedSource.UpdateID, snapshot.SelectedSource.BuildLabel, snapshot.SelectedSource.Architecture, snapshot.SelectedSource.Language, count, snapshot.CAB.Digest.Value, snapshot.Documents)
 }
+
+func TestAppCatalogLiveFreshMetadata(t *testing.T) {
+	if os.Getenv("UUPBUILDER_APP_LIVE") != "1" {
+		t.Skip("explicit opt-in live fresh metadata/CAB walk")
+	}
+	selection := model.Selection{UpdateID: "8f550c54-da87-45d3-89e3-0c03a6f16ae8", Architecture: "amd64", Language: "en-gb", Editions: []string{"PROFESSIONAL"}}
+	loader := NewAppCatalog("")
+	metadataRequests, linkedRequests, bodyRequests := 0, 0, 0
+	var previousGet time.Time
+	loader.http.Transport = appTestRoundTripper(func(r *http.Request) (*http.Response, error) {
+		now := time.Now()
+		if strings.HasSuffix(r.URL.Path, "/get.php") {
+			if r.URL.Query().Get("noLinks") == "1" {
+				metadataRequests++
+			} else {
+				linkedRequests++
+				if !previousGet.IsZero() && now.Sub(previousGet) < 10250*time.Millisecond {
+					t.Error("live linked request bypassed cooldown")
+				}
+			}
+			previousGet = now
+		} else if !strings.HasSuffix(r.URL.Path, "/listeditions.php") {
+			bodyRequests++
+		}
+		return http.DefaultTransport.RoundTrip(r)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	snapshot, err := loader.Load(ctx, selection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	choices := 0
+	for _, entry := range snapshot.Entries {
+		if len(entry.Editions) > 0 && entry.Type != "MSIXFramework" {
+			choices++
+		}
+	}
+	if snapshot.State != AppCatalogAvailable || choices != 50 || metadataRequests != 2 || linkedRequests != 1 || bodyRequests != 1 {
+		t.Fatalf("fresh source changed: state=%s choices=%d metadata=%d links=%d bodies=%d", snapshot.State, choices, metadataRequests, linkedRequests, bodyRequests)
+	}
+	t.Logf("fresh live source=%s choices=%d metadata=%d linked=%d CAB requests=%d SHA256=%s", selection.UpdateID, choices, metadataRequests, linkedRequests, bodyRequests, snapshot.CAB.Digest.Value)
+}
 func fixtureAppLoader(t *testing.T, f *appHTTPFixture) *SourceAppCatalog {
 	t.Helper()
 	s := httptest.NewServer(http.HandlerFunc(f.serve))
 	t.Cleanup(s.Close)
 	loader := NewAppCatalog(s.URL)
-	loader.interval = 0
+	setAppTestPacer(loader, newAppPacingClock())
 	return loader
 }
 func appSelection() model.Selection {
@@ -482,7 +556,7 @@ func TestAppCatalogRetainedEvidence(t *testing.T) {
 	}))
 	defer server.Close()
 	loader := NewAppCatalog(server.URL)
-	loader.interval = 0
+	setAppTestPacer(loader, newAppPacingClock())
 	selection := model.Selection{UpdateID: "8f550c54-da87-45d3-89e3-0c03a6f16ae8", Architecture: "amd64", Language: "en-gb", Editions: []string{"PROFESSIONAL"}}
 	snapshot, err := loader.Load(context.Background(), selection)
 	if err != nil {

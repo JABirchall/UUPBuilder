@@ -35,6 +35,25 @@ func appsChosen(t *testing.T) Model {
 	return m
 }
 
+func TestAppsMultiEditionLoadSurvivesPacing(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m.deps.AppCatalog = testAppCatalog{func(ctx context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		if deadline, ok := ctx.Deadline(); ok {
+			t.Fatalf("whole-load deadline %v can expire during valid multi-edition pacing", time.Until(deadline))
+		}
+		return appSnapshot(s), nil
+	}}
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	if cmd == nil {
+		t.Fatal("app load absent")
+	}
+	m = send(m, cmd())
+	if m.apps.status.err != nil || len(m.appChoices()) != 2 {
+		t.Fatalf("app load failed: %v", m.apps.status.err)
+	}
+}
+
 func TestAppsCommandToggleTOMLSaveLoadRoundTrip(t *testing.T) {
 	m := appsChosen(t)
 	m.configActions.path = filepath.Join(t.TempDir(), "apps.toml")
@@ -277,7 +296,7 @@ func TestAppsDetailsShowSourceDependencyAndLicenseMismatch(t *testing.T) {
 	}
 }
 
-func TestAppsSourceChangeCancelsRunningLoadRetainsUnknownRequests(t *testing.T) {
+func TestAppsSelectionChangeCancelsQueuedLoad(t *testing.T) {
 	m := appsChosen(t)
 	m.cfg.Apps.Mode = model.AppsCustom
 	m.cfg.Apps.Include = []string{"Unavailable.Family_pub"}

@@ -26,16 +26,14 @@ type SourceAppCatalog struct {
 	metadata, online *catalog.Client
 	http             *http.Client
 	gate             chan struct{}
-	interval         time.Duration
-	lastRequest      time.Time
-	retryAfter       time.Time
+	bodyCooldown     map[string]time.Time
 	cachedID         model.PayloadIdentity
 	cachedCAB        []byte
 }
 
 func NewAppCatalog(endpoint string) *SourceAppCatalog {
-	c := &SourceAppCatalog{gate: make(chan struct{}, 1), interval: 500 * time.Millisecond}
-	client := &http.Client{Transport: &appCatalogTransport{owner: c, base: http.DefaultTransport}, Timeout: 45 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	c := &SourceAppCatalog{gate: make(chan struct{}, 1), bodyCooldown: make(map[string]time.Time)}
+	client := &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 || !appURL(req.URL) {
 			return ErrInvalidInput
 		}
@@ -50,25 +48,9 @@ func NewAppCatalog(endpoint string) *SourceAppCatalog {
 	return c
 }
 
-// Both catalogue retry attempts and CAB requests pass this private send
-// boundary. Load's cancelable admission gate serializes all calls and state;
-// pacing an outer catalogue method would miss its internal HTTP retries.
-type appCatalogTransport struct {
-	owner *SourceAppCatalog
-	base  http.RoundTripper
-}
-
-func (t *appCatalogTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if err := t.owner.pace(req.Context()); err != nil {
-		return nil, err
-	}
-	resp, err := t.base.RoundTrip(req)
-	if err == nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable) {
-		t.owner.observeRetryAfter(resp.Header.Get("Retry-After"))
-	}
-	return resp, err
-}
-func (c *SourceAppCatalog) observeRetryAfter(raw string) {
+// CAB Retry-After belongs to the payload origin, independently of get.php.
+// Load's admission gate protects this state and the private verified CAB cache.
+func (c *SourceAppCatalog) observeBodyRetryAfter(origin, raw string) {
 	value := strings.TrimSpace(raw)
 	if value == "" {
 		return
@@ -88,19 +70,19 @@ func (c *SourceAppCatalog) observeRetryAfter(raw string) {
 	} else if date, err := http.ParseTime(value); err == nil {
 		until = date
 	}
-	if until.After(c.retryAfter) {
-		c.retryAfter = until
+	if until.After(c.bodyCooldown[origin]) {
+		c.bodyCooldown[origin] = until
 	}
 }
 func appURL(u *url.URL) bool {
 	return u != nil && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https") && u.User == nil && u.Fragment == ""
 }
-func (c *SourceAppCatalog) pace(ctx context.Context) error {
-	next := c.lastRequest.Add(c.interval)
-	if c.retryAfter.After(next) {
-		next = c.retryAfter
-	}
+func (c *SourceAppCatalog) waitBody(ctx context.Context, origin string) error {
+	next := c.bodyCooldown[origin]
 	delay := time.Until(next)
+	if delay > 2*time.Minute {
+		return &catalog.RetryLaterError{RetryAt: next}
+	}
 	if delay > 0 {
 		timer := time.NewTimer(delay)
 		defer timer.Stop()
@@ -110,11 +92,7 @@ func (c *SourceAppCatalog) pace(ctx context.Context) error {
 		case <-timer.C:
 		}
 	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	c.lastRequest = time.Now()
-	return nil
+	return ctx.Err()
 }
 
 func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) (result AppCatalogSnapshot, err error) {
@@ -123,8 +101,6 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 	if ctx == nil || selection.Validate() != nil || c == nil || c.gate == nil || c.metadata == nil || c.online == nil || c.http == nil || len(selection.Editions) > 64 {
 		return result, ErrInvalidInput
 	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
 	select {
 	case <-ctx.Done():
 		return result, ctx.Err()
@@ -261,6 +237,10 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 	if err != nil || !appURL(u) || !locator.ExpiresAt.IsZero() && !time.Now().Before(locator.ExpiresAt) {
 		return nil, ErrPayloadUnavailable
 	}
+	origin := strings.ToLower(u.Scheme + "://" + u.Host)
+	if err := c.waitBody(ctx, origin); err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, locator.URL, nil)
 	if err != nil {
 		return nil, ErrInvalidInput
@@ -271,6 +251,9 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 		return nil, ErrPayloadUnavailable
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
+		c.observeBodyRetryAfter(origin, resp.Header.Get("Retry-After"))
+	}
 	// No retries of body locators: upstream throttling is returned to the caller,
 	// whose retry is deliberate. Catalogue retries honor its Retry-After policy.
 	if resp.StatusCode != http.StatusOK || resp.ContentLength > id.Size {

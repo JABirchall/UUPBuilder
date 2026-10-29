@@ -10,6 +10,7 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/model"
 	"uupbuilder/internal/source"
 )
@@ -77,7 +78,12 @@ func (m *Model) beginApps(force bool) tea.Cmd {
 		m.apps.status = resultStatus(errors.New("source app catalogue unavailable in this workspace"), time.Now())
 		return nil
 	}
-	ctx, cancel := m.requestContext(force)
+	// A source may need many metadata lookups and a queued online request.
+	// Bound individual HTTP attempts in the producer, not the whole load.
+	ctx, cancel := context.WithCancel(m.ctx)
+	if force {
+		ctx = catalog.WithRefresh(ctx)
+	}
 	m.apps.cancel = cancel
 	m.apps.status = requestStatus{loading: true}
 	generation, selection, endpoint, loader := m.apps.generation, m.apps.selection, m.apps.endpoint, m.deps.AppCatalog
@@ -214,7 +220,7 @@ func (m Model) appsRows(width, height int) []row {
 	if m.image.ready(m.cfg.Image) {
 		switch {
 		case m.apps.status.loading:
-			status = "Loading source app metadata (small CAB only)..."
+			status = "Loading app metadata; link requests may wait or retry..."
 		case m.apps.status.err != nil:
 			status = "App catalogue unavailable | r retry: " + boundedText(m.apps.status.err.Error(), 160)
 		case m.apps.snapshot.State == source.AppCatalogAvailable:

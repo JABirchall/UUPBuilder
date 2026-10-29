@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"uupbuilder/internal/model"
 )
@@ -74,6 +75,7 @@ func TestFilesLocatorsRemainRuntimeOnlyAndKeepDeclaredScheme(t *testing.T) {
 	}))
 	defer s.Close()
 	c := New(s.Client(), s.URL)
+	c.Pacer = NewGetPacer(&testClock{now: time.Unix(1700000000, 0)})
 	first, err := c.Files(context.Background(), sourceID, "en-us", "updateonly")
 	if err != nil {
 		t.Fatal(err)

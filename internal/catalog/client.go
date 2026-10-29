@@ -23,6 +23,7 @@ type Client struct {
 	CacheTTL       time.Duration
 	RequestTimeout time.Duration
 	MaxBodyBytes   int64
+	Pacer          *GetPacer
 	// MetadataOnly requests noLinks=1. Its success proves metadata availability,
 	// not the availability of payload bodies or online locators.
 	MetadataOnly bool
@@ -48,6 +49,7 @@ func New(client *http.Client, baseURL string) *Client {
 	}
 	u.Path = strings.TrimRight(u.Path, "/") + "/"
 	c.base = u
+	c.Pacer = sharedGetPacer(u)
 	return c
 }
 
@@ -90,69 +92,31 @@ func (c *Client) fetch(ctx context.Context, endpoint string, query url.Values) (
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		timeout := c.RequestTimeout
-		if timeout <= 0 {
-			timeout = 45 * time.Second
-		}
-		requestCtx, cancel := context.WithTimeout(ctx, timeout)
-		req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			cancel()
-			return nil, errors.New("catalog request could not be constructed")
-		}
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", "UUPBuilder/catalog")
-		resp, err := c.http.Do(req)
 		var data []byte
 		var retryAfter string
 		var retry bool
-		if err != nil {
-			if resp != nil && resp.Body != nil {
-				_ = resp.Body.Close()
+		send := func(sendCtx context.Context) (*http.Response, error) {
+			resp, body, shouldRetry, err := c.fetchAttempt(sendCtx, &u, endpoint)
+			data, retry = body, shouldRetry
+			if resp != nil {
+				retryAfter = resp.Header.Get("Retry-After")
 			}
-			if ctx.Err() != nil {
-				cancel()
-				return nil, ctx.Err()
-			}
-			timedOut := errors.Is(err, context.DeadlineExceeded)
-			err = fmt.Errorf("catalog %s: transport failed", endpoint)
-			if timedOut {
-				err = fmt.Errorf("catalog %s: %w", endpoint, context.DeadlineExceeded)
-			}
-			if requestCtx.Err() != nil {
-				err = fmt.Errorf("catalog %s: %w", endpoint, requestCtx.Err())
-			}
-			retry = true
-		} else {
-			limit := c.MaxBodyBytes
-			if limit <= 0 {
-				limit = 32 << 20
-			}
-			data, err = io.ReadAll(io.LimitReader(resp.Body, limit+1))
-			_ = resp.Body.Close()
-			retryAfter = resp.Header.Get("Retry-After")
-			if err != nil {
-				if ctx.Err() != nil {
-					cancel()
-					return nil, ctx.Err()
-				}
-				timedOut := errors.Is(err, context.DeadlineExceeded)
-				err = fmt.Errorf("catalog %s: response body read failed", endpoint)
-				if timedOut {
-					err = fmt.Errorf("catalog %s: %w", endpoint, context.DeadlineExceeded)
-				}
-				if requestCtx.Err() != nil {
-					err = fmt.Errorf("catalog %s: %w", endpoint, requestCtx.Err())
-				}
-				retry = true
-			} else if int64(len(data)) > limit {
-				err = fmt.Errorf("catalog %s: response exceeds %d-byte limit", endpoint, limit)
-			} else {
-				_, err = decodeEnvelope(data, endpoint, resp.StatusCode)
-				retry = resp.StatusCode == 429 || resp.StatusCode >= 500
-			}
+			return resp, err
 		}
-		cancel()
+		var err error
+		if endpoint == "get.php" {
+			pacer := c.Pacer
+			if pacer == nil {
+				pacer = sharedGetPacer(c.base)
+			}
+			if query.Get("noLinks") == "1" {
+				_, err = pacer.DoMetadata(ctx, send)
+			} else {
+				_, err = pacer.Do(ctx, send)
+			}
+		} else {
+			_, err = send(ctx)
+		}
 		if err == nil {
 			return data, nil
 		}
@@ -164,6 +128,9 @@ func (c *Client) fetch(ctx context.Context, endpoint string, query url.Values) (
 		}
 		delay, allowed := retryDelay(retryAfter, attempt, clock.Now())
 		if !allowed {
+			if endpoint == "get.php" {
+				return nil, &RetryLaterError{RetryAt: retryDeadline(retryAfter, clock.Now())}
+			}
 			return nil, err
 		}
 		if sleepErr := clock.Sleep(ctx, delay); sleepErr != nil {
@@ -171,4 +138,58 @@ func (c *Client) fetch(ctx context.Context, endpoint string, query url.Values) (
 		}
 	}
 	panic("unreachable")
+}
+
+// fetchAttempt starts the HTTP timeout only after shared pacing admission.
+// It reads/closes the bounded body before releasing the pacer, so the next
+// attempt waits from completion, after any possible server timer update.
+func (c *Client) fetchAttempt(ctx context.Context, u *url.URL, endpoint string) (*http.Response, []byte, bool, error) {
+	timeout := c.RequestTimeout
+	if timeout <= 0 {
+		timeout = 45 * time.Second
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, nil, false, errors.New("catalog request could not be constructed")
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "UUPBuilder/catalog")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		return resp, nil, true, attemptError(ctx, requestCtx, endpoint, "transport failed", err)
+	}
+	defer resp.Body.Close()
+	limit := c.MaxBodyBytes
+	if limit <= 0 {
+		limit = 32 << 20
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	if err != nil {
+		return resp, nil, true, attemptError(ctx, requestCtx, endpoint, "response body read failed", err)
+	}
+	if int64(len(data)) > limit {
+		return resp, nil, false, fmt.Errorf("catalog %s: response exceeds %d-byte limit", endpoint, limit)
+	}
+	_, err = decodeEnvelope(data, endpoint, resp.StatusCode)
+	var api *APIError
+	retry := resp.StatusCode == 429 || resp.StatusCode >= 500 || errors.As(err, &api) && api.Code == "USER_RATE_LIMITED"
+	return resp, data, retry, err
+}
+
+func attemptError(ctx, requestCtx context.Context, endpoint, message string, cause error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := requestCtx.Err(); err != nil {
+		return fmt.Errorf("catalog %s: %w", endpoint, err)
+	}
+	if errors.Is(cause, context.DeadlineExceeded) {
+		return fmt.Errorf("catalog %s: %w", endpoint, context.DeadlineExceeded)
+	}
+	return fmt.Errorf("catalog %s: %s", endpoint, message)
 }

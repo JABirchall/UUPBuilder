@@ -332,6 +332,10 @@ func portError(ctx context.Context, operation string, err error) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+	var later *catalog.RetryLaterError
+	if errors.As(err, &later) {
+		return fmt.Errorf("%s: %w", operation, &catalog.RetryLaterError{RetryAt: later.RetryAt})
+	}
 	var api *catalog.APIError
 	if errors.As(err, &api) {
 		code := "UPSTREAM_ERROR"
