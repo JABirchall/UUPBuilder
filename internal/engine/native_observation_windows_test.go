@@ -56,6 +56,12 @@ func TestSourceNativeObservationBindsSealedExpectationsAndLiveClaim(t *testing.T
 	if s, e := newSourceNativeObservation(ctx, x, c, platform.NativeObservationLimits{MaxEntries: 1}); s != nil || !errors.Is(e, platform.ErrTreeLimit) {
 		t.Fatal("preflight count", e)
 	}
+	if bounded, e := newSourceNativeObservation(ctx, x, c, platform.NativeObservationLimits{MaxResultBytes: 500 << 10}); bounded != nil || !errors.Is(e, platform.ErrTreeLimit) {
+		if bounded != nil {
+			bounded.Close()
+		}
+		t.Fatal("source wrapper accepted impossible fixed metadata result profile", e)
+	}
 	s, e := newSourceNativeObservation(ctx, x, c, platform.NativeObservationLimits{})
 	if e != nil {
 		t.Fatal(e)

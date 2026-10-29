@@ -502,3 +502,99 @@ func TestNativeReadOnlyMetadataRejectsChangedReparseTypeBeforeVariableQueries(t 
 		t.Fatal("unexpected type spent variable query capacity", out, e)
 	}
 }
+
+// Catch accepting a profile that cannot fit the fixed metadata operation.
+// The literal sufficient boundary is 18,444 retained bytes + 925,696 metadata
+// scratch + 65,536 for the existing root recheck while metadata remains live.
+func TestNativeReadOnlyObservationPreflightRequiresPlannedMetadataScratch(t *testing.T) {
+	paths := []NativeObservationPath{{Path: ".", Directory: true}}
+	for _, limit := range []uint64{160 << 10, 1_009_675} {
+		if b, e := PreflightNativeObservation(paths, NativeObservationLimits{MaxResultBytes: limit}); !errors.Is(e, ErrTreeLimit) {
+			t.Errorf("impossible fixed metadata profile accepted: limit=%d retained=%d error=%v", limit, b.AccountedBytes, e)
+		}
+	}
+	const sufficient = uint64(1_009_676)
+	if _, e := PreflightNativeObservation(paths, NativeObservationLimits{MaxResultBytes: sufficient}); e != nil {
+		t.Fatal("just-sufficient profile refused", e)
+	}
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, paths, NativeObservationLimits{MaxResultBytes: sufficient})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if _, e = s.Observe(ctx, ".", MetadataLimits{}); e != nil {
+		t.Fatal("just-sufficient profile cannot perform fixed metadata observation", e)
+	}
+	if s.scratch != 0 {
+		t.Fatal("observation scratch retained", s.scratch)
+	}
+}
+
+// Private-port stand-ins for already acquired root ADS handles isolate the
+// close/accounting contract. This does not exercise the root ADS opener or
+// authenticate an image result. The real read handles must all close once.
+func TestNativeReadOnlyObservationRootStreamCloseExhaustionKeepsOnlyTerminalCause(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	paths := []NativeObservationPath{{Path: ".", Directory: true, Streams: []NativeObservationStream{{Name: "one", Size: 1}, {Name: "two", Size: 1}, {Name: "three", Size: 1}}}}
+	s, e := BorrowNativeObservation(ctx, root, paths, NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	row := s.entries["."]
+	names := map[*os.File]string{}
+	causes := map[string]error{"one": windows.ERROR_INVALID_DATA, "two": windows.ERROR_SHARING_VIOLATION, "three": windows.ERROR_ACCESS_DENIED}
+	for _, name := range []string{"one", "two", "three"} {
+		filePath := filepath.Join(t.TempDir(), name)
+		if e = os.WriteFile(filePath, []byte("x"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		f, e := os.Open(filePath)
+		if e != nil {
+			t.Fatal(e)
+		}
+		row.streams[name] = f
+		row.streamOrder = append(row.streamOrder, name)
+		s.handles++
+		names[f] = name
+	}
+	accounted := s.accounted
+	s.limits.MaxResultBytes = accounted
+	var attempts []string
+	s.closeFile = func(f *os.File) error {
+		name := names[f]
+		attempts = append(attempts, name)
+		return errors.Join(f.Close(), causes[name])
+	}
+	closeErr := s.Close()
+	if !errors.Is(closeErr, ErrTreePreserved) || !errors.Is(closeErr, ErrTreeLimit) || !errors.Is(closeErr, windows.ERROR_ACCESS_DENIED) {
+		t.Fatal("terminal close cause lost", closeErr)
+	}
+	if errors.Is(closeErr, windows.ERROR_SHARING_VIOLATION) || errors.Is(closeErr, windows.ERROR_INVALID_DATA) {
+		t.Error("unreserved root close causes retained after exhaustion", closeErr)
+	}
+	if strings.Join(attempts, ",") != "three,two,one" || s.handles != s.baseHandles || s.accounted != accounted || len(s.failures) != 0 {
+		t.Fatal("unbounded evidence or unsettled handles", attempts, s.handles, s.accounted, len(s.failures))
+	}
+	v, e := s.Evidence(ctx, 1<<20)
+	if e != nil || !v.Closed || !v.Preserved || !v.Incomplete || !v.FailureEvidenceExhausted || v.TerminalFailure.Path != ".:three" || v.TerminalFailure.Identity != root.Identity().Root || v.TerminalFailure.NativeCode != 5 {
+		t.Fatal("exact root terminal evidence lost", v, e)
+	}
+	if !strings.Contains(closeErr.Error(), root.Identity().RelativePath) || !strings.Contains(closeErr.Error(), fmt.Sprintf("volume=%d file=%d", row.id.VolumeSerial, row.id.FileIndex)) {
+		t.Fatal("preserved root scope lost", closeErr)
+	}
+	for f := range names {
+		if _, e = f.ReadAt(make([]byte, 1), 0); !errors.Is(e, os.ErrClosed) {
+			t.Fatal("root stream handle leaked", e)
+		}
+	}
+	if again := s.Close(); again != closeErr || len(attempts) != 3 {
+		t.Fatal("Close was not idempotent", again, attempts)
+	}
+	if e = root.CheckObservationLive(ctx); e != nil {
+		t.Fatal("borrowed root closed", e)
+	}
+}

@@ -72,6 +72,14 @@ func nativeObservationBounds(l NativeObservationLimits) (NativeObservationLimits
 	return l, nil
 }
 
+const nativeRootValidationScratch = uint64(64 << 10)
+
+// Includes metadata result/scratch and the query buffer held through return.
+// The final identity/root recheck additionally needs its own validation scratch.
+func nativeMetadataScratch(l MetadataLimits) uint64 {
+	return uint64(l.MaxBufferBytes)*12 + uint64(l.MaxStreams+l.MaxEAs)*128 + 8192 + (64 << 10)
+}
+
 // PreflightNativeObservation charges the original bounded descriptor shape
 // before maps/copies/opens. It plans two metadata/inventory passes and one
 // complete per-name content read. DirectoryCapacityBytes is a nominal two
@@ -181,10 +189,11 @@ func PreflightNativeObservation(paths []NativeObservationPath, limits NativeObse
 			return b, fmt.Errorf("%w: source expected query/content work", ErrTreeLimit)
 		}
 	}
-	// Root ancestry is added by Borrow; reserve a temporary metadata/SACL open
-	// and one fixed 64KiB query buffer before any native operation is allowed.
+	// Root ancestry is added by Borrow. Fixed metadata scratch remains live
+	// through the final root/owner recheck, so both must fit beside retained data.
 	b.Handles += 2
-	if b.Streams > l.MaxStreams || b.Handles > l.MaxHandles || b.AccountedBytes > l.MaxResultBytes || 128<<10 > l.MaxResultBytes-b.AccountedBytes || b.ExpectedExportBytes > l.MaxExportBytes {
+	plannedScratch := nativeMetadataScratch(MetadataLimits{MaxBufferBytes: 64 << 10, MaxStreams: 256, MaxEAs: 256}) + nativeRootValidationScratch
+	if b.Streams > l.MaxStreams || b.Handles > l.MaxHandles || b.AccountedBytes > l.MaxResultBytes || plannedScratch > l.MaxResultBytes-b.AccountedBytes || b.ExpectedExportBytes > l.MaxExportBytes {
 		return b, ErrTreeLimit
 	}
 	return b, nil
@@ -363,12 +372,12 @@ func (s *NativeObservationSession) validateRoot() error {
 	if s.handles > s.limits.MaxHandles || 2 > s.limits.MaxHandles-s.handles {
 		return ErrTreeLimit
 	}
-	if e := s.reserve(uint64(8192+len(s.root.parents)*64), 0, 64<<10); e != nil {
+	if e := s.reserve(uint64(8192+len(s.root.parents)*64), 0, nativeRootValidationScratch); e != nil {
 		return e
 	}
 	s.validationAllowance += uint64(8192 + len(s.root.parents)*64)
 	s.handles += 2
-	defer func() { s.handles -= 2; s.scratch -= 64 << 10 }()
+	defer func() { s.handles -= 2; s.scratch -= nativeRootValidationScratch }()
 	return s.root.validate()
 }
 func (s *NativeObservationSession) CheckObservationLive(ctx context.Context) error {
@@ -828,7 +837,7 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 	if l.MaxBufferBytes > 64<<10 {
 		return out, ErrTreeLimit
 	}
-	reserve := uint64(l.MaxBufferBytes)*12 + uint64(l.MaxStreams+l.MaxEAs)*128 + 8192
+	scratch := nativeMetadataScratch(l)
 	read := uint64(4*l.MaxBufferBytes + 64 + 128)
 	if p.Reparse {
 		read += 16384
@@ -836,11 +845,11 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 	// The returned metadata belongs to the caller's per-call result budget.
 	// This session retains no raw metadata. Its peak scratch is reserved until
 	// return; the private comparison caller accounts its own retained witnesses.
-	if e = s.reserve(read, 0, reserve+(64<<10)); e != nil {
+	if e = s.reserve(read, 0, scratch); e != nil {
 		return out, e
 	}
 	s.queryCapacity += read
-	defer func() { s.scratch -= reserve + (64 << 10) }()
+	defer func() { s.scratch -= scratch }()
 	if e = s.retainHandle(); e != nil {
 		return out, e
 	}
@@ -1016,8 +1025,9 @@ func (s *NativeObservationSession) Close() error {
 		for j := len(root.streamOrder) - 1; j >= 0; j-- {
 			name := root.streamOrder[j]
 			if e := s.closeFile(root.streams[name]); e != nil {
-				s.recordFailure(".:"+name, root.id, e)
-				s.closeErr = errors.Join(s.closeErr, e)
+				if s.recordFailure(".:"+name, root.id, e) {
+					s.closeErr = errors.Join(s.closeErr, e)
+				}
 			}
 			s.handles--
 		}

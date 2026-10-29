@@ -1,0 +1,4 @@
+=== RUN   TestNativeReadOnlyObservationPreflightRequiresPlannedMetadataScratch
+--- PASS: TestNativeReadOnlyObservationPreflightRequiresPlannedMetadataScratch (0.16s)
+PASS
+ok  	uupbuilder/internal/platform/windows	0.180s

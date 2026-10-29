@@ -1,0 +1,11 @@
+=== RUN   TestNativeReadOnlyObservationRootStreamCloseExhaustionKeepsOnlyTerminalCause
+    native_observation_windows_test.go:577: unreserved root close causes retained after exhaustion owned tree preserved: custody or topology unproved: read-only observation scope native-result [volume=1749273518 file=10977524093276952]; durable claim unresolved
+        Access is denied.
+        The process cannot access the file because it is being used by another process.
+        The data is invalid.
+        owned tree bound exceeded
+        .:three [volume=1749273518 file=10977524093276952]: Access is denied.
+--- FAIL: TestNativeReadOnlyObservationRootStreamCloseExhaustionKeepsOnlyTerminalCause (0.07s)
+FAIL
+FAIL	uupbuilder/internal/platform/windows	0.087s
+FAIL

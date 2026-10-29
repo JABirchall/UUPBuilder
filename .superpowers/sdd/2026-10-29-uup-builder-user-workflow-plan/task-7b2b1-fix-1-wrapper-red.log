@@ -1,0 +1,6 @@
+=== RUN   TestSourceNativeObservationBindsSealedExpectationsAndLiveClaim
+    native_observation_windows_test.go:63: source wrapper accepted impossible fixed metadata result profile <nil>
+--- FAIL: TestSourceNativeObservationBindsSealedExpectationsAndLiveClaim (0.70s)
+FAIL
+FAIL	uupbuilder/internal/engine	0.715s
+FAIL
