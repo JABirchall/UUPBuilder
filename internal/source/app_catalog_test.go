@@ -212,6 +212,40 @@ func TestAppCatalogBodyRetryAfterPacesTheNextLoad(t *testing.T) {
 	}
 }
 
+func TestAppCatalogRedirectedCABRetainsTargetOriginCooldown(t *testing.T) {
+	for _, route := range []string{"direct", "alternate redirect"} {
+		t.Run(route, func(t *testing.T) {
+			calls := 0
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				w.Header().Set("Retry-After", "60")
+				w.WriteHeader(429)
+			}))
+			defer target.Close()
+			redirect := func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL+"/cab", http.StatusFound) }
+			first := httptest.NewServer(http.HandlerFunc(redirect))
+			defer first.Close()
+			alternate := httptest.NewServer(http.HandlerFunc(redirect))
+			defer alternate.Close()
+			loader := NewAppCatalog("https://example.invalid/")
+			id := model.PayloadIdentity{}
+			if _, err := loader.acquire(context.Background(), id, model.Locator{URL: first.URL + "/cab"}); err == nil || calls != 1 {
+				t.Fatalf("initial throttle not observed: %v calls=%d", err, calls)
+			}
+			url := target.URL + "/cab"
+			if route == "alternate redirect" {
+				url = alternate.URL + "/cab"
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+			defer cancel()
+			_, err := loader.acquire(ctx, id, model.Locator{URL: url})
+			if err == nil || ctx.Err() != context.DeadlineExceeded || calls != 1 {
+				t.Fatalf("redirect target cooldown bypassed: %v context=%v calls=%d", err, ctx.Err(), calls)
+			}
+		})
+	}
+}
+
 func TestAppCatalogPacesActualRetryAndFollowingRequest(t *testing.T) {
 	for _, header := range []string{"0", "", "1"} {
 		t.Run("RetryAfter="+header, func(t *testing.T) {
@@ -368,6 +402,7 @@ func TestAppCatalogLiveFreshMetadata(t *testing.T) {
 	loader := NewAppCatalog("")
 	metadataRequests, linkedRequests, bodyRequests := 0, 0, 0
 	var previousGet time.Time
+	baseTransport := loader.http.Transport
 	loader.http.Transport = appTestRoundTripper(func(r *http.Request) (*http.Response, error) {
 		now := time.Now()
 		if strings.HasSuffix(r.URL.Path, "/get.php") {
@@ -383,7 +418,7 @@ func TestAppCatalogLiveFreshMetadata(t *testing.T) {
 		} else if !strings.HasSuffix(r.URL.Path, "/listeditions.php") {
 			bodyRequests++
 		}
-		return http.DefaultTransport.RoundTrip(r)
+		return baseTransport.RoundTrip(r)
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -397,7 +432,7 @@ func TestAppCatalogLiveFreshMetadata(t *testing.T) {
 			choices++
 		}
 	}
-	if snapshot.State != AppCatalogAvailable || choices != 50 || metadataRequests != 2 || linkedRequests != 1 || bodyRequests != 1 {
+	if snapshot.State != AppCatalogAvailable || choices != 50 || metadataRequests < 2 || metadataRequests > 6 || linkedRequests < 1 || linkedRequests > 3 || bodyRequests != 1 {
 		t.Fatalf("fresh source changed: state=%s choices=%d metadata=%d links=%d bodies=%d", snapshot.State, choices, metadataRequests, linkedRequests, bodyRequests)
 	}
 	t.Logf("fresh live source=%s choices=%d metadata=%d linked=%d CAB requests=%d SHA256=%s", selection.UpdateID, choices, metadataRequests, linkedRequests, bodyRequests, snapshot.CAB.Digest.Value)

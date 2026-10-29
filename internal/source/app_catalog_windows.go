@@ -39,6 +39,7 @@ func NewAppCatalog(endpoint string) *SourceAppCatalog {
 		}
 		return nil
 	}}
+	client.Transport = &appBodyTransport{owner: c, base: http.DefaultTransport}
 	offline := catalog.New(client, endpoint)
 	offline.MetadataOnly = true
 	offline.MaxBodyBytes = 4 << 20
@@ -46,6 +47,30 @@ func NewAppCatalog(endpoint string) *SourceAppCatalog {
 	online.MaxBodyBytes = 4 << 20
 	c.metadata, c.online, c.http = offline, online, client
 	return c
+}
+
+type appBodyRequest struct{}
+
+// Check each actual CAB request, including redirected requests, against the
+// origin that will receive it. Catalog calls have their separate shared pacer.
+type appBodyTransport struct {
+	owner *SourceAppCatalog
+	base  http.RoundTripper
+}
+
+func (t *appBodyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Context().Value(appBodyRequest{}) == nil {
+		return t.base.RoundTrip(req)
+	}
+	origin := strings.ToLower(req.URL.Scheme + "://" + req.URL.Host)
+	if err := t.owner.waitBody(req.Context(), origin); err != nil {
+		return nil, err
+	}
+	resp, err := t.base.RoundTrip(req)
+	if err == nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable) {
+		t.owner.observeBodyRetryAfter(origin, resp.Header.Get("Retry-After"))
+	}
+	return resp, err
 }
 
 // CAB Retry-After belongs to the payload origin, independently of get.php.
@@ -241,7 +266,7 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 	if err := c.waitBody(ctx, origin); err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, locator.URL, nil)
+	req, err := http.NewRequestWithContext(context.WithValue(ctx, appBodyRequest{}, true), http.MethodGet, locator.URL, nil)
 	if err != nil {
 		return nil, ErrInvalidInput
 	}
@@ -251,9 +276,6 @@ func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity
 		return nil, ErrPayloadUnavailable
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
-		c.observeBodyRetryAfter(origin, resp.Header.Get("Retry-After"))
-	}
 	// No retries of body locators: upstream throttling is returned to the caller,
 	// whose retry is deliberate. Catalogue retries honor its Retry-After policy.
 	if resp.StatusCode != http.StatusOK || resp.ContentLength > id.Size {
