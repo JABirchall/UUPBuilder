@@ -505,3 +505,79 @@ func TestCodecChunkDeclarationsRejectImpossibleSizes(t *testing.T) {
 		}
 	}
 }
+
+func TestSolidBackingAliasesValidateLogicalRangesAcrossRuns(t *testing.T) {
+	for _, separateRuns := range []bool{false, true} {
+		runName := "same-run"
+		base := uint64(8)
+		secondResourceEntry := uint32(4)
+		if separateRuns {
+			runName = "separate-runs"
+			base = 0
+			secondResourceEntry = 5
+		}
+		for _, tc := range []struct {
+			name         string
+			secondOffset uint64
+			secondHash   byte
+			conflict     bool
+		}{
+			{"conflicting-hashes", 1, 3, true},
+			{"partial-overlap", 2, 3, true},
+			{"partial-overlap-same-hash", 2, 2, true},
+			{"identical-shared-witnesses", 1, 2, false},
+			{"adjacent-logical-ranges", 4, 3, false},
+		} {
+			t.Run(runName+"/"+tc.name, func(t *testing.T) {
+				// Ordinals 2 and 4 (or 5 in a separate run) are exact aliases of
+				// physical [400,432), each declaring eight logical bytes. A run
+				// concatenates its backing sizes, so the second alias's base is 8
+				// in one run and 0 after an ordinary record starts a separate run.
+				records := [][]byte{record(8, 256, 8, 2, 1), record(32, 400, 0x100000000, 16, 0), record(3, 1, 0, 16, 2)}
+				if separateRuns {
+					records = append(records, record(4, 320, 4, 0, 4))
+				}
+				records = append(records, record(32, 400, 0x100000000, 16, 0), record(3, base+tc.secondOffset, 0, 16, tc.secondHash))
+				b := fixture(records...)
+				le.PutUint64(b[400:], 8)
+				le.PutUint32(b[408:], 32768)
+				le.PutUint32(b[412:], 3)
+				m, fs := inputs(t, b)
+				idx, err := Open(context.Background(), m, fs, Limits{})
+				if tc.conflict {
+					if !errors.Is(err, ErrConflict) || idx != nil {
+						complete := false
+						if idx != nil {
+							complete = idx.Snapshot().Complete
+						}
+						t.Fatalf("accepted conflicting physical aliases: index-present=%v complete=%v err=%v", idx != nil, complete, err)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				s := idx.Snapshot()
+				if !s.Complete || len(s.Gaps) != 0 {
+					t.Fatalf("legitimate alias observation became incomplete: %+v", s.Gaps)
+				}
+				first := idx.Lookup(strings.Repeat("02", 20))
+				if tc.secondHash == 2 {
+					if len(first) != 2 || first[0].Location.ResourceEntry != 2 || first[1].Location.ResourceEntry != secondResourceEntry {
+						t.Fatalf("lost original shared witnesses: %+v", first)
+					}
+					for _, w := range first {
+						if w.Location.PhysicalOffset != 400 || w.Location.PhysicalSize != 32 || w.Location.ResourceLogicalSize != 8 || w.Location.LogicalOffset != 1 {
+							t.Fatalf("shared witness location changed: %+v", w)
+						}
+					}
+				} else {
+					second := idx.Lookup(strings.Repeat("03", 20))
+					if len(first) != 1 || len(second) != 1 || first[0].Location.LogicalOffset != 1 || second[0].Location.LogicalOffset != 4 || second[0].Location.ResourceEntry != secondResourceEntry {
+						t.Fatalf("disjoint alias ranges changed: first=%+v second=%+v", first, second)
+					}
+				}
+			})
+		}
+	}
+}

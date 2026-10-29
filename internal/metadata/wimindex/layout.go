@@ -177,6 +177,10 @@ func readContainer(ctx context.Context, r io.ReaderAt, size uint64, p model.Payl
 	if err := validateIntervals(slices.Clone(regions)); err != nil {
 		return c, nil, err
 	}
+	// Container-scoped physical descriptor identity unifies solid backing
+	// aliases across both ordinals and runs. Each run still resolves offsets
+	// in its own concatenated logical address space.
+	solidLogical := map[Descriptor][]interval{}
 	if h.Lookup.Size == 0 {
 		add(0, "missing-lookup-table")
 		return c, gaps, nil
@@ -229,7 +233,7 @@ func readContainer(ctx context.Context, r io.ReaderAt, size uint64, p model.Payl
 			for end < len(c.Entries) && c.Entries[end].Descriptor.Flags&16 != 0 {
 				end++
 			}
-			more, err := resolveSolid(ctx, r, size, c.Entries[at:end], p, &regions)
+			more, err := resolveSolid(ctx, r, size, c.Entries[at:end], p, &regions, solidLogical)
 			if err != nil {
 				return c, nil, err
 			}
@@ -281,6 +285,14 @@ func readContainer(ctx context.Context, r io.ReaderAt, size uint64, p model.Payl
 	}
 	if err := validateIntervals(regions); err != nil {
 		return c, nil, err
+	}
+	for _, ranges := range solidLogical {
+		if err := ctx.Err(); err != nil {
+			return c, nil, err
+		}
+		if err := validateIntervals(ranges); err != nil {
+			return c, nil, err
+		}
 	}
 	// BootMetadata aliases a metadata entry, and must not be counted twice as a
 	// physical resource. Only table order defines the per-image index.
@@ -339,7 +351,7 @@ func readContainer(ctx context.Context, r io.ReaderAt, size uint64, p model.Payl
 	return c, gaps, nil
 }
 
-func resolveSolid(ctx context.Context, r io.ReaderAt, size uint64, entries []Entry, p model.PayloadIdentity, regions *[]interval) ([]Gap, error) {
+func resolveSolid(ctx context.Context, r io.ReaderAt, size uint64, entries []Entry, p model.PayloadIdentity, regions *[]interval, logical map[Descriptor][]interval) ([]Gap, error) {
 	var gaps []Gap
 	var resources []int
 	var starts []uint64
@@ -390,7 +402,6 @@ func resolveSolid(ctx context.Context, r io.ReaderAt, size uint64, entries []Ent
 	if len(resources) == 0 {
 		return nil, ErrLayout
 	}
-	logical := map[uint32][]interval{}
 	for i := range entries {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -421,14 +432,9 @@ func resolveSolid(ctx context.Context, r io.ReaderAt, size uint64, entries []Ent
 		e.Located = true
 		e.Location = backing.Location
 		e.Location.LogicalOffset = offset
-		// Alias ordinals must resolve to the same physical resource, so the extent
-		// identity here contains only the logical blob facts, not its table ordinal.
-		logical[backing.Ordinal] = append(logical[backing.Ordinal], interval{offset, d.Size, e.SHA1, Descriptor{Size: d.Size, Offset: offset}})
-	}
-	for _, ranges := range logical {
-		if err := validateIntervals(ranges); err != nil {
-			return nil, err
-		}
+		// Preserve the original witness ordinal, but validate against every blob
+		// resolved to this same physical backing descriptor in the container.
+		logical[backing.Descriptor] = append(logical[backing.Descriptor], interval{offset, d.Size, e.SHA1, Descriptor{Size: d.Size, Offset: offset}})
 	}
 	return gaps, nil
 }
