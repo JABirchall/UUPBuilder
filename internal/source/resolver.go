@@ -13,6 +13,7 @@ import (
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/download"
 	"uupbuilder/internal/metadata"
+	"uupbuilder/internal/metadata/providers"
 	"uupbuilder/internal/model"
 )
 
@@ -98,7 +99,7 @@ func (r *Resolver) Resolve(ctx context.Context, selection model.Selection, setti
 		return res, nil
 	}
 	req := metadata.InspectRequest{Source: plan.Source, Manifest: res.Manifest}
-	if err = r.addInputs(ctx, &req, plan.Inputs, res.Locators); err != nil {
+	if err = r.addInputs(ctx, &req, plan.Inputs, res.Locators, sets); err != nil {
 		return res, res.failure(ctx, "metadata materialization", err)
 	}
 	res.Inventory, err = r.inspect(ctx, req)
@@ -164,7 +165,7 @@ func (r *Resolver) Resolve(ctx context.Context, selection model.Selection, setti
 			return res, res.failure(ctx, "app metadata discovery", err)
 		}
 		if len(apps.Inputs) > 0 {
-			if err = r.addInputs(ctx, &req, apps.Inputs, res.Locators); err != nil {
+			if err = r.addInputs(ctx, &req, apps.Inputs, res.Locators, sets); err != nil {
 				return res, res.failure(ctx, "app metadata materialization", err)
 			}
 		}
@@ -203,7 +204,7 @@ func unionSets(source model.SourceIdentity, sets []SourceSet) (model.PayloadMani
 	return Union(source, files, queries...)
 }
 
-func (r *Resolver) addInputs(ctx context.Context, req *metadata.InspectRequest, inputs []MetadataInput, locators model.Locators) error {
+func (r *Resolver) addInputs(ctx context.Context, req *metadata.InspectRequest, inputs []MetadataInput, locators model.Locators, sets []SourceSet) error {
 	known := make(map[model.PayloadIdentity]model.Payload)
 	seen := make(map[model.PayloadIdentity]bool)
 	for _, p := range req.Manifest.Payloads {
@@ -221,7 +222,36 @@ func (r *Resolver) addInputs(ctx context.Context, req *metadata.InspectRequest, 
 			return ErrInvalidInput
 		}
 		seen[input.Identity] = true
-		file, err := r.Fetcher.FetchOne(ctx, p, locators[p.Identity], r.Emit)
+		var file download.CachedFile
+		var err error
+		if fetcher, ok := r.Fetcher.(interface {
+			Fetch(context.Context, model.PayloadManifest, model.Locators, model.Emit) (download.Materialized, error)
+		}); ok {
+			var queries []model.SourceQuery
+			for _, set := range sets {
+				if !slices.Contains(set.Files.Payloads, p) || len(set.Query.Projection) > 0 && !slices.Contains(set.Query.Projection, p) {
+					continue
+				}
+				q := set.Query
+				q.Projection = []model.Payload{p}
+				queries = append(queries, q)
+			}
+			if len(queries) == 0 {
+				return ErrInvalidInput
+			}
+			frozen, buildErr := model.NewPayloadManifest(req.Source, []model.Payload{p}, queries...)
+			if buildErr != nil {
+				return ErrInvalidInput
+			}
+			var got download.Materialized
+			got, err = fetcher.Fetch(ctx, frozen, model.Locators{p.Identity: locators[p.Identity]}, r.Emit)
+			if err == nil && len(got) != 1 {
+				return ErrInputIdentityChanged
+			}
+			file = got[p.Identity]
+		} else {
+			file, err = r.Fetcher.FetchOne(ctx, p, locators[p.Identity], r.Emit)
+		}
 		if err != nil {
 			return err
 		}
@@ -314,6 +344,9 @@ func (res *Resolution) inventoryGaps() {
 func (res *Resolution) failure(ctx context.Context, operation string, err error) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
+	}
+	if errors.Is(err, providers.ErrUnsupported) {
+		err = ErrImplementationGap
 	}
 	if upstreamUnavailable(err) {
 		res.Classification = metadata.ClassificationSourceUnavailable
@@ -414,7 +447,7 @@ func (r *Resolver) RefreshLinks(ctx context.Context, frozen model.PayloadManifes
 		return nil, fmt.Errorf("%w: frozen catalog query provenance and catalog producer are required", ErrImplementationGap)
 	}
 	frozen.Payloads = slices.Clone(frozen.Payloads)
-	frozen.Queries = slices.Clone(frozen.Queries)
+	frozen.Queries = model.CloneSourceQueries(frozen.Queries)
 	sets := make([]catalog.FileSet, 0, len(frozen.Queries))
 	for _, q := range frozen.Queries {
 		set, err := r.Catalog.Files(ctx, q.UpdateID, q.Language, q.Edition)

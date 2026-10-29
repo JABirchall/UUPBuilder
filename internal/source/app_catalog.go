@@ -58,12 +58,13 @@ type AppCatalogSnapshot struct {
 
 func (s AppCatalogSnapshot) Clone() AppCatalogSnapshot {
 	s.Selection.Editions = slices.Clone(s.Selection.Editions)
+	s.AppQuery.Projection = slices.Clone(s.AppQuery.Projection)
 	s.AppManifest.Payloads = slices.Clone(s.AppManifest.Payloads)
-	s.AppManifest.Queries = slices.Clone(s.AppManifest.Queries)
+	s.AppManifest.Queries = model.CloneSourceQueries(s.AppManifest.Queries)
 	s.SelectedManifests = slices.Clone(s.SelectedManifests)
 	for i := range s.SelectedManifests {
 		s.SelectedManifests[i].Payloads = slices.Clone(s.SelectedManifests[i].Payloads)
-		s.SelectedManifests[i].Queries = slices.Clone(s.SelectedManifests[i].Queries)
+		s.SelectedManifests[i].Queries = model.CloneSourceQueries(s.SelectedManifests[i].Queries)
 	}
 	s.Documents = slices.Clone(s.Documents)
 	s.Gaps = slices.Clone(s.Gaps)

@@ -20,5 +20,14 @@ func NewSourceManager(options download.Options, resolver *source.Resolver) (*dow
 		return nil, err
 	}
 	resolver.Fetcher = manager
+	if resolver.Catalog != nil {
+		discovery := &source.Discovery{Catalog: resolver.Catalog}
+		if resolver.Discover == nil {
+			resolver.Discover = discovery.Metadata
+		}
+		if resolver.DiscoverApps == nil {
+			resolver.DiscoverApps = discovery.Apps
+		}
+	}
 	return manager, nil
 }

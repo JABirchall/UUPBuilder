@@ -338,7 +338,7 @@ func (m *Manager) Fetch(ctx context.Context, manifest model.PayloadManifest, loc
 	}
 	frozen := manifest
 	frozen.Payloads = slices.Clone(manifest.Payloads)
-	frozen.Queries = slices.Clone(manifest.Queries)
+	frozen.Queries = model.CloneSourceQueries(manifest.Queries)
 	set := &locatorSet{frozen: frozen, locators: make(model.Locators), refresh: m.opts.Refresh}
 	members := make(map[model.PayloadIdentity]bool)
 	for _, p := range frozen.Payloads {

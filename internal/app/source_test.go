@@ -76,3 +76,40 @@ func TestSourceManagerBindsSafeRefreshWithoutImportCycle(t *testing.T) {
 		t.Fatalf("assembly did not materialize verified bytes: %v", err)
 	}
 }
+
+// A real composed manager must make semantic discovery available without a
+// caller supplying test callbacks, and retain the exact metadata projection.
+func TestSourceManagerBindsProductionDiscovery(t *testing.T) {
+	const id = "12345678-1234-1234-1234-123456789abc_rev.7"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/listeditions.php" {
+			w.Write([]byte(`{"response":{"editionList":["PROFESSIONAL"]}}`))
+			return
+		}
+		w.Write([]byte(`{"response":{"build":"1.2.3.4","arch":"arm64","files":{"id.aggregatedmetadata.cab":{"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","size":16,"expire":0,"url":null},"other.esd":{"sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","size":16,"expire":0,"url":null}}}}`))
+	}))
+	defer srv.Close()
+	cache, err := windows.CreateWorkspace(t.TempDir(), "metadata-cache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cache.Close()
+	job, err := windows.CreateWorkspace(t.TempDir(), "metadata-download")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer job.Close()
+	r := &source.Resolver{Catalog: catalog.New(srv.Client(), srv.URL)}
+	m, err := NewSourceManager(download.Options{Cache: cache, Job: job, Proxy: model.ProxySettings{Mode: model.ProxyDirect}}, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	if r.Discover == nil || r.DiscoverApps == nil {
+		t.Fatal("production source discovery remains unbound")
+	}
+	plan, err := r.Discover(context.Background(), model.Selection{UpdateID: id, Architecture: "arm64", Language: "en-us", Editions: []string{"PROFESSIONAL"}})
+	if err != nil || len(plan.Inputs) != 1 || len(plan.Sets) != 1 || len(plan.Sets[0].Query.Projection) != 1 {
+		t.Fatalf("composed discovery: %+v %v", plan, err)
+	}
+}

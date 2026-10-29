@@ -18,14 +18,56 @@ func Union(source model.SourceIdentity, sets []catalog.FileSet, queries ...model
 		if q.Validate() != nil || q.UpdateID != source.UpdateID || q.Language != source.Language {
 			return model.PayloadManifest{}, nil, ErrInvalidInput
 		}
+		if len(q.Projection) > 0 && len(queries) != len(sets) {
+			return model.PayloadManifest{}, nil, ErrInvalidInput
+		}
 	}
 	byIdentity := make(map[model.PayloadIdentity]int)
 	byDestination := make(map[string]model.PayloadIdentity)
 	var payloads []model.Payload
 	locators := make(model.Locators)
-	for _, set := range sets {
+	for index, set := range sets {
 		if set.Source != source {
 			return model.PayloadManifest{}, nil, ErrInputIdentityChanged
+		}
+		// Validate the complete producer response before applying any projection.
+		if _, err := model.NewPayloadManifest(source, set.Payloads); err != nil {
+			return model.PayloadManifest{}, nil, ErrConflictingDestinations
+		}
+		full := make(map[model.PayloadIdentity]bool)
+		for _, p := range set.Payloads {
+			full[p.Identity] = true
+		}
+		for id, loc := range set.Locators {
+			if !full[id] || !validLocator(loc) {
+				return model.PayloadManifest{}, nil, ErrInvalidInput
+			}
+		}
+		if index < len(queries) && len(queries[index].Projection) > 0 {
+			if len(queries) != len(sets) {
+				return model.PayloadManifest{}, nil, ErrInvalidInput
+			}
+			projected := queries[index].Projection
+			selected := make(model.Locators)
+			for _, want := range projected {
+				found := false
+				for _, actual := range set.Payloads {
+					if actual == want {
+						found = true
+						break
+					}
+					if strings.EqualFold(actual.Destination, want.Destination) || actual.Identity == want.Identity {
+						return model.PayloadManifest{}, nil, ErrInputIdentityChanged
+					}
+				}
+				if !found {
+					return model.PayloadManifest{}, nil, ErrPayloadUnavailable
+				}
+				if loc, ok := set.Locators[want.Identity]; ok {
+					selected[want.Identity] = loc
+				}
+			}
+			set.Payloads, set.Locators = projected, selected
 		}
 		members := make(map[model.PayloadIdentity]bool)
 		for _, p := range set.Payloads {

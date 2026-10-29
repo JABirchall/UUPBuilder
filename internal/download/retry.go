@@ -37,7 +37,7 @@ func (s *locatorSet) get(ctx context.Context, id model.PayloadIdentity, now time
 	}
 	frozen := s.frozen
 	frozen.Payloads = slices.Clone(s.frozen.Payloads)
-	frozen.Queries = slices.Clone(s.frozen.Queries)
+	frozen.Queries = model.CloneSourceQueries(s.frozen.Queries)
 	fresh, err := s.refresh(ctx, frozen)
 	if ctx.Err() != nil {
 		return Locator{}, ctx.Err()

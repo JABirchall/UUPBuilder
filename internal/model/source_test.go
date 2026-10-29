@@ -13,7 +13,7 @@ import (
 func TestManifestQueriesCanonicalFrozenAndBackwardCompatible(t *testing.T) {
 	source := SourceIdentity{UpdateID: "update_rev.7", BuildLabel: "build", Architecture: "arm64", Language: "en-us"}
 	payloads := []Payload{testPayload(t, "a.esd")}
-	queries := []SourceQuery{{source.UpdateID, source.Language, "PROFESSIONAL"}, {source.UpdateID, source.Language, "CORE"}, {source.UpdateID, source.Language, "CORE"}}
+	queries := []SourceQuery{{source.UpdateID, source.Language, "PROFESSIONAL", nil}, {source.UpdateID, source.Language, "CORE", nil}, {source.UpdateID, source.Language, "CORE", nil}}
 	a, err := NewPayloadManifest(source, payloads, queries...)
 	if err != nil {
 		t.Fatal(err)
@@ -54,7 +54,7 @@ func TestManifestQueriesCanonicalFrozenAndBackwardCompatible(t *testing.T) {
 // Queries cannot carry credentials, signed URLs, another revision or language.
 func TestManifestRejectsMalformedQueries(t *testing.T) {
 	source := SourceIdentity{UpdateID: "update_rev.7", BuildLabel: "build", Architecture: "amd64", Language: "en-us"}
-	for _, q := range []SourceQuery{{"", "en-us", "CORE"}, {"update_rev.8", "en-us", "CORE"}, {"update_rev.7", "fr-fr", "CORE"}, {"update_rev.7", "en-us", ""}, {"update_rev.7", "en-us", ".CORE"}, {"update_rev.7", "en-us", "-CORE"}, {"update_rev.7", "en-us", "https://example.invalid/?signature=secret"}, {"update_rev.7", "en-us", "CORE&token=secret"}, {"update_rev.7", "en-us", " CORE"}} {
+	for _, q := range []SourceQuery{{"", "en-us", "CORE", nil}, {"update_rev.8", "en-us", "CORE", nil}, {"update_rev.7", "fr-fr", "CORE", nil}, {"update_rev.7", "en-us", "", nil}, {"update_rev.7", "en-us", ".CORE", nil}, {"update_rev.7", "en-us", "-CORE", nil}, {"update_rev.7", "en-us", "https://example.invalid/?signature=secret", nil}, {"update_rev.7", "en-us", "CORE&token=secret", nil}, {"update_rev.7", "en-us", " CORE", nil}} {
 		if _, err := NewPayloadManifest(source, []Payload{testPayload(t, "a.esd")}, q); err == nil {
 			t.Fatalf("accepted malformed query: %+v", q)
 		}

@@ -101,8 +101,8 @@ type MetadataDocument struct {
 // ReadOnlyProvider inspects the supplied verified resource without modifying it
 // or launching mutation operations. It must honor context and limits while
 // reading/decompressing; Inspect independently bounds every returned document.
-// This package supplies no executable/helper adapter. A future proven adapter
-// may enumerate archive metadata or inspect WIM XML/content through this port.
+// Container adapters live in internal/metadata/providers. Their read-only
+// observations do not attest reconstruction, provisioning or servicing support.
 type ReadOnlyProvider interface {
 	Inspect(context.Context, LocalResource, Limits) (ProviderResult, error)
 }
@@ -178,7 +178,7 @@ func Inspect(ctx context.Context, req InspectRequest) (Inventory, error) {
 	}
 	inv := Inventory{Source: req.Source, Manifest: req.Manifest}
 	inv.Manifest.Payloads = slices.Clone(req.Manifest.Payloads)
-	inv.Manifest.Queries = slices.Clone(req.Manifest.Queries)
+	inv.Manifest.Queries = model.CloneSourceQueries(req.Manifest.Queries)
 	known := make(map[model.PayloadIdentity]bool)
 	for _, payload := range req.Manifest.Payloads {
 		known[payload.Identity] = true

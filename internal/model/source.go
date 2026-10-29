@@ -199,11 +199,13 @@ type PayloadManifest struct {
 }
 
 // SourceQuery is public, frozen catalog provenance for replay after restart.
-// It contains selectors only, never endpoint URLs, credentials or signed links.
+// Projection, when present, freezes an exact subset of a complete response.
+// Omission preserves the original whole-response contract. No runtime links.
 type SourceQuery struct {
-	UpdateID string `json:"update_id" toml:"update_id"`
-	Language string `json:"language" toml:"language"`
-	Edition  string `json:"edition" toml:"edition"`
+	UpdateID   string    `json:"update_id" toml:"update_id"`
+	Language   string    `json:"language" toml:"language"`
+	Edition    string    `json:"edition" toml:"edition"`
+	Projection []Payload `json:"projection,omitempty" toml:"projection,omitempty"`
 }
 
 func (q SourceQuery) Validate() error {
@@ -221,7 +223,23 @@ func (q SourceQuery) Validate() error {
 			}
 		}
 	}
+	seen := map[string]bool{}
+	for _, p := range q.Projection {
+		if p.Validate() != nil || seen[strings.ToLower(p.Destination)] {
+			return errors.New("manifest.query: invalid or duplicate projected payload")
+		}
+		seen[strings.ToLower(p.Destination)] = true
+	}
 	return nil
+}
+
+// CloneSourceQueries also copies nested projection slices at freeze boundaries.
+func CloneSourceQueries(queries []SourceQuery) []SourceQuery {
+	copy := slices.Clone(queries)
+	for i := range copy {
+		copy[i].Projection = append([]Payload(nil), copy[i].Projection...)
+	}
+	return copy
 }
 
 func compareQueries(a, b SourceQuery) int {
@@ -231,11 +249,17 @@ func compareQueries(a, b SourceQuery) int {
 	if c := strings.Compare(a.Language, b.Language); c != 0 {
 		return c
 	}
-	return strings.Compare(a.Edition, b.Edition)
+	if c := strings.Compare(a.Edition, b.Edition); c != 0 {
+		return c
+	}
+	return strings.Compare(contentDigest(a.Projection), contentDigest(b.Projection))
 }
 
 func NewPayloadManifest(source SourceIdentity, payloads []Payload, queries ...SourceQuery) (PayloadManifest, error) {
-	manifest := PayloadManifest{Source: source, Payloads: slices.Clone(payloads), Queries: slices.Clone(queries)}
+	manifest := PayloadManifest{Source: source, Payloads: slices.Clone(payloads), Queries: CloneSourceQueries(queries)}
+	for i := range manifest.Queries {
+		slices.SortFunc(manifest.Queries[i].Projection, func(a, b Payload) int { return strings.Compare(a.Destination, b.Destination) })
+	}
 	if err := manifest.validateInputs(); err != nil {
 		return PayloadManifest{}, err
 	}
@@ -246,7 +270,7 @@ func NewPayloadManifest(source SourceIdentity, payloads []Payload, queries ...So
 		return strings.Compare(a.Identity.Key(), b.Identity.Key())
 	})
 	slices.SortFunc(manifest.Queries, compareQueries)
-	manifest.Queries = slices.Compact(manifest.Queries)
+	manifest.Queries = slices.CompactFunc(manifest.Queries, func(a, b SourceQuery) bool { return compareQueries(a, b) == 0 })
 	manifest.Digest = manifest.contentDigest()
 	return manifest, nil
 }
@@ -278,6 +302,11 @@ func (m PayloadManifest) validateInputs() error {
 		}
 		if query.UpdateID != m.Source.UpdateID || query.Language != m.Source.Language {
 			return errors.New("manifest.query: source revision and language must match the manifest")
+		}
+		for _, projected := range query.Projection {
+			if !slices.Contains(m.Payloads, projected) {
+				return errors.New("manifest.query: projected payload is outside frozen closure")
+			}
 		}
 	}
 	seen := make(map[string]bool)

@@ -2,7 +2,7 @@ package source
 
 import (
 	"context"
-	"slices"
+	"reflect"
 	"strings"
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
@@ -28,7 +28,7 @@ func Refresh(ctx context.Context, frozen model.PayloadManifest, fresh Resolution
 	}
 	a, _ := model.NewPayloadManifest(frozen.Source, frozen.Payloads, frozen.Queries...)
 	b, _ := model.NewPayloadManifest(fresh.Manifest.Source, fresh.Manifest.Payloads, fresh.Manifest.Queries...)
-	if a.Source != b.Source || !slices.Equal(a.Queries, b.Queries) {
+	if a.Source != b.Source || !reflect.DeepEqual(a.Queries, b.Queries) {
 		return nil, ErrInputIdentityChanged
 	}
 	if a.Digest != b.Digest {
