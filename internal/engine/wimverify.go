@@ -39,12 +39,19 @@ func verifyStandard(ctx context.Context, r io.ReaderAt, size uint64, in writeInp
 		return out, e
 	}
 	le := binary.LittleEndian
-	if string(h[:8]) != "MSWIM\x00\x00\x00" || le.Uint32(h[8:]) != 208 || le.Uint32(h[12:]) != 0x10d00 || le.Uint32(h[16:]) != in.HeaderFlags || le.Uint32(h[20:]) != 0 || bytes.Equal(h[24:40], make([]byte, 16)) || le.Uint16(h[40:]) != 1 || le.Uint16(h[42:]) != 1 || le.Uint32(h[44:]) != 1 || !bytes.Equal(h[96:], make([]byte, 112)) {
+	if string(h[:8]) != "MSWIM\x00\x00\x00" || le.Uint32(h[8:]) != 208 || le.Uint32(h[12:]) != 0x10d00 || le.Uint32(h[16:]) != in.HeaderFlags || le.Uint32(h[20:]) != 0 || bytes.Equal(h[24:40], make([]byte, 16)) || le.Uint16(h[40:]) != 1 || le.Uint16(h[42:]) != 1 || le.Uint32(h[44:]) != 1 || !bytes.Equal(h[124:], make([]byte, 84)) {
 		return out, ErrIntegrity
 	}
 	// Descriptor widths, flags and logical/physical size are checked separately.
 	descriptor := func(b []byte, off, n uint64, flags byte) bool {
 		return le.Uint64(b)&0x00ffffffffffffff == n && b[7] == flags && le.Uint64(b[8:]) == off && le.Uint64(b[16:]) == n
+	}
+	if in.Boot {
+		if !descriptor(h[96:120], 208, in.Resources[0].Size, 2) || le.Uint32(h[120:]) != 1 {
+			return out, ErrIntegrity
+		}
+	} else if !bytes.Equal(h[96:124], make([]byte, 28)) {
+		return out, ErrIntegrity
 	}
 	offset := uint64(208)
 	for _, v := range in.Resources {

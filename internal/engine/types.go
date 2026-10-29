@@ -162,4 +162,5 @@ type writeInput struct {
 	HeaderFlags               uint32
 	RecipeDigest, ProofDigest string
 	CheckLive                 func() error
+	Boot                      bool
 }

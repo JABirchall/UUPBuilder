@@ -109,6 +109,28 @@ func TestIndependentWIMVerificationRejectsChangedOutput(t *testing.T) {
 	}
 }
 
+func TestIndependentWIMBootVerificationRejectsDescriptorAndIndexChanges(t *testing.T) {
+	in := inputFixture()
+	in.Boot = true
+	a, e := writeStandard(context.Background(), in, Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer a.Close()
+	s := a.Receipt()
+	raw := make([]byte, s.Size)
+	if _, e = a.ReadAt(raw, 0); e != nil {
+		t.Fatal(e)
+	}
+	for _, off := range []int{96, 103, 104, 112, 120, 124} {
+		changed := bytes.Clone(raw)
+		changed[off] ^= 1
+		if _, e = verifyStandard(context.Background(), bytes.NewReader(changed), s.Size, in, Limits{}); e == nil {
+			t.Fatal("changed boot descriptor/index accepted", off)
+		}
+	}
+}
+
 var _ io.ReaderAt = (*Artifact)(nil)
 
 func TestZeroArtifactIsNotReadableAndCanClose(t *testing.T) {

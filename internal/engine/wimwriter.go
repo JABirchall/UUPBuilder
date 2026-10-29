@@ -168,6 +168,10 @@ func writeStandard(ctx context.Context, in writeInput, limits Limits) (result *A
 	disk.PutUint32(header[44:], 1)
 	putDescriptor(header[48:], uint64(len(in.Resources))*50, lookup, 2)
 	putDescriptor(header[72:], uint64(len(in.XML)), xmlOff, 2)
+	if in.Boot {
+		putDescriptor(header[96:], in.Resources[0].Size, 208, 2)
+		disk.PutUint32(header[120:], 1)
+	}
 	if _, e = f.Write(header[:]); e != nil {
 		return nil, e
 	}
