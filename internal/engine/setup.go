@@ -19,6 +19,7 @@ type SetupBootReceipt struct {
 type SetupBootArtifact struct {
 	archive *Artifact
 	source  source.SetupBootDescriptor
+	recipe  *source.BoundSetupBoot
 }
 
 func (a *SetupBootArtifact) Receipt() SetupBootReceipt {
@@ -95,7 +96,10 @@ func BuildSetupBoot(ctx context.Context, r *source.BoundSetupBoot, limits Limits
 	if e = r.CheckLive(); e != nil {
 		return nil, e
 	}
-	result = &SetupBootArtifact{archive: a, source: d}
+	// Bind the fixed identity only after the original PE and current Setup rule
+	// have been validated by the live typed producer, never from output XML.
+	a.expected = ImageInformation{1, "0", "WindowsPE", "WindowsPE", "10.0.19041.1"}
+	result = &SetupBootArtifact{archive: a, source: d, recipe: r}
 	ok = true
 	return result, nil
 }

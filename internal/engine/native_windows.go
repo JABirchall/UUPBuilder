@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf16"
 	"unsafe"
+	"uupbuilder/internal/engine/source"
 	"uupbuilder/internal/model"
 	platform "uupbuilder/internal/platform/windows"
 )
@@ -36,11 +37,15 @@ type NativeObservation struct {
 	Provider                                platform.DLLIdentity
 	Host                                    model.Host
 	ImageCount                              uint32
+	Created                                 uint32
 	FileXMLSHA256, ImageXMLSHA256           string
 	Image                                   ImageInformation
+	FileSummary, ImageSummary               source.ImageSummary
 	Modules                                 []ModuleIdentity
 	LastOperation                           string
 	FormatInteroperable                     bool
+	CachePath                               string
+	CacheVerified, CacheCleaned             bool
 }
 
 // InspectReadOnly is the one fixed documented inspection path. No arbitrary
@@ -58,6 +63,21 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 	if a.closed {
 		return out, os.ErrClosed
 	}
+	// Only Reconstruct's canonical OS artifact belongs to this public entry.
+	// The typed Setup entry has its own live recipe and boot/summary binding.
+	if a.boundRecipe == nil {
+		return out, ErrInput
+	}
+	expected, e := expectedImage(a.boundRecipe.Descriptor())
+	if e != nil || a.expected != expected {
+		return out, ErrInput
+	}
+	return inspectReadOnlyLocked(ctx, a, nil)
+}
+
+// Caller retains a.mu.RLock through all native use and cleanup. A summary is
+// supplied only by the fixed typed Setup entry, never by a public caller.
+func inspectReadOnlyLocked(ctx context.Context, a *Artifact, summary *source.ImageSummary) (out NativeObservation, runErr error) {
 	s := a.receipt
 	if a.file == nil || a.store == nil || !s.BytesVerified || s.RecipeDigest == "" || s.ProofDigest == "" || s.Size > 8<<30 || s.Size < s.XMLOffset || s.Size-s.XMLOffset > 1<<20 {
 		return out, ErrInput
@@ -114,7 +134,9 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 			}
 		}
 		if temp != nil {
-			runErr = errors.Join(runErr, temp.Close())
+			cacheErr := temp.Close()
+			out.CacheCleaned = cacheErr == nil
+			runErr = errors.Join(runErr, cacheErr)
 		}
 		runErr = errors.Join(runErr, dll.Close(), a.file.Verify(ctx, model.DigestSHA256, s.SHA256, s.SHA256))
 		if runErr != nil {
@@ -144,6 +166,7 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 	out.LastOperation = "WIMCreateFile"
 	file, _, errno := syscall.SyscallN(procs[out.LastOperation], uintptr(unsafe.Pointer(path)), windows.GENERIC_READ, windows.OPEN_EXISTING, 0, 0, uintptr(unsafe.Pointer(&created)))
 	runtime.KeepAlive(path)
+	out.Created = created
 	if file == 0 {
 		return out, nativeError(out.LastOperation, errno)
 	}
@@ -185,6 +208,9 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 	}
 	out.FileXMLSHA256 = sum256(fileXML)
 	observed, e := imageInformation(fileXML)
+	if summary != nil {
+		observed, out.FileSummary, e = setupImageInformation(fileXML, *summary)
+	}
 	if e != nil || observed != expected {
 		return out, errors.Join(ErrIntegrity, e)
 	}
@@ -195,6 +221,7 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 	if e != nil {
 		return out, e
 	}
+	out.CachePath = temp.workspace.Path()
 	tempPath, e := windows.UTF16PtrFromString(temp.workspace.Path())
 	if e != nil {
 		return out, e
@@ -220,12 +247,16 @@ func InspectReadOnly(ctx context.Context, a *Artifact) (out NativeObservation, r
 	if e = temp.Check(); e != nil {
 		return out, e
 	}
+	out.CacheVerified = true
 	imageXML, e := information(image)
 	if e != nil {
 		return out, e
 	}
 	out.ImageXMLSHA256 = sum256(imageXML)
 	out.Image, e = imageInformation(imageXML)
+	if summary != nil {
+		out.Image, out.ImageSummary, e = setupImageInformation(imageXML, *summary)
+	}
 	if e != nil || out.Image != expected {
 		return out, errors.Join(ErrIntegrity, e)
 	}
@@ -247,9 +278,23 @@ func nativeError(op string, e syscall.Errno) error {
 }
 func sum256(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
 func imageInformation(b []byte) (ImageInformation, error) {
+	im, _, _, e := parseImageInformation(b)
+	return im, e
+}
+
+func setupImageInformation(b []byte, expected source.ImageSummary) (ImageInformation, source.ImageSummary, error) {
+	im, summary, complete, e := parseImageInformation(b)
+	if e != nil || !complete || summary != expected || im != (ImageInformation{1, "0", "WindowsPE", "WindowsPE", "10.0.19041.1"}) {
+		return im, summary, errors.Join(ErrIntegrity, e)
+	}
+	return im, summary, nil
+}
+
+func parseImageInformation(b []byte) (ImageInformation, source.ImageSummary, bool, error) {
 	var out ImageInformation
+	var summary source.ImageSummary
 	if len(b)%2 != 0 {
-		return out, ErrIntegrity
+		return out, summary, false, ErrIntegrity
 	}
 	u := make([]uint16, len(b)/2)
 	for n := range u {
@@ -257,8 +302,12 @@ func imageInformation(b []byte) (ImageInformation, error) {
 	}
 	text := strings.Trim(string(utf16.Decode(u)), "\ufeff\x00 \r\n\t")
 	type image struct {
-		Index   uint32 `xml:"INDEX,attr"`
-		Windows struct {
+		Index         uint32   `xml:"INDEX,attr"`
+		Directories   []uint64 `xml:"DIRCOUNT"`
+		Files         []uint64 `xml:"FILECOUNT"`
+		TotalBytes    []uint64 `xml:"TOTALBYTES"`
+		HardlinkBytes []uint64 `xml:"HARDLINKBYTES"`
+		Windows       struct {
 			Arch    string `xml:"ARCH"`
 			Edition string `xml:"EDITIONID"`
 			Type    string `xml:"INSTALLATIONTYPE"`
@@ -276,23 +325,27 @@ func imageInformation(b []byte) (ImageInformation, error) {
 		Images []image `xml:"IMAGE"`
 	}
 	if e := xml.Unmarshal([]byte(text), &doc); e != nil {
-		return out, ErrIntegrity
+		return out, summary, false, ErrIntegrity
 	}
 	im := doc.image
 	if doc.XMLName.Local == "WIM" {
 		if len(doc.Images) != 1 {
-			return out, ErrIntegrity
+			return out, summary, false, ErrIntegrity
 		}
 		im = doc.Images[0]
 	} else if doc.XMLName.Local != "IMAGE" {
-		return out, ErrIntegrity
+		return out, summary, false, ErrIntegrity
 	}
 	w := im.Windows
 	out = ImageInformation{im.Index, w.Arch, w.Edition, w.Type, strings.Join([]string{w.Version.Major, w.Version.Minor, w.Version.Build, w.Version.SPBuild}, ".")}
 	if out.Index != 1 || out.Edition == "" || out.Architecture == "" {
-		return out, ErrIntegrity
+		return out, summary, false, ErrIntegrity
 	}
-	return out, nil
+	complete := len(im.Directories) == 1 && len(im.Files) == 1 && len(im.TotalBytes) == 1 && len(im.HardlinkBytes) == 1
+	if complete {
+		summary = source.ImageSummary{Directories: im.Directories[0], Files: im.Files[0], TotalBytes: im.TotalBytes[0], HardlinkBytes: im.HardlinkBytes[0]}
+	}
+	return out, summary, complete, nil
 }
 
 func loadedModules(ctx context.Context) (out []ModuleIdentity, runErr error) {
