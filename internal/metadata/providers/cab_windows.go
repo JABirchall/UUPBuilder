@@ -10,6 +10,11 @@ import (
 // CAB selects metadata member candidates; semantic facts come from parsed XML.
 type CAB struct{ Members []string }
 
+// Intermediate cabinets are not XML documents. Bound their separate staging
+// and allocation cost before extraction, even when the caller's XML budget is
+// much smaller. InspectCAB independently caps each CAB member at 16 MiB.
+const maxCABIntermediateTotal = 32 << 20
+
 func (c CAB) Inspect(ctx context.Context, r metadata.LocalResource, limits metadata.Limits) (metadata.ProviderResult, error) {
 	var out metadata.ProviderResult
 	limit, err := documentLimit(limits)
@@ -39,6 +44,12 @@ func (c CAB) Inspect(ctx context.Context, r metadata.LocalResource, limits metad
 		return out, err
 	}
 	var names []string
+	var nested []bool
+	maxTotal := limits.MaxTotalBytes
+	if maxTotal == 0 {
+		maxTotal = 32 << 20
+	}
+	var documentTotal, intermediateTotal int64
 	seen := map[string]bool{}
 	for _, candidate := range c.Members {
 		key := strings.ToLower(candidate)
@@ -49,7 +60,23 @@ func (c CAB) Inspect(ctx context.Context, r metadata.LocalResource, limits metad
 		found := false
 		for _, member := range table.Members {
 			if strings.EqualFold(candidate, member.Name) {
+				isNested := strings.HasSuffix(strings.ToLower(member.Name), ".xml.cab")
+				if isNested {
+					intermediateTotal += int64(member.Size)
+					if intermediateTotal > maxCABIntermediateTotal {
+						return out, metadata.ErrLimit
+					}
+				} else {
+					if !strings.HasSuffix(strings.ToLower(member.Name), ".xml") {
+						return out, metadata.ErrInvalidInput
+					}
+					documentTotal += int64(member.Size)
+					if int64(member.Size) > limit || documentTotal > maxTotal {
+						return out, metadata.ErrLimit
+					}
+				}
 				names = append(names, member.Name)
+				nested = append(nested, isNested)
 				found = true
 				break
 			}
@@ -62,29 +89,36 @@ func (c CAB) Inspect(ctx context.Context, r metadata.LocalResource, limits metad
 	if err != nil {
 		return out, err
 	}
-	total := int64(0)
-	maxTotal := limits.MaxTotalBytes
-	if maxTotal == 0 {
-		maxTotal = 32 << 20
-	}
-	if maxTotal < 0 || maxTotal > 32<<20 {
-		return out, metadata.ErrLimit
-	}
-	for _, name := range names {
+	// Check every inner declaration against the remaining document budget
+	// before any inner cabinet is expanded. A .xml.cab candidate must actually
+	// be a cabinet; raw XML cannot bypass the smaller document budget via a name.
+	inners := make([]string, len(names))
+	for i, name := range names {
 		data := decoded[name]
-		member := name
-		if len(data) >= 4 && string(data[:4]) == "MSCF" {
-			nested, e := metadata.InspectCAB(ctx, data)
+		isCAB := len(data) >= 4 && string(data[:4]) == "MSCF"
+		if isCAB != nested[i] {
+			return out, ErrUnsupported
+		}
+		if nested[i] {
+			innerTable, e := metadata.InspectCAB(ctx, data)
 			if e != nil {
 				return out, e
 			}
-			if len(nested.Members) != 1 || !strings.HasSuffix(strings.ToLower(nested.Members[0].Name), ".xml") {
+			if len(innerTable.Members) != 1 || !strings.HasSuffix(strings.ToLower(innerTable.Members[0].Name), ".xml") {
 				return out, ErrUnsupported
 			}
-			inner := nested.Members[0].Name
-			if int64(nested.Members[0].Size) > limit {
+			documentTotal += int64(innerTable.Members[0].Size)
+			if int64(innerTable.Members[0].Size) > limit || documentTotal > maxTotal {
 				return out, metadata.ErrLimit
 			}
+			inners[i] = innerTable.Members[0].Name
+		}
+	}
+	var total int64
+	for i, name := range names {
+		data, member := decoded[name], name
+		if nested[i] {
+			inner := inners[i]
 			extracted, e := metadata.ReadCABMetadata(ctx, data, []string{inner})
 			if e != nil {
 				return out, e
