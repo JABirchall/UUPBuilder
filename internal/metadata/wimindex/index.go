@@ -1,5 +1,6 @@
-// Package wimindex makes source-bound descriptor observations only. It never
-// decodes streams, verifies their SHA1 content, or authorizes conversion.
+// Package wimindex indexes source-bound descriptors and separately verifies
+// standard metadata-resource bytes. Neither establishes file-stream/security
+// closure or authorizes conversion.
 package wimindex
 
 import (
