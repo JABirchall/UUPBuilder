@@ -91,6 +91,14 @@ func (p *parser) descriptor(s *Security, index int, base uint64) error {
 		return ErrLayout
 	}
 	control := disk.Uint16(b[2:])
+	// Public SECURITY_DESCRIPTOR_CONTROL bits from winnt.h. Unknown stored
+	// control semantics remain explicit even though the raw descriptor survives.
+	const supportedControl uint16 = 0xff3f
+	if unsupported := control &^ supportedControl; unsupported != 0 {
+		if err := p.gap("security-control-semantics", -1, base+2, fmt.Sprintf("security=%d unsupported-control=0x%04x", index, unsupported)); err != nil {
+			return err
+		}
+	}
 	if b[1] != 0 && control&0x4000 == 0 {
 		if err := p.gap("security-reserved", -1, base, fmt.Sprintf("security=%d", index)); err != nil {
 			return err

@@ -48,7 +48,9 @@ func (p *parser) readStreams(e *Entry, main []byte, count int, off uint64) (uint
 			return 0, err
 		}
 		if len(s.Name) > 0 {
-			s.Kind = "named-data"
+			if e.Attributes&0x4000 == 0 {
+				s.Kind = "named-data"
+			}
 			if !validName(s.Name) {
 				if err := p.gap("unrepresentable-stream-name", len(p.state.Entries), off, "raw UTF-16 retained"); err != nil {
 					return 0, err
@@ -63,39 +65,35 @@ func (p *parser) readStreams(e *Entry, main []byte, count int, off uint64) (uint
 		e.Streams = append(e.Streams, s)
 		off += n
 	}
-	reparse, data := false, false
-	for i := range e.Streams {
-		s := &e.Streams[i]
-		if len(s.Name) > 0 {
-			continue
+	if e.Attributes&0x4000 != 0 {
+		if err := p.encryptedStreamRoles(e); err != nil {
+			return 0, err
 		}
-		if i == 0 && s.SHA1 == zeroHash {
-			continue
-		}
-		if e.Attributes&0x4000 != 0 {
-			if !data && s.SHA1 != zeroHash {
-				s.Kind = "encrypted-raw"
+	} else {
+		reparse, data := false, false
+		for i := range e.Streams {
+			s := &e.Streams[i]
+			if len(s.Name) > 0 || (i == 0 && s.SHA1 == zeroHash) {
+				continue
+			}
+			if e.Attributes&0x400 != 0 && !reparse {
+				s.Kind = "reparse"
+				reparse = true
+			} else if !data {
+				s.Kind = "data"
 				data = true
 			} else {
 				s.Kind = "unresolved-unnamed"
 			}
-		} else if e.Attributes&0x400 != 0 && !reparse {
-			s.Kind = "reparse"
-			reparse = true
-		} else if !data {
-			s.Kind = "data"
-			data = true
-		} else {
-			s.Kind = "unresolved-unnamed"
 		}
-	}
-	if !reparse && !data {
-		if e.Attributes&0x400 != 0 {
-			e.Streams[0].Kind = "reparse"
-		} else if e.Attributes&16 != 0 {
-			e.Streams[0].Kind = "directory-placeholder"
-		} else {
-			e.Streams[0].Kind = "data"
+		if !reparse && !data {
+			if e.Attributes&0x400 != 0 {
+				e.Streams[0].Kind = "reparse"
+			} else if e.Attributes&16 != 0 {
+				e.Streams[0].Kind = "directory-placeholder"
+			} else {
+				e.Streams[0].Kind = "data"
+			}
 		}
 	}
 	seen := map[string]bool{}
@@ -126,6 +124,38 @@ func (p *parser) readStreams(e *Entry, main []byte, count int, off uint64) (uint
 	}
 	p.streams += count + 1
 	return off, nil
+}
+
+func (p *parser) encryptedStreamRoles(e *Entry) error {
+	// The pinned format packs encrypted data streams into one EFS raw stream.
+	// Identify the first nonzero unnamed hash; ordinary default/named/reparse
+	// roles cannot describe any remaining encrypted record.
+	found := false
+	for i := range e.Streams {
+		s := &e.Streams[i]
+		if !found && len(s.Name) == 0 && s.SHA1 != zeroHash {
+			s.Kind = "encrypted-raw"
+			found = true
+			continue
+		}
+		if i == 0 && s.SHA1 == zeroHash {
+			continue
+		} // unused main hash, not empty EFS data
+		s.Kind = "unresolved-encrypted"
+		if err := p.gap("encrypted-stream-semantics", len(p.state.Entries), s.Offset, "stream outside the single packed EFS raw reference retained"); err != nil {
+			return err
+		}
+	}
+	if !found {
+		e.Streams[0].Kind = "unresolved-encrypted"
+		if err := p.gap("encrypted-stream-semantics", len(p.state.Entries), e.Streams[0].Offset, "no identifiable nonzero unnamed EFS raw stream"); err != nil {
+			return err
+		}
+	}
+	if e.Attributes&0x400 != 0 {
+		return p.gap("encrypted-stream-semantics", len(p.state.Entries), e.Offset+88, "encrypted reparse combination is unsupported")
+	}
+	return nil
 }
 
 func (p *parser) resolve(idx *wimindex.Index) error {

@@ -1,10 +1,44 @@
 package wimmeta
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 )
+
+func TestPublicDescriptorControlSemanticsGateCompleteness(t *testing.T) {
+	for _, tc := range []struct{ control, unsupported uint16 }{
+		{0x8000, 0}, {0xff3f, 0}, {0x8040, 0x0040}, {0x8080, 0x0080}, {0x80c0, 0x00c0},
+	} {
+		t.Run(fmt.Sprintf("0x%04x", tc.control), func(t *testing.T) {
+			b := nestedFixture()
+			le.PutUint16(b[18:], tc.control)
+			a, idx := boundFixture(t, b, false)
+			o, err := Parse(context.Background(), a, idx, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := o.Snapshot()
+			if !s.MetadataVerified || s.ContentVerified || s.ConversionSupported || !bytes.Equal(s.Security[0].Raw, b[16:36]) {
+				t.Fatal("descriptor bytes or verification boundary changed")
+			}
+			if tc.unsupported == 0 {
+				if !s.Complete || len(s.Gaps) != 0 {
+					t.Fatal("documented controls misclassified", s.Gaps)
+				}
+				return
+			}
+			if s.Complete || len(s.Gaps) != 1 || s.Gaps[0].Kind != "security-control-semantics" || s.Gaps[0].Offset != 18 {
+				t.Fatalf("unsupported control %#04x counted complete or unresolved inventory lost: complete=%v gaps=%+v", tc.control, s.Complete, s.Gaps)
+			}
+			if s.Gaps[0].Detail != fmt.Sprintf("security=0 unsupported-control=0x%04x", tc.unsupported) {
+				t.Fatal("unsupported original control bits not identified", s.Gaps[0])
+			}
+		})
+	}
+}
 
 func securityFixture(aceType byte) []byte {
 	// Relative descriptor: owner SID at 20, DACL at 32, one ACE at 40.
