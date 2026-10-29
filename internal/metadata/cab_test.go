@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -75,5 +76,17 @@ func TestCABRejectsCaseCollisionAndAcquisitionMemberBounds(t *testing.T) {
 	binary.LittleEndian.PutUint16(b[28:], 1025)
 	if _, err := InspectCAB(context.Background(), b); !errors.Is(err, ErrLimit) {
 		t.Fatalf("unbounded member directory: %v", err)
+	}
+}
+
+func TestLegacyCABLongNameRemainsMalformedAndOrdinalIsOpaque(t *testing.T) {
+	b := testCAB(strings.Repeat("a", 256), []byte("x"))
+	if _, e := InspectCAB(context.Background(), b); !errors.Is(e, ErrMalformedMetadata) {
+		t.Fatalf("legacy long-name error changed: %v", e)
+	}
+	b = testCAB("a.xml", []byte("x"))
+	binary.LittleEndian.PutUint16(b[34:], 7)
+	if _, e := InspectCAB(context.Background(), b); e != nil {
+		t.Fatalf("legacy standalone cabinet ordinal changed: %v", e)
 	}
 }
