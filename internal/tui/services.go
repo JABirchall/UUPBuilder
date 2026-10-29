@@ -29,6 +29,7 @@ type Dependencies struct {
 	ConfigPath     string
 	Context        context.Context
 	Host           model.Host // Informational only; never restricts targets.
+	Builder        BuildService
 }
 
 var _ Catalog = (*catalog.Client)(nil)

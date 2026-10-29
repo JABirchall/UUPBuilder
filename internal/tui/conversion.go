@@ -13,7 +13,7 @@ import (
 	"uupbuilder/internal/model"
 )
 
-const configControlCount = 3 // path, load, save
+const configControlCount = 4 // path, load, save, build/cancel
 
 // ConversionModel edits requested policies. Applicability is observational;
 // unknown values remain unknown until the owning resolver supplies evidence.
@@ -153,6 +153,9 @@ func (m Model) activateConversion() (tea.Model, tea.Cmd) {
 	if c.cursor == 2 {
 		return m.Update(SaveConfigMsg{})
 	}
+	if c.cursor == 3 {
+		return m.Update(BuildMsg{})
+	}
 	value := m.configActions.path
 	if c.cursor >= configControlCount {
 		field := c.fields[c.cursor-configControlCount]
@@ -235,6 +238,11 @@ func (m Model) conversionRows(width, height int) []row {
 			label, text = "TOML", "Load selected file"
 		case 2:
 			label, text = "TOML", "Save selected file"
+		case 3:
+			label, text = "Conversion", "Build ISO"
+			if m.buildAction.busy {
+				text = "Cancel active build action"
+			}
 		default:
 			field := c.fields[i-configControlCount]
 			label, text = field.group+" · "+field.label, terminalText(field.value)

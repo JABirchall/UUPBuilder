@@ -46,6 +46,7 @@ type Model struct {
 	apps          appsState
 	conversion    ConversionModel
 	configActions configActionsState
+	buildAction   buildActionState
 	notice        string
 	showHelp      bool
 	showTOML      bool
@@ -77,7 +78,7 @@ func New(deps Dependencies, cfg config.Config) Model {
 	return m
 }
 
-// Close cancels discovery owned by this Workspace. The embedding application
+// Close cancels work owned by this Workspace. The embedding application
 // should defer it as well as cancelling Dependencies.Context on shutdown.
 func (m Model) Close()        { m.close() }
 func (m Model) Init() tea.Cmd { return func() tea.Msg { return initializeMsg{} } }
@@ -160,6 +161,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.beginConfigAction(false)
 	case SaveConfigMsg:
 		return m.beginConfigAction(true)
+	case BuildMsg:
+		return m.beginBuild()
+	case buildPreparedMsg:
+		return m.acceptBuildPlan(msg)
+	case buildFinishedMsg:
+		return m.acceptBuildResult(msg)
 	case configActionResultMsg:
 		return m.acceptConfigAction(msg)
 	case conversionFocusMsg:

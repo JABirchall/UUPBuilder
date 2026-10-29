@@ -14,6 +14,9 @@ import (
 // Run validates arguments, loads an existing configuration or first-run browsing
 // defaults, and launches the Workspace. Startup never saves the configuration.
 func Run(ctx context.Context, args []string) error {
+	if handled, err := runPrivateWorker(ctx, args); handled {
+		return err
+	}
 	return run(ctx, args, RunInteractive)
 }
 

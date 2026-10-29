@@ -28,6 +28,8 @@ func runInteractive(ctx context.Context, opts Options, programOptions ...tea.Pro
 	opts.Dependencies.Context = ctx
 	opts.Dependencies.ConfigPath = opts.ConfigPath
 	composeInteractiveApps(&opts)
+	closeBuild := composeInteractiveBuild(&opts)
+	defer closeBuild()
 	workspace := tui.New(opts.Dependencies, opts.Config)
 	defer workspace.Close()
 	programOptions = append(programOptions, tea.WithContext(ctx), tea.WithoutSignalHandler())
