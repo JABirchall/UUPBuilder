@@ -325,9 +325,11 @@ Extend producer-owned app evidence with `AppPackage.PackageFamilyName string`. D
 
 **R16s — current first priority: match the accepted Workspace style.** Use the user's 2026-10-29 screenshot and the Workspace variant at `C:/Users/owner/.codex/visualizations/2026/10/27/01a17b69-703d-7eb2-85fd-9d3102de76fa/uup-builder-layouts.html`. Implement in Charm/Lip Gloss: full dark-purple canvas, muted dividers, filled active sidebar/build rows, bordered fields/actions, strong content headings, generous row spacing, sidebar metadata and bottom action/footer areas. Keep actual live data, exact selection, async behavior and TOML actions; never copy sample catalog/app data or simulated progress. Keep narrow layouts usable. Versioned detailed implementation brief/steps are in this plan's SDD workspace `task-R16s-style-brief.md`.
 
-- [ ] Update focused layout/theme files and existing navigation/hit geometry where necessary; test resized hit targets and preserve all working settings/discovery behavior.
-- [ ] Make the visible View TOML control a real read-only view of the current draft, without writes or draft changes.
-- [ ] Run focused rendering/navigation checks and final appropriate verification; independent review; build and open a fresh styled preview for user testing. Do not alter the user's Windows Terminal settings.
+- [x] Update focused layout/theme files and existing navigation/hit geometry where necessary; test resized hit targets and preserve all working settings/discovery behavior.
+- [x] Make the visible View TOML control a real read-only view of the current draft, without writes or draft changes.
+- [x] Run focused rendering/navigation checks and final appropriate verification; independent review; build and open a fresh styled preview for user testing. Do not alter the user's Windows Terminal settings.
+
+Status: completed and independently reviewed at `236680d`; the styled native preview is open for user testing.
 
 **R16a — next implementation priority:** Reuse completed R1 startup and R2 typed editors; deliver an interactive preview immediately. Implement the app-editor view/state/navigation against existing typed AppInventory/AppSettings contracts before resuming native provider research. Unit fixtures may test rendering, but the running preview must display unavailable/unexamined data honestly and never fabricate selectable app/source records.
 
