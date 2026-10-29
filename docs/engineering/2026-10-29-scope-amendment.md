@@ -1,5 +1,17 @@
 # Scope amendment — 2026-10-29
 
+## Current workflow planning decision
+
+The user requested a development replan in user-workflow order, with app-loading rate limiting among the first tasks and cleanup of previous plans. The [user workflow implementation plan](../superpowers/plans/2026-10-29-uup-builder-user-workflow-plan.md) is now the sole active execution queue. It replaces all five earlier development plans and their ordering; historical task IDs below identify past decisions, not a separate schedule.
+
+Start with U01, app-loading rate limiting. Then follow Builds/Image selection, Apps, Conversion/configuration, validated execution, managed downloads/tools, image assembly, updates/editions, app/feature/driver customization, verified ISO publication and coverage/release acceptance. Reuse completed work and attach backend/provider work to the step it enables. No new WinRE/native-control experiment precedes the usable selection/editing path.
+
+The user supplied the server's `checkIfUserIsRateLimited` function. With its default arguments it tracks one resource/time per client IP: changing resources is blocked for 10 seconds without updating the timer; repeating a resource inside 1 second updates the timer before rejecting. All client instances, metadata/online requests and retries must share appropriate pacing. The function body alone does not establish its call-site resource key or overridden arguments; U01 initially uses a conservative 10.25-second get.php send interval and tests the supplied state machine. The former 500 ms app-local pacing is insufficient for those defaults.
+
+This replan does not reinstate excluded features or authorize native image operations. Earlier implementation/experiment records remain truthful. Current task status and order live only in the workflow plan.
+
+## Retained scope decision and history
+
 The user removed recovery, the planned R17 Review/Start/progress/recovery and terminal-behavior work, and testing whether the generated image boots. They then specified an ISO file as the deliverable, without a separate installation-media creation workflow, and moved TUI work ahead because they want to test it now.
 
 This decision supersedes conflicting requirements in the accepted design, shared contracts, host-proof policy, older plans and remaining-work plan. It does not mark omitted work implemented or tested.
@@ -30,4 +42,4 @@ Prioritize completed R1/R2 preview delivery and R16a app-editor/view work before
 
 The user tested that preview, said it looked good, and identified a mismatch with the earlier Charm style. Their supplied purple Workspace screenshot confirms the existing accepted visual direction. R16s visual fidelity now precedes R16a: apply that layout/palette/control treatment to the working Charm TUI and deliver a new preview. Preserve real data and behaviors; the reference's illustrative data/progress are not product features.
 
-Task IDs stay stable: R17 is recorded as removed, not completed. R11/R13/R14/R15/R18 and their dependencies are revised in the remaining-work plan. Existing schema-1 settings remain readable; excluded output/recovery choices are not silently claimed as supported. Completed R1/R2 and other reviewed checkpoints are not re-run or rewritten.
+Legacy IDs remain stable as historical references: R17 is removed, not completed. The current workflow plan maps retained work to U01–U12 and replaces the remaining-work schedule. Existing schema-1 settings remain readable; excluded output/recovery choices are not silently claimed as supported. Completed R1/R2 and other reviewed checkpoints are not re-run or rewritten.

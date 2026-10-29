@@ -1,10 +1,12 @@
 # UUP Builder design
 
+**Current development plan (2026-10-29):** [User workflow implementation plan](../plans/2026-10-29-uup-builder-user-workflow-plan.md) is the sole active task queue. It replaces the five previous plans, starts with app-loading rate limiting, and retains the completed implementation. Historical context and proposals below are subordinate to the scope amendment and current plan.
+
 **Authoritative scope amendment (2026-10-29):** [Reduced scope](../../engineering/2026-10-29-scope-amendment.md) removes recovery, original R17 Review/Start/progress/terminal work and bootability testing. It supersedes conflicting clauses below; historical text is retained as design history.
 
 Date: 2026-10-27
 
-Status: Accepted as the basis for implementation planning on 2026-10-27, when the user requested a multi-agent plan using GPT-6.1 Sol at xhigh. Product implementation has not started.
+Status: Accepted as the product design baseline on 2026-10-27, when the user requested a multi-agent plan using GPT-6.1 Sol at xhigh. Implementation is in progress; current integrated state and remaining tasks are recorded in the user workflow implementation plan.
 
 **Authoritative host-proof amendment (2026-10-27):** The user accepts successful complete functionality on the available native Windows host plus Windows `386`/`amd64`/`arm64` builds as full host-architecture coverage. The [host proof policy](../../engineering/host-proof-policy.md) supersedes earlier mandatory physical-host execution clauses throughout this design and its plans, including P1/W1/W2/R1. Unavailable x86/ARM64 hardware is no longer a blocker. Preserve all nine logical common pairs and actual host facts; distinguish observed from portability-accepted coverage. All functional, source/target, provider, servicing, media, dependency, rights and setup requirements remain.
 

@@ -1,5 +1,7 @@
 # Shared engineering contracts
 
+**Current execution queue (2026-10-29):** [User workflow implementation plan](../superpowers/plans/2026-10-29-uup-builder-user-workflow-plan.md). Earlier plan files and task schedules are replaced. Existing producer code is authoritative for implemented signatures; historical bootstrap wording below is not an instruction to recreate completed foundations.
+
 **Authoritative scope amendment (2026-10-29)**
 
 [The user's reduced scope](2026-10-29-scope-amendment.md) specifies ISO-file-only output and supersedes recovery, R17 UI/terminal and bootability-testing requirements in this historical contract. New orchestration need not implement Recover/List/Discard or restart discovery; active operation ownership, cancellation and resource cleanup still apply. Existing types and completed implementations are not removed merely to edit this document.

@@ -11,9 +11,11 @@ targets remain valid values. The authoritative [host proof policy](../engineerin
 accepts complete current-host functionality plus Windows 386/amd64/arm64 builds
 as full host-architecture coverage. Other physical host hardware is optional.
 
-Requirements: accepted `2026-10-27-uup-builder-design.md`, task P1 in
-`2026-10-27-uup-builder-multi-agent-plan.md`, engine plan
-`2026-10-27-uup-builder-engine-plan.md`, and G0 producer contracts. Research
+Requirements: the [accepted design](../superpowers/specs/2026-10-27-uup-builder-design.md),
+[current scope](../engineering/2026-10-29-scope-amendment.md),
+[user workflow plan](../superpowers/plans/2026-10-29-uup-builder-user-workflow-plan.md)
+and [producer contracts](../engineering/contracts.md). Earlier development plans
+are replaced; this ledger preserves evidence rather than an execution queue. Research
 provenance: the coordinator's dated `provider-research.md`,
 `provider-runtime-report.md`, `adk-static-research.md` and
 `source-census-research.md`, accepted `task-P1i-report.md` and
