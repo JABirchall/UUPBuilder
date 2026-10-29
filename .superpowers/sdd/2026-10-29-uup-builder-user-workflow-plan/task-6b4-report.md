@@ -107,3 +107,63 @@ Retained ignored evidence, relative to this report directory:
 Reviewed the focused shared-adapter diffs and all new authority/custody/provider code, tested real installed native operations, and ran `git diff --cached --check` successfully before the implementation commit. Source/metadata/oracle digests reproduce; legacy extraction/RAW limits and public contracts remain intact. No controller ledger/progress or whole-U06 acceptance boxes were edited.
 
 All originally missing hashes in this selected reference view now have exact CAB bytes. Original B3 metadata completeness remains **false**, with its original **14515** gap records still bound unchanged: 13546 EA records, 195 callback ACE records and the historical 774 missing-reference records. CAB matching supplies byte-derived sizes separately from original metadata/index sizes; it does not interpret/apply EA/security callbacks or silently rewrite those records. WIM solid 64 MiB file-content decoding, other-source/global closure, reconstruction, servicing, full Ensure/tool/ISO support and physical ARM64 functionality remain unproved. The logical disk/native-request accounting, synchronous cancellation and OS overhead boundaries stated above remain explicit concerns; no whole-volume or process peak claim is made. No image operation, source/target/downloaded helper execution, elevation, installation, source mutation or publication was performed. The stopped wimlib route was not retried.
+
+## Fix round 1 — U06B4-R1 and U06B4-R2
+
+Review base: **b6b0707c60a075aef561c3d73304ef40916b6b68**. Fix implementation: **f03a558cbd20565aca799c1c03ce6bb8963256c5 — fix(metadata): enforce CAB preallocation boundaries**. Read the verbatim round-1 findings and complete review, verified both production paths, and addressed both Important findings. No native/provider/shared-framing/default-limit/legacy behavior was redesigned.
+
+**R1:** `build.go` now checks the remaining result allowance alongside the existing metadata/declared-output remainders before `cabformat.Inspect`. An exhausted result remainder returns `cabindex.ErrLimit`; it can no longer become the framing parser's zero/default 128 MiB allowance. The nonzero checked remainder is then passed to Inspect. The shared parser's zero/default contract stays unchanged.
+
+**R2:** Before `PayloadIdentity.Validate`, error formatting, or name normalization, `build.go` checks all six caller-supplied identity string fields against the existing `MaxVariableBytes`. It then requires exact identity membership in the already bounded/validated manifest. Only bound, bounded identities can reach the existing validation/normalization path. Source authority is tightened; no arbitrary input path/receipt or reader grants authority.
+
+Changed files: `internal/metadata/cabindex/build.go`, new `internal/metadata/cabindex/preallocation_test.go`, and this appended report. Exact covering tests:
+
+- `TestExhaustedResultRemainderRefusesBeforeCABFraming`: hand-derived **39408-byte exact initial charge** (`286*8 + 1*256 + 2*16384 + 4096`), with two independent parser sentinels. A valid source with a one-byte parser metadata budget and a correctly source-hashed malformed signature must both return the Build result-limit error before framing can observe its own budget/signature errors. This asserts the actual early boundary, rather than only a provider-construction count.
+- `TestUnboundSuppliedIdentityNameIsBoundBeforeNormalization`: caller-owned **8388612-byte uppercase unbound `.CAB` name**, with a 40 KiB result limit, tested under default and lowered (256-byte) variable caps. The early variable-limit error and a generous **less-than-1-MiB Build allocation** assertion detect the full lowercase copy. Caller input construction is outside the measured interval; counters include bounded bookkeeping/runtime noise and are not whole-process peak claims.
+- `TestSuppliedIdentityFieldsAreBoundBeforeValidation`: six subcases cover digest algorithm/value, provenance source/name, and encryption method/fingerprint. All require the variable-limit refusal before ordinary validation.
+
+R1 behavioral RED, before its guard:
+
+```text
+go test ./internal/metadata/cabindex -run '^TestExhaustedResultRemainderRefusesBeforeCABFraming$' -count=1 -v
+FAIL .../valid-source-parser-budget-sentinel
+    framing began after exact result exhaustion: cabinet framing limit exceeded
+FAIL .../malformed-source-signature-sentinel
+    framing began after exact result exhaustion: malformed cabinet framing
+FAIL uupbuilder/internal/metadata/cabindex 0.027s
+```
+
+GREEN after R1, same command: both subcases passed; `ok uupbuilder/internal/metadata/cabindex 0.028s`.
+
+R2 behavioral RED, before its guards:
+
+```text
+go test ./internal/metadata/cabindex -run '^Test(UnboundSuppliedIdentityNameIsBoundBeforeNormalization|SuppliedIdentityFieldsAreBoundBeforeValidation)$' -count=1 -v
+FAIL .../default-variable-cap
+    Build allocated 8411056 bytes for an unbound 8388612-byte uppercase name
+    supplied name did not hit its early variable bound: unbound CAB content input
+    unbound name reached allocating normalization: 8411056 bytes
+FAIL .../lowered-variable-cap
+    Build allocated 8405960 bytes for an unbound 8388612-byte uppercase name
+    supplied name did not hit its early variable bound: unbound CAB content input
+    unbound name reached allocating normalization: 8405960 bytes
+FAIL all six TestSuppliedIdentityFieldsAreBoundBeforeValidation subcases
+    supplied identity reached validation before its variable bound: unbound CAB content input
+FAIL uupbuilder/internal/metadata/cabindex 0.135s
+```
+
+GREEN after R2, same command: all eight subcases passed; measured Build allocations **6544** and **3344** bytes; `ok uupbuilder/internal/metadata/cabindex 0.062s`.
+
+Final focused verification after both guards:
+
+```text
+go test ./internal/metadata/cabindex -run '^Test(ExhaustedResultRemainderRefusesBeforeCABFraming|UnboundSuppliedIdentityNameIsBoundBeforeNormalization|SuppliedIdentityFieldsAreBoundBeforeValidation)$' -count=1 -v
+PASS all three tests / ten subcases
+Build allocation counters for uppercase unbound name: 8896 and 3344 bytes
+ok uupbuilder/internal/metadata/cabindex 0.045s
+
+go test ./internal/metadata/cabindex -count=1
+ok uupbuilder/internal/metadata/cabindex 1.556s
+```
+
+Self-review: inspected the exact two guard changes and complete new regression file, confirmed positive/default input behavior through the affected package tests, and ran `git diff --cached --check` successfully before the implementation commit. The earlier 774-hash closure/inventory, full suite, vet, architecture builds and WOW64 checks remain **historical evidence**, not latest-code proof. They were not replayed for these two guards; the configured source test was unconfigured/skipped in the affected package run. No shared parser change required cabformat verification. Original source/oracle/artifact authority, native limits, cleanup and all previously reported scope/accounting concerns remain unchanged. No controller progress or acceptance file was edited, and no helper/reviewer was dispatched.
