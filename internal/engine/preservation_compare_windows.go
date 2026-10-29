@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"reflect"
 	"slices"
@@ -24,6 +25,85 @@ type ComparisonMismatch struct {
 	Path, Field, Expected, Observed string
 	ExpectedRaw, ObservedRaw        []byte
 }
+
+func utf16Bytes(u []uint16) []byte {
+	b := make([]byte, len(u)*2)
+	for j, v := range u {
+		binary.LittleEndian.PutUint16(b[j*2:], v)
+	}
+	return b
+}
+
+type metadataRecheck struct {
+	Fingerprint [32]byte
+	BasicRaw    []byte
+}
+
+// Fingerprint the complete typed observation, including every field, native
+// status/cause, raw byte and slice nil/empty distinction previously checked by
+// reflect.DeepEqual. Streaming avoids retaining all successful raw metadata or
+// building a second serialized representation. SHA256 equality is evidence,
+// not an atomic snapshot. Raw mismatch witnesses are retained separately.
+func metadataFingerprint(o platform.MetadataObservation) (out [32]byte, err error) {
+	h := sha256.New()
+	if err = hashMetadataValue(h, reflect.ValueOf(o)); err != nil {
+		return out, err
+	}
+	copy(out[:], h.Sum(nil))
+	return out, nil
+}
+func hashMetadataValue(h hash.Hash, v reflect.Value) error {
+	var b [8]byte
+	put := func(n uint64) { binary.LittleEndian.PutUint64(b[:], n); h.Write(b[:]) }
+	put(uint64(v.Kind()))
+	switch v.Kind() {
+	case reflect.Struct:
+		put(uint64(v.NumField()))
+		for j := 0; j < v.NumField(); j++ {
+			if e := hashMetadataValue(h, v.Field(j)); e != nil {
+				return e
+			}
+		}
+	case reflect.Array:
+		put(uint64(v.Len()))
+		for j := 0; j < v.Len(); j++ {
+			if e := hashMetadataValue(h, v.Index(j)); e != nil {
+				return e
+			}
+		}
+	case reflect.Slice:
+		if v.IsNil() {
+			put(0)
+		} else {
+			put(1)
+		}
+		put(uint64(v.Len()))
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			h.Write(v.Bytes())
+		} else {
+			for j := 0; j < v.Len(); j++ {
+				if e := hashMetadataValue(h, v.Index(j)); e != nil {
+					return e
+				}
+			}
+		}
+	case reflect.String:
+		put(uint64(v.Len()))
+		io.WriteString(h, v.String())
+	case reflect.Bool:
+		if v.Bool() {
+			put(1)
+		} else {
+			put(0)
+		}
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		put(v.Uint())
+	default:
+		return ErrInput
+	}
+	return nil
+}
+
 type ComparisonEvidence struct {
 	Source                           ExpectationDescriptor
 	Destination                      platform.TreeIdentity
@@ -32,6 +112,7 @@ type ComparisonEvidence struct {
 	Unresolved                       []FieldRequirement
 	EntriesObserved, StreamsCompared int
 	ReadBytes, AccountedBytes        uint64
+	PeakScratchBytes                 uint64
 	Complete                         bool
 	Limitations                      []string
 }
@@ -84,7 +165,7 @@ func evidenceCost(v ComparisonEvidence) uint64 {
 	for _, inventory := range []platform.TreeInventory{v.InitialInventory, v.FinalInventory} {
 		n += uint64(len(inventory.Entries)) * 256
 		for _, entry := range inventory.Entries {
-			n += uint64(len(entry.Path)+len(entry.Status)) * 2
+			n += uint64(len(entry.Path)+len(entry.Status)+len(entry.Failure)) * 2
 		}
 	}
 	for _, s := range v.Limitations {
@@ -150,18 +231,34 @@ type comparisonRun struct {
 	l             ComparisonLimits
 	v             ComparisonEvidence
 	nativeStreams int
+	transient     bool
+	scratch       uint64
 }
 
 func (c *comparisonRun) charge(n uint64) error {
 	if e := c.ctx.Err(); e != nil {
 		return e
 	}
-	if n > c.l.MaxResultBytes-c.v.AccountedBytes {
+	if n > c.l.MaxResultBytes-c.v.AccountedBytes-c.scratch {
 		return ErrLimit
 	}
-	c.v.AccountedBytes += n
+	if c.transient {
+		c.scratch += n
+		c.v.PeakScratchBytes = max(c.v.PeakScratchBytes, c.scratch)
+	} else {
+		c.v.AccountedBytes += n
+	}
 	return nil
 }
+func (c *comparisonRun) retain(n uint64) error {
+	old := c.transient
+	c.transient = false
+	e := c.charge(n)
+	c.transient = old
+	return e
+}
+func (c *comparisonRun) beginObservation() { c.transient = true; c.scratch = 0 }
+func (c *comparisonRun) endObservation()   { c.scratch = 0; c.transient = false }
 func (c *comparisonRun) mismatch(path, field, want, got string, wr, gr []byte) error {
 	if len(c.v.Mismatches) >= c.l.MaxRequirements {
 		return ErrLimit
@@ -171,7 +268,7 @@ func (c *comparisonRun) mismatch(path, field, want, got string, wr, gr []byte) e
 			return ErrLimit
 		}
 	}
-	if e := c.charge(uint64(512 + (len(path)+len(field)+len(want)+len(got)+len(wr)+len(gr))*2)); e != nil {
+	if e := c.retain(uint64(512 + (len(path)+len(field)+len(want)+len(got)+len(wr)+len(gr))*2)); e != nil {
 		return e
 	}
 	c.v.Mismatches = append(c.v.Mismatches, ComparisonMismatch{path, field, want, got, slices.Clone(wr), slices.Clone(gr)})
@@ -181,7 +278,7 @@ func (c *comparisonRun) unknown(path, field, detail string) error {
 	if len(c.v.Unresolved) >= c.l.MaxRequirements || len(path) > c.l.MaxStringBytes || len(field) > c.l.MaxStringBytes || len(detail) > c.l.MaxStringBytes {
 		return ErrLimit
 	}
-	if e := c.charge(uint64(512 + (len(path)+len(field)+len(detail))*2)); e != nil {
+	if e := c.retain(uint64(512 + (len(path)+len(field)+len(detail))*2)); e != nil {
 		return e
 	}
 	c.v.Unresolved = append(c.v.Unresolved, FieldRequirement{Entry: -1, Path: path, Field: field, Detail: detail})
@@ -193,6 +290,9 @@ func (c *comparisonRun) inventory() (platform.TreeInventory, error) {
 		return platform.TreeInventory{}, ErrLimit
 	}
 	l := platform.TreeLimits{MaxEntries: min(c.l.MaxEntries, 4096), MaxDepth: 32, MaxReadBytes: min(read, 16<<20), MaxResultBytes: min(result, 4<<20)}
+	if native, ok := c.p.(*sourceNativeObservation); ok {
+		l = platform.TreeLimits{MaxEntries: min(c.l.MaxEntries, native.profile.MaxEntries), MaxDepth: native.profile.MaxDepth, MaxReadBytes: min(read, native.profile.MaxReadBytes), MaxResultBytes: min(result, native.profile.MaxResultBytes)}
+	}
 	v, e := c.p.ObserveInventory(c.ctx, l)
 	if e != nil {
 		return v, e
@@ -205,8 +305,11 @@ func (c *comparisonRun) inventory() (platform.TreeInventory, error) {
 	}
 	c.v.ReadBytes += v.ReadBytes
 	for _, en := range v.Entries {
-		if len(en.Path) > c.l.MaxStringBytes {
+		if len(en.Path) > c.l.MaxStringBytes || len(en.Failure) > c.l.MaxStringBytes || len(en.Status) > c.l.MaxStringBytes {
 			return v, ErrLimit
+		}
+		if e = c.charge(uint64(len(en.Failure)) * 2); e != nil {
+			return v, e
 		}
 	}
 	return v, nil
@@ -236,12 +339,16 @@ func (c *comparisonRun) observe(name string) (platform.MetadataObservation, erro
 	c.nativeStreams += len(o.NamedStreams)
 	c.v.ReadBytes += o.ReadBytes
 	var cost uint64
-	for _, f := range []platform.MetadataField{o.Basic, o.FileID, o.Security, o.SACL, o.Streams, o.EAs, o.Reparse} {
+	for _, f := range []platform.MetadataField{o.Basic, o.FileID, o.Security, o.SACL, o.Streams, o.EAs, o.Reparse, o.ShortName} {
 		if len(f.Raw) > 64<<10 || len(f.Detail) > c.l.MaxStringBytes {
 			return o, ErrLimit
 		}
 		cost += uint64(len(f.Raw)*2 + len(f.Detail)*2)
 	}
+	if len(o.ShortNameUTF16) > 12 {
+		return o, ErrLimit
+	}
+	cost += uint64(len(o.ShortNameUTF16)) * 4
 	for _, s := range o.NamedStreams {
 		if len(s.Name)*2 > c.l.MaxStringBytes {
 			return o, ErrLimit
@@ -333,7 +440,12 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 	if e = c.charge(uint64(len(x.entries)) * (1024 + 32)); e != nil {
 		return nil, e
 	}
-	observations := make(map[string]platform.MetadataObservation, len(x.entries))
+	observations := make(map[string]metadataRecheck, len(x.entries))
+	if native, ok := p.(*sourceNativeObservation); ok {
+		if e = native.beginMetadataPass(ctx); e != nil {
+			return nil, e
+		}
+	}
 	type nativeKey struct {
 		Volume uint64
 		ID     [16]byte
@@ -369,12 +481,34 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 		if actual.Status != "known" {
 			continue
 		}
+		c.beginObservation()
 		o, e := c.observe(name)
 		if e != nil {
 			return nil, e
 		}
-		observations[name] = o
+		if e = c.retain(uint64(128 + len(o.Basic.Raw)*2)); e != nil {
+			return nil, e
+		}
+		fingerprint, e := metadataFingerprint(o)
+		if e != nil {
+			return nil, e
+		}
+		observations[name] = metadataRecheck{Fingerprint: fingerprint, BasicRaw: slices.Clone(o.Basic.Raw)}
 		c.v.EntriesObserved++
+		if o.ShortName.Status == "complete" {
+			if !slices.Equal(en.Original.ShortName, o.ShortNameUTF16) {
+				if e = c.charge(uint64(len(en.Original.ShortName)+len(o.ShortNameUTF16))*16 + 128); e != nil {
+					return nil, e
+				}
+				if e = c.mismatch(path, "short-name", fmt.Sprint(en.Original.ShortName), fmt.Sprint(o.ShortNameUTF16), utf16Bytes(en.Original.ShortName), utf16Bytes(o.ShortNameUTF16)); e != nil {
+					return nil, e
+				}
+			}
+		} else {
+			if e = c.unknown(path, "short-name", "native counted short name unavailable: "+o.ShortName.Status+": "+o.ShortName.Detail); e != nil {
+				return nil, e
+			}
+		}
 		if o.Identity != actual.Identity {
 			if e = c.mismatch(path, "identity", "inventory held identity", "changed held identity", nil, nil); e != nil {
 				return nil, e
@@ -471,6 +605,7 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 				return nil, e
 			}
 		}
+		c.endObservation()
 	}
 	for path := range byPath {
 		if e = c.mismatch(path, "path", "absent", "extra", nil, nil); e != nil {
@@ -480,16 +615,27 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 	// Recheck every previously observed entry after all content reads, then the
 	// complete independent namespace again. The held owner/root is also checked.
 	c.nativeStreams = 0 // The final observation pass has its own same count cap.
+	if native, ok := p.(*sourceNativeObservation); ok {
+		if e = native.beginMetadataPass(ctx); e != nil {
+			return nil, e
+		}
+	}
 	for name, before := range observations {
+		c.beginObservation()
 		after, e := c.observe(name)
 		if e != nil {
 			return nil, e
 		}
-		if !reflect.DeepEqual(before, after) {
-			if e = c.mismatch(name, "observation.drift", "initial held observation", "changed final observation", before.Basic.Raw, after.Basic.Raw); e != nil {
+		fingerprint, e := metadataFingerprint(after)
+		if e != nil {
+			return nil, e
+		}
+		if before.Fingerprint != fingerprint {
+			if e = c.mismatch(name, "observation.drift", "initial held observation", "changed final observation", before.BasicRaw, after.Basic.Raw); e != nil {
 				return nil, e
 			}
 		}
+		c.endObservation()
 	}
 	end, e := c.inventory()
 	if e != nil {
@@ -529,7 +675,7 @@ func (c *comparisonRun) security(path string, want wimmeta.Security, o platform.
 		return nil
 	}
 	parse := func(raw []byte, field string) (wimmeta.Security, bool, error) {
-		allow := c.l.MaxResultBytes - c.v.AccountedBytes
+		allow := c.l.MaxResultBytes - c.v.AccountedBytes - c.scratch
 		if allow == 0 {
 			return wimmeta.Security{}, false, ErrLimit
 		}
@@ -540,7 +686,9 @@ func (c *comparisonRun) security(path string, want wimmeta.Security, o platform.
 		if e != nil {
 			return s, false, c.unknown(path, "native."+field, "malformed self-relative security descriptor")
 		}
-		c.v.AccountedBytes += cost
+		if e = c.charge(cost); e != nil {
+			return s, false, e
+		}
 		for _, g := range gaps {
 			if g.Kind != "ace-semantics" {
 				if e = c.unknown(path, "native."+field+"."+g.Kind, g.Detail); e != nil {

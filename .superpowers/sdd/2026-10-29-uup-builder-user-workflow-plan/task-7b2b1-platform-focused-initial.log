@@ -1,0 +1,109 @@
+=== RUN   TestMetadataRejectsMalformedStreamAndEARecordsBeforeCopy
+--- PASS: TestMetadataRejectsMalformedStreamAndEARecordsBeforeCopy (0.00s)
+=== RUN   TestReparseObservationPreservesGUIDAndMicrosoftRawFraming
+=== RUN   TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/third-party-guid
+=== RUN   TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/microsoft
+=== RUN   TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/microsoft-guid
+--- PASS: TestReparseObservationPreservesGUIDAndMicrosoftRawFraming (0.00s)
+    --- PASS: TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/third-party-guid (0.00s)
+    --- PASS: TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/microsoft (0.00s)
+    --- PASS: TestReparseObservationPreservesGUIDAndMicrosoftRawFraming/microsoft-guid (0.00s)
+=== RUN   TestMetadataObservesOwnedHardlinkADSAndReparseWithoutFollowing
+    metadata_windows_test.go:162: ordinary synthetic NTFS: hardlink IDs equal with 2 links; identical bytes independent ID; named ADS size=11; mountpoint raw bytes read without target traversal
+--- PASS: TestMetadataObservesOwnedHardlinkADSAndReparseWithoutFollowing (0.36s)
+=== RUN   TestMetadataObservesActualOwnedNTFSFieldsAndDenials
+    metadata_windows_test.go:226: ordinary NTFS fixture file: attrs=0x20 links=1 security=complete SACL=missing-privilege(1314) ADS=complete EA=complete reparse=not-present complete=false
+    metadata_windows_test.go:226: ordinary NTFS fixture directory: attrs=0x10 links=1 security=complete SACL=missing-privilege(1314) ADS=complete EA=complete reparse=not-present complete=false
+--- PASS: TestMetadataObservesActualOwnedNTFSFieldsAndDenials (0.17s)
+=== RUN   TestNativeReadOnlyObservationEmptyShortNameDriftAndMissing
+--- PASS: TestNativeReadOnlyObservationEmptyShortNameDriftAndMissing (0.08s)
+=== RUN   TestNativeReadOnlyObservationExactHandleLimitAndPartialClose
+--- PASS: TestNativeReadOnlyObservationExactHandleLimitAndPartialClose (0.09s)
+=== RUN   TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead
+=== RUN   TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/read
+=== RUN   TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/result
+=== RUN   TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/handle
+--- PASS: TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead (0.41s)
+    --- PASS: TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/read (0.16s)
+    --- PASS: TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/result (0.09s)
+    --- PASS: TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead/handle (0.15s)
+=== RUN   TestNativeReadOnlyObservationSeparatesEvidenceFromOwnership
+--- PASS: TestNativeReadOnlyObservationSeparatesEvidenceFromOwnership (0.08s)
+=== RUN   TestNativeReadOnlyObservationUnknownAndChangedNamesPreserve
+--- PASS: TestNativeReadOnlyObservationUnknownAndChangedNamesPreserve (0.07s)
+=== RUN   TestNativeReadOnlyObservationBoundsAndRevokedRoot
+--- PASS: TestNativeReadOnlyObservationBoundsAndRevokedRoot (0.07s)
+=== RUN   TestNativeReadOnlyObservationSeparateProfileAndDescriptorCopies
+--- PASS: TestNativeReadOnlyObservationSeparateProfileAndDescriptorCopies (0.14s)
+=== RUN   TestNativeReadOnlyObservationReusesReturnedMetadataScratch
+--- PASS: TestNativeReadOnlyObservationReusesReturnedMetadataScratch (0.54s)
+=== RUN   TestNativeReadOnlyObservationReparseObjectNeverTraversesTarget
+--- PASS: TestNativeReadOnlyObservationReparseObjectNeverTraversesTarget (0.07s)
+=== RUN   TestNativeReadOnlyObservationRetainsKnownFailureIdentityAndCause
+--- PASS: TestNativeReadOnlyObservationRetainsKnownFailureIdentityAndCause (0.08s)
+=== RUN   TestNativeReadOnlyObservationPartialAcquisitionClosesAndRetainsCause
+    native_observation_windows_test.go:452: acquired handle leaked GetFileType file: The handle is invalid.
+--- FAIL: TestNativeReadOnlyObservationPartialAcquisitionClosesAndRetainsCause (0.09s)
+=== RUN   TestNativeDirectoryShortNameLosslessAndBounded
+--- PASS: TestNativeDirectoryShortNameLosslessAndBounded (0.00s)
+=== RUN   TestOwnedTreeActualInventoryAndHeldContentRefuseUnknownOrRevoked
+--- PASS: TestOwnedTreeActualInventoryAndHeldContentRefuseUnknownOrRevoked (0.30s)
+=== RUN   TestOwnedTreeActualInventoryDistinguishesMissingChangedAndUnknownAlias
+--- PASS: TestOwnedTreeActualInventoryDistinguishesMissingChangedAndUnknownAlias (0.19s)
+=== RUN   TestOwnedTreeCleanupPinsNamesAfterTopologyProof
+=== RUN   TestOwnedTreeCleanupPinsNamesAfterTopologyProof/ordinary
+    ownedtree_windows_test.go:89: post-proof rename=rename \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofordinary2349756549\001\uupbuilder-41de64ed82b3e5b66593e608b4e394f7\fresh\owned \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofordinary2349756549\001\uupbuilder-41de64ed82b3e5b66593e608b4e394f7\outside-owned-tree: The process cannot access the file because it is being used by another process.; Cleanup preserved; Err calls=5
+=== RUN   TestOwnedTreeCleanupPinsNamesAfterTopologyProof/hardlink-primary
+    ownedtree_windows_test.go:89: post-proof rename=rename \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofhardlink-primary1269994031\001\uupbuilder-468225f8bd11e3608c9397e43e03e40a\fresh\owned \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofhardlink-primary1269994031\001\uupbuilder-468225f8bd11e3608c9397e43e03e40a\outside-owned-tree: The process cannot access the file because it is being used by another process.; Cleanup preserved; Err calls=5
+=== RUN   TestOwnedTreeCleanupPinsNamesAfterTopologyProof/hardlink-alias
+    ownedtree_windows_test.go:89: post-proof rename=<nil>; Cleanup preserved; Err calls=5
+=== RUN   TestOwnedTreeCleanupPinsNamesAfterTopologyProof/named-stream
+    ownedtree_windows_test.go:89: post-proof rename=rename \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofnamed-stream2060704586\001\uupbuilder-a95c53c6f783e3cfc7942b6ffe40a4cb\fresh\owned \\?\C:\Users\owner\AppData\Local\Temp\TestOwnedTreeCleanupPinsNamesAfterTopologyProofnamed-stream2060704586\001\uupbuilder-a95c53c6f783e3cfc7942b6ffe40a4cb\outside-owned-tree: The process cannot access the file because it is being used by another process.; Cleanup preserved; Err calls=5
+--- PASS: TestOwnedTreeCleanupPinsNamesAfterTopologyProof (0.79s)
+    --- PASS: TestOwnedTreeCleanupPinsNamesAfterTopologyProof/ordinary (0.25s)
+    --- PASS: TestOwnedTreeCleanupPinsNamesAfterTopologyProof/hardlink-primary (0.16s)
+    --- PASS: TestOwnedTreeCleanupPinsNamesAfterTopologyProof/hardlink-alias (0.18s)
+    --- PASS: TestOwnedTreeCleanupPinsNamesAfterTopologyProof/named-stream (0.20s)
+=== RUN   TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth
+=== RUN   TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth/ADS=false
+    ownedtree_windows_test.go:168: compatible external growth open=The process cannot access the file because it is being used by another process.; cleanup preserved
+=== RUN   TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth/ADS=true
+    ownedtree_windows_test.go:168: compatible external growth open=The process cannot access the file because it is being used by another process.; cleanup preserved
+--- PASS: TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth (0.58s)
+    --- PASS: TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth/ADS=false (0.23s)
+    --- PASS: TestOwnedTreeCleanupRejectsActualFileAndStreamGrowth/ADS=true (0.35s)
+=== RUN   TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal
+=== RUN   TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal/ADS=false
+=== RUN   TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal/ADS=true
+--- PASS: TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal (0.40s)
+    --- PASS: TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal/ADS=false (0.20s)
+    --- PASS: TestOwnedTreeCleanupChargesActualBytesInsteadOfStaleLedgerTotal/ADS=true (0.20s)
+=== RUN   TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget
+=== RUN   TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget/ADS=false
+=== RUN   TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget/ADS=true
+--- PASS: TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget (0.38s)
+    --- PASS: TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget/ADS=false (0.14s)
+    --- PASS: TestOwnedTreeProofRejectsChangedRecordedLengthsWithinBudget/ADS=true (0.24s)
+=== RUN   TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName
+=== RUN   TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName/5
+=== RUN   TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName/6
+--- PASS: TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName (0.52s)
+    --- PASS: TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName/5 (0.29s)
+    --- PASS: TestOwnedTreeHardlinkLogicalBudgetCountsNamedStreamsPerName/6 (0.23s)
+=== RUN   TestOwnedTreeDirectoryOnlyCleanupHoldsRemovalPinThroughDisposition
+--- PASS: TestOwnedTreeDirectoryOnlyCleanupHoldsRemovalPinThroughDisposition (0.06s)
+=== RUN   TestOwnedTreeRejectsUnknownAndOutsideLinksBeforeCleanup
+--- PASS: TestOwnedTreeRejectsUnknownAndOutsideLinksBeforeCleanup (0.31s)
+=== RUN   TestOwnedTreeBoundsPathsAndCancellation
+--- PASS: TestOwnedTreeBoundsPathsAndCancellation (0.15s)
+=== RUN   TestOwnedTreeConstructorRejectsReparseAncestorsAndExistingDirectory
+--- PASS: TestOwnedTreeConstructorRejectsReparseAncestorsAndExistingDirectory (0.08s)
+=== RUN   TestOwnedTreeFinalReopenRejectsReplacementAndMissingRoot
+--- PASS: TestOwnedTreeFinalReopenRejectsReplacementAndMissingRoot (0.24s)
+=== RUN   TestOwnedTreeCloseLatchesAcquiredHandleFailures
+--- PASS: TestOwnedTreeCloseLatchesAcquiredHandleFailures (0.19s)
+=== RUN   TestOwnedTreeRefusesChangedWorkspaceOwnerBeforeDescendantMutation
+--- PASS: TestOwnedTreeRefusesChangedWorkspaceOwnerBeforeDescendantMutation (0.13s)
+FAIL
+FAIL	uupbuilder/internal/platform/windows	6.610s
+FAIL

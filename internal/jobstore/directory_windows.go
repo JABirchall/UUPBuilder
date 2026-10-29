@@ -44,6 +44,53 @@ func (c *DirectoryClaim) IntentDigest() string {
 	}
 	return c.record.IntentDigest
 }
+
+// CheckLive validates only the original active durable claim. It neither
+// reopens persisted state nor grants observation, descendant or release rights.
+func (c *DirectoryClaim) CheckLive(ctx context.Context) error {
+	if c == nil || ctx == nil || c.tx == nil || c.tx.store == nil || c.tree == nil {
+		return platform.ErrTreePreserved
+	}
+	s := c.tx.store
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if e := s.check(ctx, c.tx.intent.JobID); e != nil {
+		return e
+	}
+	if e := c.tx.usable(); e != nil {
+		return e
+	}
+	if s.lock == nil {
+		return platform.ErrTreePreserved
+	}
+	if _, e := s.lock.Stat(); e != nil {
+		return errors.Join(platform.ErrTreePreserved, e)
+	}
+	if c.released || c.record.Released || c.record.Identity.FileIndex == 0 ||
+		c.record.IntentDigest != intentDigest(c.tx.intent) || !sourceProof(c.tx.intent, c.record.SourceDigest) {
+		return platform.ErrTreePreserved
+	}
+	i := s.stageIndex(c.tx.id)
+	if i < 0 {
+		return platform.ErrTreePreserved
+	}
+	stage := s.state.Stages[i]
+	if stage.Committed || stage.Scratch != c.tx.scratch || intentDigest(stage.Intent) != c.record.IntentDigest {
+		return platform.ErrTreePreserved
+	}
+	found := 0
+	for _, r := range s.state.Stages[i].Directories {
+		if r == c.record {
+			found++
+		}
+	}
+	id := c.tree.Identity()
+	if found != 1 || id.Root != c.record.Identity || id.SourceDigest != c.record.SourceDigest ||
+		id.RelativePath != c.record.Path || id.OperationID != c.tx.intent.StageID || id.Workspace != s.w.Identity() {
+		return platform.ErrTreePreserved
+	}
+	return c.tree.CheckObservationLive(ctx)
+}
 func intentDigest(in MutationIntent) string { b, _ := json.Marshal(in); return hashBytes(b) }
 func directoryOverlap(a, b string) bool {
 	a, b = strings.ToLower(a), strings.ToLower(b)

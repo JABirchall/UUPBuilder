@@ -1,0 +1,504 @@
+package windows
+
+import (
+	"context"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"unicode/utf16"
+
+	"golang.org/x/sys/windows"
+)
+
+func nativeObservationFixture(t *testing.T) (*OwnedTree, string) {
+	t.Helper()
+	w, e := CreateWorkspace(t.TempDir(), "fixture")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { w.Close() })
+	r, e := w.CreateOwnedTree("native-result", "op", "proof", TreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { r.Close() })
+	path := filepath.Join(w.Path(), "native-result")
+	if e = os.Mkdir(filepath.Join(path, "known"), 0700); e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(filepath.Join(path, "known", "file"), []byte("independent bytes"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(filepath.Join(path, "known", "file:ads"), []byte("ADS"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	return r, path
+}
+
+func TestNativeReadOnlyObservationEmptyShortNameDriftAndMissing(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+		t.Fatal(e)
+	}
+	s.queryDirectory = func(h windows.Handle, class uint32, b []byte) error {
+		if e := windows.GetFileInformationByHandleEx(h, class, &b[0], uint32(len(b))); e != nil {
+			return e
+		}
+		for off := 0; ; {
+			v := b[off:]
+			n := binary.LittleEndian.Uint32(v[60:])
+			u := make([]uint16, n/2)
+			for j := range u {
+				u[j] = binary.LittleEndian.Uint16(v[104+j*2:])
+			}
+			if string(utf16.Decode(u)) == "file" {
+				v[68] = 2
+				binary.LittleEndian.PutUint16(v[70:], 'X')
+			}
+			next := binary.LittleEndian.Uint32(v)
+			if next == 0 {
+				break
+			}
+			off += int(next)
+		}
+		return nil
+	}
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if v.Complete {
+		t.Fatal("empty-to-nonempty short name drift accepted", v)
+	}
+	for _, en := range v.Entries {
+		if en.Path == "known/file" && en.Status != "changed-short-name" {
+			t.Fatal("short-name drift not identified", en)
+		}
+	}
+}
+
+func TestNativeReadOnlyObservationExactHandleLimitAndPartialClose(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	l := NativeObservationLimits{MaxHandles: len(root.parents) + 6} // root, two leaves, ADS, two validation temporaries
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), l)
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { s.Close() })
+	if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.ReadOwnedAt(ctx, "known/file", "ads", make([]byte, 3), 0); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.Observe(ctx, "known/file", MetadataLimits{}); e != nil {
+		t.Fatal("exact handle ceiling refused settled temporary", e)
+	}
+	closed := 0
+	s.closeFile = func(f *os.File) error { closed++; return errors.Join(f.Close(), windows.ERROR_ACCESS_DENIED) }
+	if e = s.Close(); !errors.Is(e, ErrTreePreserved) || !errors.Is(e, windows.ERROR_ACCESS_DENIED) || closed != 3 {
+		t.Fatal("close cause/lifetime", closed, e)
+	}
+	if e = s.Close(); !errors.Is(e, windows.ERROR_ACCESS_DENIED) || closed != 3 {
+		t.Fatal("close not latched", e, closed)
+	}
+	v, e := s.Evidence(ctx, 1<<20)
+	if e != nil || !v.Closed || len(v.Entries) != 3 || len(v.Failures) != 3 {
+		t.Fatal("historical close evidence", v, e)
+	}
+	if _, e = s.Evidence(ctx, 0); !errors.Is(e, ErrTreeLimit) {
+		t.Fatal("exhausted export", e)
+	}
+}
+
+func TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead(t *testing.T) {
+	for _, kind := range []string{"read", "result", "handle"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx := context.Background()
+			root, _ := nativeObservationFixture(t)
+			s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer s.Close()
+			if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+				t.Fatal(e)
+			}
+			switch kind {
+			case "read":
+				s.limits.MaxReadBytes = s.read
+			case "result":
+				s.limits.MaxResultBytes = s.accounted
+			case "handle":
+				s.limits.MaxHandles = s.handles
+			}
+			if _, e = s.ReadOwnedAt(ctx, "known/file", "ads", make([]byte, 3), 0); !errors.Is(e, ErrTreeLimit) {
+				t.Fatal(kind, e)
+			}
+			if len(s.entries["known/file"].streams) != 0 {
+				t.Fatal("opened after exhausted budget")
+			}
+		})
+	}
+}
+
+func nativeObservationPaths() []NativeObservationPath {
+	return []NativeObservationPath{{Path: ".", Directory: true}, {Path: "known", Directory: true}, {Path: "known/file", DefaultSize: 17, Streams: []NativeObservationStream{{Name: "ads", Size: 3}}}}
+}
+
+// Catches fixture-ledger adoption, arbitrary/unknown reads, loss of held identity,
+// and confusing handle Close with cleanup/release. These are ordinary fixtures,
+// not WIMGAPI output or native invocation evidence.
+func TestNativeReadOnlyObservationSeparatesEvidenceFromOwnership(t *testing.T) {
+	ctx := context.Background()
+	root, path := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { s.Close() })
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil || !v.Complete || len(v.Entries) != 3 {
+		t.Fatal(v, e)
+	}
+	if len(root.entries) != 0 {
+		t.Fatal("observer adopted fixture ledger")
+	}
+	b := make([]byte, 32)
+	n, e := s.ReadOwnedAt(ctx, "known/file", "", b, 0)
+	if n != 17 || string(b[:n]) != "independent bytes" {
+		t.Fatal(n, e, string(b[:n]))
+	}
+	n, e = s.ReadOwnedAt(ctx, "known/file", "ads", b, 0)
+	if n != 3 || string(b[:n]) != "ADS" {
+		t.Fatal(n, e, string(b[:n]))
+	}
+	for _, pair := range [][2]string{{"unknown", ""}, {"known/file", "foreign"}, {"../outside", ""}, {"known/file:ads", ""}} {
+		if _, e = s.ReadOwnedAt(ctx, pair[0], pair[1], b, 0); e == nil {
+			t.Fatal("arbitrary read", pair)
+		}
+	}
+	o, e := s.Observe(ctx, "known/file", MetadataLimits{})
+	if e != nil || o.Identity.FileIndex == 0 || o.ShortName.Status != "complete" {
+		t.Fatal(o, e)
+	}
+	if e = s.Close(); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("Close claimed cleanup", e)
+	}
+	if e = s.Close(); !errors.Is(e, ErrTreePreserved) {
+		t.Fatal("unlatched Close", e)
+	}
+	if _, e = s.ReadOwnedAt(ctx, "known/file", "", b, 0); !errors.Is(e, os.ErrClosed) {
+		t.Fatal(e)
+	}
+	if _, e = os.Stat(filepath.Join(path, "known", "file")); e != nil {
+		t.Fatal("observer deleted", e)
+	}
+}
+
+func TestNativeReadOnlyObservationUnknownAndChangedNamesPreserve(t *testing.T) {
+	ctx := context.Background()
+	root, path := nativeObservationFixture(t)
+	if e := os.Mkdir(filepath.Join(path, "foreign"), 0700); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.WriteFile(filepath.Join(path, "foreign", "never-inspected"), []byte("foreign"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if v.Complete {
+		t.Fatal("unknown accepted")
+	}
+	for _, en := range v.Entries {
+		if strings.Contains(en.Path, "never-inspected") {
+			t.Fatal("unknown traversal", v)
+		}
+	}
+	if e = os.Rename(filepath.Join(path, "known", "file"), filepath.Join(path, "known", "moved")); e == nil {
+		if e = os.WriteFile(filepath.Join(path, "known", "file"), []byte("independent bytes"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		v, e = s.ObserveInventory(ctx, TreeLimits{})
+		if e == nil && v.Complete {
+			t.Fatal("replacement accepted", v)
+		}
+	}
+}
+
+func TestNativeReadOnlyObservationBoundsAndRevokedRoot(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	if s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{MaxHandles: len(root.parents) + 5}); s != nil || !errors.Is(e, ErrTreeLimit) {
+		if s != nil {
+			s.Close()
+		}
+		t.Fatal("root validation temporary handles omitted", e)
+	}
+	for _, l := range []NativeObservationLimits{{MaxEntries: 2}, {MaxDepth: 1}, {MaxHandles: 1}, {MaxStreams: 1}, {MaxReadBytes: 1}, {MaxResultBytes: 1}, {MaxExportBytes: 1}} {
+		s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), l)
+		if s != nil {
+			s.Close()
+		}
+		if !errors.Is(e, ErrTreeLimit) {
+			t.Fatal("preflight bound", l, e)
+		}
+	}
+	for _, p := range [][]NativeObservationPath{{{Path: ".", Directory: true}, {Path: "../outside"}}, {{Path: ".", Directory: true}, {Path: "unknown/leaf"}}, {{Path: ".", Directory: true}, {Path: "same"}, {Path: "SAME"}}} {
+		if s, e := BorrowNativeObservation(ctx, root, p, NativeObservationLimits{}); s != nil || e == nil {
+			t.Fatal("unsafe descriptors", e)
+		}
+	}
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	root.Close()
+	if e = s.CheckObservationLive(ctx); !errors.Is(e, os.ErrClosed) {
+		t.Fatal("closed root usable", e)
+	}
+}
+
+func TestNativeReadOnlyObservationSeparateProfileAndDescriptorCopies(t *testing.T) {
+	paths := []NativeObservationPath{{Path: ".", Directory: true}}
+	for j := 0; j < 5000; j++ {
+		paths = append(paths, NativeObservationPath{Path: fmt.Sprintf("file-%05d", j)})
+	}
+	b, e := PreflightNativeObservation(paths, NativeObservationLimits{})
+	if e != nil || b.Entries != 5001 {
+		t.Fatal("separate read-only profile", b, e)
+	}
+	if _, e = treeBounds(TreeLimits{MaxEntries: 5001}); !errors.Is(e, ErrTreeLimit) {
+		t.Fatal("fixture profile widened", e)
+	}
+	root, _ := nativeObservationFixture(t)
+	paths = nativeObservationPaths()
+	s, e := BorrowNativeObservation(context.Background(), root, paths, NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	paths[2].Path = "foreign"
+	paths[2].Streams[0].Name = "foreign"
+	v, e := s.ObserveInventory(context.Background(), TreeLimits{})
+	if e != nil || !v.Complete {
+		t.Fatal("caller mutation reached descriptors", v, e)
+	}
+	if _, e = s.ReadOwnedAt(context.Background(), "known/file", "ads", make([]byte, 3), 0); e != nil {
+		t.Fatal(e)
+	}
+	v2, e := s.Evidence(context.Background(), 1<<20)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for j := range v2.Entries {
+		if len(v2.Entries[j].Streams) > 0 {
+			v2.Entries[j].Streams[0] = "mutated"
+		}
+	}
+	v2, e = s.Evidence(context.Background(), 1<<20)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, en := range v2.Entries {
+		for _, stream := range en.Streams {
+			if stream == "mutated" {
+				t.Fatal("mutable exported stream")
+			}
+		}
+	}
+}
+
+func TestNativeReadOnlyObservationReusesReturnedMetadataScratch(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{MaxResultBytes: 4 << 20})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+		t.Fatal(e)
+	}
+	for j := 0; j < 400; j++ {
+		if _, e = s.Observe(ctx, "known/file", MetadataLimits{}); e != nil {
+			t.Fatalf("transient result reservation accumulated at %d: %v", j, e)
+		}
+	}
+	if s.accounted > 1<<20 || s.scratch != 0 {
+		t.Fatal("scratch retained", s.accounted, s.scratch)
+	}
+}
+
+func TestNativeReadOnlyObservationReparseObjectNeverTraversesTarget(t *testing.T) {
+	ctx := context.Background()
+	root, rootPath := nativeObservationFixture(t)
+	target := t.TempDir()
+	if e := os.WriteFile(filepath.Join(target, "never-inspected"), []byte("outside"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	createJunction(t, filepath.Join(rootPath, "link"), target)
+	paths := append(nativeObservationPaths(), NativeObservationPath{Path: "link", Directory: true, Reparse: true})
+	s, e := BorrowNativeObservation(ctx, root, paths, NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil || !v.Complete {
+		t.Fatal(v, e)
+	}
+	for _, en := range v.Entries {
+		if strings.Contains(en.Path, "never-inspected") {
+			t.Fatal("followed reparse target", v)
+		}
+	}
+	o, e := s.Observe(ctx, "link", MetadataLimits{})
+	if e != nil || o.ReparseTag != windows.IO_REPARSE_TAG_MOUNT_POINT || len(o.Reparse.Raw) == 0 {
+		t.Fatal("reparse object unavailable", o, e)
+	}
+	if _, e = s.ReadOwnedAt(ctx, "link", "", make([]byte, 1), 0); e == nil {
+		t.Fatal("read reparse target")
+	}
+	if invalid, e := BorrowNativeObservation(ctx, root, append(paths, NativeObservationPath{Path: "link/never-inspected"}), NativeObservationLimits{}); invalid != nil || e == nil {
+		t.Fatal("unsafe source ancestry", e)
+	}
+}
+
+func TestNativeReadOnlyObservationRetainsKnownFailureIdentityAndCause(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	var expected FileIdentity
+	for _, en := range v.Entries {
+		if en.Path == "known/file" {
+			expected = en.Identity
+		}
+	}
+	if expected.FileIndex == 0 {
+		t.Fatal(v)
+	}
+	s.info = func(f *os.File) (windows.ByHandleFileInformation, error) {
+		if f == s.entries["known/file"].file {
+			return windows.ByHandleFileInformation{}, windows.ERROR_ACCESS_DENIED
+		}
+		return nativeInfo(f)
+	}
+	v, e = s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, en := range v.Entries {
+		if en.Path == "known/file" {
+			if en.RetainedIdentity != expected || en.NativeCode != uint32(windows.ERROR_ACCESS_DENIED) || en.Failure == "" || en.Status == "known" {
+				t.Fatal("known failure lost", en)
+			}
+			return
+		}
+	}
+	t.Fatal("known entry lost", v)
+}
+
+func TestNativeReadOnlyObservationPartialAcquisitionClosesAndRetainsCause(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	s.info = func(f *os.File) (windows.ByHandleFileInformation, error) {
+		if f.Name() == "file" {
+			return windows.ByHandleFileInformation{}, windows.ERROR_ACCESS_DENIED
+		}
+		return nativeInfo(f)
+	}
+	v, e := s.ObserveInventory(ctx, TreeLimits{})
+	if e != nil || v.Complete {
+		t.Fatal(v, e)
+	}
+	f := s.entries["known/file"].file
+	if e = s.Close(); !errors.Is(e, ErrTreePreserved) || !errors.Is(e, windows.ERROR_ACCESS_DENIED) {
+		t.Fatal("partial acquisition cause lost", e)
+	}
+	if _, e = f.ReadAt(make([]byte, 1), 0); !errors.Is(e, os.ErrClosed) {
+		t.Fatal("acquired handle leaked", e)
+	}
+	if s.handles != s.baseHandles {
+		t.Fatal("unsettled session handles", s.handles, s.baseHandles)
+	}
+	if e = root.CheckObservationLive(ctx); e != nil {
+		t.Fatal("borrowed root was closed", e)
+	}
+}
+
+func TestNativeReadOnlyObservationExhaustedFailureEvidenceStillLatchesCloseCause(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+		t.Fatal(e)
+	}
+	s.limits.MaxResultBytes = s.accounted
+	s.closeFile = func(f *os.File) error { return errors.Join(f.Close(), windows.ERROR_ACCESS_DENIED) }
+	if e = s.Close(); !errors.Is(e, ErrTreeLimit) || !errors.Is(e, windows.ERROR_ACCESS_DENIED) {
+		t.Fatal("native close cause lost after budget exhaustion", e)
+	}
+	v, e := s.Evidence(ctx, 1<<20)
+	if e != nil || !v.FailureEvidenceExhausted || v.TerminalFailure.Identity.FileIndex == 0 || v.TerminalFailure.NativeCode != 5 {
+		t.Fatal(v, e)
+	}
+}
+
+func TestNativeReadOnlyMetadataRejectsChangedReparseTypeBeforeVariableQueries(t *testing.T) {
+	ctx := context.Background()
+	root, _ := nativeObservationFixture(t)
+	s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+		t.Fatal(e)
+	}
+	entry := s.entries["known/file"]
+	l, e := metadataBounds(MetadataLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	out, e := observeHeldMetadata(ctx, entry.file, entry.id, s.entries["known"].file, "file", l, true)
+	if !errors.Is(e, ErrTreePreserved) || out.Identity != entry.id || out.ReadBytes != 0 {
+		t.Fatal("unexpected type spent variable query capacity", out, e)
+	}
+}

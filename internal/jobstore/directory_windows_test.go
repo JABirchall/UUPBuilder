@@ -9,6 +9,62 @@ import (
 	platform "uupbuilder/internal/platform/windows"
 )
 
+// Removing any journal/transaction/held-identity check must make these fail.
+func TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed(t *testing.T) {
+	for _, kind := range []string{"live", "foreign-record", "foreign-intent", "foreign-durable-intent", "committed", "foreign-scratch", "closed-writer", "root-identity", "inactive-writer", "missing-journal", "unresolved", "released", "closed-tree", "closed-store"} {
+		t.Run(kind, func(t *testing.T) {
+			s, _ := newStore(t)
+			in := intent("native-trial")
+			in.Inputs = append(in.Inputs, NamedDigest{Name: "preservation-proof", Digest: digest("proof")})
+			tx, e := s.Begin(testContext, in)
+			if e != nil {
+				t.Fatal(e)
+			}
+			c, e := tx.ClaimDirectory(testContext, digest("proof"))
+			if e != nil {
+				t.Fatal(e)
+			}
+			switch kind {
+			case "foreign-durable-intent":
+				s.state.Stages[s.stageIndex(tx.id)].Intent.ConfigDigest = digest("foreign")
+			case "committed":
+				s.state.Stages[s.stageIndex(tx.id)].Committed = true
+			case "foreign-scratch":
+				s.state.Stages[s.stageIndex(tx.id)].Scratch = "foreign"
+			case "closed-writer":
+				s.lock.Close()
+			case "foreign-intent":
+				tx.intent.Inputs[0].Digest = digest("foreign")
+			case "root-identity":
+				c.record.Identity.FileIndex++
+			case "inactive-writer":
+				s.active = nil
+			case "foreign-record":
+				c.record.SourceDigest = digest("foreign")
+			case "missing-journal":
+				s.state.Stages[s.stageIndex(tx.id)].Directories = nil
+			case "unresolved":
+				c.record.Identity = platform.FileIdentity{}
+			case "released":
+				if e = c.Release(testContext); e != nil {
+					t.Fatal(e)
+				}
+			case "closed-tree":
+				c.tree.Close()
+			case "closed-store":
+				s.Close()
+			}
+			e = c.CheckLive(testContext)
+			if (e == nil) != (kind == "live") {
+				t.Fatalf("%s: %v", kind, e)
+			}
+		})
+	}
+	if e := (&DirectoryClaim{}).CheckLive(context.Background()); e == nil {
+		t.Fatal("zero claim")
+	}
+}
+
 func TestDirectoryClaimDurableRefusalAndCheckedRelease(t *testing.T) {
 	s, _ := newStore(t)
 	in := intent("preservation")

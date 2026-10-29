@@ -337,11 +337,8 @@ func BindSourceExpectations(ctx context.Context, p *PreservationProof, limits Co
 				}
 			}
 		}
-		if len(en.ShortName) > 0 {
-			if e = require(n, en.Path, "short-name", "native short-name observation unavailable", en.Offset); e != nil {
-				return nil, e
-			}
-		}
+		// Original short-name code units are fully known. Availability is a
+		// property of a particular native observer, checked by comparison.
 		if en.SecurityID == 0xffffffff {
 			if e = require(n, en.Path, "security", "source has no recorded descriptor; inheritance cannot be invented", en.Offset); e != nil {
 				return nil, e

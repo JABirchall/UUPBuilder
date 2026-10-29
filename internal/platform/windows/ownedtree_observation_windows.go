@@ -16,6 +16,10 @@ type InventoryEntry struct {
 	LedgerIdentity FileIdentity
 	Attributes     uint32
 	NativeCode     uint32
+	// Read-only sessions retain independent observed identity, never a fixture
+	// creation ledger. Preserve it and the available cause on known-entry failure.
+	RetainedIdentity FileIdentity
+	Failure          string
 }
 type TreeInventory struct {
 	Tree                      TreeIdentity

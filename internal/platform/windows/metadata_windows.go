@@ -46,6 +46,10 @@ type MetadataObservation struct {
 	ReparseTag                                           uint32
 	ReadBytes                                            uint64
 	Complete                                             bool
+	// Available only from the separate read-only native directory observer.
+	// Ordinary fixture observation intentionally leaves this unsupported.
+	ShortName      MetadataField
+	ShortNameUTF16 []uint16
 }
 
 func (t *OwnedTree) observationParent(name string) (*os.File, string, error) {
@@ -277,6 +281,19 @@ func (t *OwnedTree) Observe(ctx context.Context, name string, limits MetadataLim
 	if e != nil {
 		return out, e
 	}
+	parent, leaf, e := t.observationParent(name)
+	if e != nil {
+		return out, e
+	}
+	out, e = observeHeldMetadata(ctx, v.file, v.id, parent, leaf, l)
+	out.ShortName = MetadataField{Status: "unsupported", Detail: "created-entry fixture observer has no short-name query"}
+	return out, errors.Join(e, t.validate())
+}
+
+// Shared field-query implementation. The callers supply already checked held
+// objects and a retained original parent; this function grants no ownership.
+func observeHeldMetadata(ctx context.Context, file *os.File, id FileIdentity, parent *os.File, leaf string, l MetadataLimits, expectedReparse ...bool) (out MetadataObservation, runErr error) {
+	v := &treeEntry{file: file, id: id}
 	i, e := nativeInfo(v.file)
 	if e != nil || nativeIdentity(i) != v.id {
 		return out, errors.Join(ErrTreePreserved, e)
@@ -284,6 +301,9 @@ func (t *OwnedTree) Observe(ctx context.Context, name string, limits MetadataLim
 	out.Identity = v.id
 	out.Attributes = i.FileAttributes
 	out.LinkCount = i.NumberOfLinks
+	if len(expectedReparse) > 1 || len(expectedReparse) == 1 && (out.Attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0) != expectedReparse[0] {
+		return out, ErrTreePreserved
+	}
 	charge := func(n int) error {
 		if uint64(n) > l.MaxReadBytes-out.ReadBytes {
 			return ErrTreeLimit
@@ -315,6 +335,9 @@ func (t *OwnedTree) Observe(ctx context.Context, name string, limits MetadataLim
 		out.ChangeTime = binary.LittleEndian.Uint64(b[24:])
 		out.Attributes = binary.LittleEndian.Uint32(b[32:])
 	}
+	if len(expectedReparse) == 1 && (out.Attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0) != expectedReparse[0] {
+		return out, ErrTreePreserved
+	}
 	if out.FileID, e = query(windows.FileIdInfo, 24); e != nil {
 		return out, e
 	}
@@ -329,11 +352,8 @@ func (t *OwnedTree) Observe(ctx context.Context, name string, limits MetadataLim
 	if e = charge(l.MaxBufferBytes); e != nil {
 		return out, e
 	}
-	parent, leaf, e := t.observationParent(name)
 	var saclFile *os.File
-	if e == nil {
-		saclFile, e = nativeTreeOpen(windows.Handle(parent.Fd()), leaf, windows.READ_CONTROL|windows.ACCESS_SYSTEM_SECURITY, windows.FILE_OPEN, 0, nil)
-	}
+	saclFile, e = nativeTreeOpen(windows.Handle(parent.Fd()), leaf, windows.READ_CONTROL|windows.ACCESS_SYSTEM_SECURITY, windows.FILE_OPEN, 0, nil)
 	if e != nil {
 		out.SACL = fieldError(e)
 	} else {

@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"unicode/utf16"
 
@@ -22,6 +24,132 @@ type syntheticPreservationPort struct {
 	content func(string, string, []byte) []byte
 	closed  bool
 	calls   map[string]int
+}
+
+func TestPreservationComparisonReusesScratchBeyondOldReservationCeiling(t *testing.T) {
+	ctx := context.Background()
+	in, _, _ := preservationFixtureExtraFiles(t, false, 7, "", 500, true)
+	r, e := source.BindCanonical(ctx, in, source.Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := Reconstruct(ctx, r, Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer a.Close()
+	p, e := BindPreservationProof(ctx, r, a, PreservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	x, e := BindSourceExpectations(ctx, p, ComparisonLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	native := &syntheticPreservationPort{id: platform.TreeIdentity{SourceDigest: p.state.Digest, OperationID: "synthetic-scale", Root: platform.FileIdentity{VolumeSerial: 1, FileIndex: 1}}}
+	native.paths = func(v []platform.InventoryEntry) []platform.InventoryEntry {
+		for j := 0; j < 500; j++ {
+			v = append(v, platform.InventoryEntry{Path: fmt.Sprintf("Windows/System32/extra-%04d", j), Status: "known", Identity: platform.FileIdentity{VolumeSerial: 1, FileIndex: uint64(100 + j)}, Attributes: 32})
+		}
+		return v
+	}
+	result, e := comparePreservation(ctx, x, native, ComparisonLimits{MaxResultBytes: 16 << 20})
+	if e != nil {
+		t.Fatal("permanent scratch reservation blocked 511 small entries", e)
+	}
+	v, e := result.Evidence(ctx, 16<<20)
+	if e != nil || !v.Complete || v.EntriesObserved != 511 || v.AccountedBytes > 8<<20 {
+		t.Fatal("scale evidence", v.EntriesObserved, v.AccountedBytes, e)
+	}
+	if _, e = comparePreservation(ctx, x, native, ComparisonLimits{MaxResultBytes: 1 << 20}); !errors.Is(e, ErrLimit) {
+		t.Fatal("exhausted scratch/retained budget", e)
+	}
+}
+
+func TestPreservationComparisonMissingEmptyShortNameIsUnresolved(t *testing.T) {
+	x, native, _ := syntheticComparisonFixture(t)
+	native.mutate = func(_ string, o *platform.MetadataObservation) {
+		o.ShortName = platform.MetadataField{Status: "unsupported"}
+	}
+	r, e := comparePreservation(context.Background(), x, native, ComparisonLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	v, e := r.Evidence(context.Background(), 32<<20)
+	if e != nil || v.Complete || !hasComparisonField(v, "short-name") {
+		t.Fatal("missing absence observation accepted", v.Complete, e)
+	}
+}
+
+func TestPreservationComparisonPrechargesNativeFailureExport(t *testing.T) {
+	x, native, _ := syntheticComparisonFixture(t)
+	native.paths = func(v []platform.InventoryEntry) []platform.InventoryEntry {
+		v[0].Status = "failed"
+		v[0].Failure = strings.Repeat("x", 64<<10)
+		return v
+	}
+	r, e := comparePreservation(context.Background(), x, native, ComparisonLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = r.Serialize(context.Background(), 512<<10); !errors.Is(e, ErrLimit) {
+		t.Fatal("native cause omitted from pre-serialization bound", e)
+	}
+}
+
+func TestPreservationComparisonFingerprintRechecksAllMetadataFields(t *testing.T) {
+	x, _, _ := syntheticComparisonFixture(t)
+	cases := map[string]func(*platform.MetadataObservation){
+		"identity-volume": func(o *platform.MetadataObservation) { o.Identity.VolumeSerial++ }, "identity-file": func(o *platform.MetadataObservation) { o.Identity.FileIndex++ },
+		"volume": func(o *platform.MetadataObservation) { o.VolumeSerial++ }, "file-id": func(o *platform.MetadataObservation) { o.FileID128[15]++ },
+		"attributes": func(o *platform.MetadataObservation) { o.Attributes++ }, "links": func(o *platform.MetadataObservation) { o.LinkCount++ },
+		"creation": func(o *platform.MetadataObservation) { o.CreationTime++ }, "access": func(o *platform.MetadataObservation) { o.AccessTime++ }, "write": func(o *platform.MetadataObservation) { o.WriteTime++ }, "change": func(o *platform.MetadataObservation) { o.ChangeTime++ },
+		"stream-name": func(o *platform.MetadataObservation) { o.NamedStreams[0].Name[0]++ }, "stream-size": func(o *platform.MetadataObservation) { o.NamedStreams[0].Size++ }, "stream-allocation": func(o *platform.MetadataObservation) { o.NamedStreams[0].Allocation++ },
+		"ea": func(o *platform.MetadataObservation) {
+			o.ExtendedAttributes = []platform.EAObservation{{Name: []byte("X"), Flags: 0x80, Value: []byte{7}}}
+		},
+		"reparse-tag": func(o *platform.MetadataObservation) { o.ReparseTag++ }, "read-count": func(o *platform.MetadataObservation) { o.ReadBytes++ }, "complete": func(o *platform.MetadataObservation) { o.Complete = false },
+		"short-code-units": func(o *platform.MetadataObservation) { o.ShortNameUTF16 = []uint16{'X'} },
+		"slice-nil-empty":  func(o *platform.MetadataObservation) { o.ExtendedAttributes = []platform.EAObservation{} },
+	}
+	fields := map[string]func(*platform.MetadataObservation) *platform.MetadataField{
+		"basic": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.Basic }, "file-id": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.FileID }, "security": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.Security }, "sacl": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.SACL }, "streams": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.Streams }, "ea": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.EAs }, "reparse": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.Reparse }, "short": func(o *platform.MetadataObservation) *platform.MetadataField { return &o.ShortName },
+	}
+	for name, field := range fields {
+		for _, part := range []string{"status", "code", "detail", "raw"} {
+			cases[name+"-"+part] = func(o *platform.MetadataObservation) {
+				f := field(o)
+				switch part {
+				case "status":
+					f.Status = "changed"
+				case "code":
+					f.NativeCode++
+				case "detail":
+					f.Detail = "changed"
+				case "raw":
+					f.Raw = append(f.Raw, 0x37)
+				}
+			}
+		}
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			native := &syntheticPreservationPort{id: platform.TreeIdentity{SourceDigest: x.state.ProofDigest, OperationID: "synthetic-drift", Root: platform.FileIdentity{VolumeSerial: 1, FileIndex: 1}}}
+			native.mutate = func(path string, o *platform.MetadataObservation) {
+				if path == "Windows/System32/named" && native.calls[path] > 1 {
+					change(o)
+				}
+			}
+			r, e := comparePreservation(context.Background(), x, native, ComparisonLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			v, e := r.Evidence(context.Background(), 32<<20)
+			if e != nil || v.Complete || !hasComparisonField(v, "observation.drift") {
+				t.Fatal("final metadata field escaped fingerprint", name, v.Complete, e)
+			}
+		})
+	}
 }
 
 var comparisonPaths = []string{".", "Windows", "Windows/System32", "Windows/System32/ntoskrnl.exe", "Windows/System32/kernel.link", "Windows/System32/config", "Windows/System32/config/SOFTWARE", "Windows/System32/config/SYSTEM", "Windows/System32/named", "Windows/System32/empty", "Windows/System32/reparse"}
@@ -76,8 +204,8 @@ func (s *syntheticPreservationPort) Observe(ctx context.Context, name string, _ 
 		return platform.MetadataObservation{}, ErrInput
 	}
 	complete := func(raw []byte) platform.MetadataField { return platform.MetadataField{Status: "complete", Raw: raw} }
-	o := platform.MetadataObservation{Identity: item.Identity, VolumeSerial: 1, Attributes: item.Attributes, LinkCount: 1, CreationTime: 123, AccessTime: 456, WriteTime: 789, Basic: complete(nil), FileID: complete(nil), Security: complete(independentSecurity()), SACL: complete([]byte{1, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), Streams: complete(nil), EAs: complete(nil), Reparse: platform.MetadataField{Status: "not-present"}, Complete: true}
-	o.FileID128[0] = byte(item.Identity.FileIndex)
+	o := platform.MetadataObservation{Identity: item.Identity, VolumeSerial: 1, Attributes: item.Attributes, LinkCount: 1, CreationTime: 123, AccessTime: 456, WriteTime: 789, Basic: complete(nil), FileID: complete(nil), Security: complete(independentSecurity()), SACL: complete([]byte{1, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), Streams: complete(nil), EAs: complete(nil), Reparse: platform.MetadataField{Status: "not-present"}, ShortName: complete(nil), Complete: true}
+	binary.LittleEndian.PutUint64(o.FileID128[:8], item.Identity.FileIndex)
 	if item.Identity.FileIndex == 4 {
 		o.LinkCount = 2
 	}
@@ -149,6 +277,59 @@ func hasComparisonField(e ComparisonEvidence, field string) bool {
 		}
 	}
 	return false
+}
+
+func TestPreservationComparisonShortNameRequiresExactIndependentObservation(t *testing.T) {
+	ctx := context.Background()
+	in, _, _ := preservationFixtureRecords(t, false, 7, "NTOSKR~1.EXE", true)
+	r, e := source.BindCanonical(ctx, in, source.Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := Reconstruct(ctx, r, Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer a.Close()
+	p, e := BindPreservationProof(ctx, r, a, PreservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	x, e := BindSourceExpectations(ctx, p, ComparisonLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, kind := range []string{"matched", "missing", "changed"} {
+		t.Run(kind, func(t *testing.T) {
+			native := &syntheticPreservationPort{id: platform.TreeIdentity{SourceDigest: p.state.Digest, OperationID: "synthetic", Root: platform.FileIdentity{VolumeSerial: 1, FileIndex: 1}}}
+			native.mutate = func(name string, o *platform.MetadataObservation) {
+				o.ShortName = platform.MetadataField{Status: "complete"}
+				if name == "Windows/System32/ntoskrnl.exe" {
+					o.ShortNameUTF16 = utf16.Encode([]rune("NTOSKR~1.EXE"))
+					if kind == "missing" {
+						o.ShortName.Status = "unsupported"
+					}
+					if kind == "changed" {
+						o.ShortNameUTF16[0] = 'X'
+					}
+				}
+			}
+			out, e := comparePreservation(ctx, x, native, ComparisonLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			v, e := out.Evidence(ctx, 32<<20)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if v.Complete != (kind == "matched") {
+				t.Fatalf("%s complete=%t unresolved=%+v mismatches=%+v", kind, v.Complete, v.Unresolved, v.Mismatches)
+			}
+			if kind != "matched" && !hasComparisonField(v, "short-name") {
+				t.Fatal("exact name requirement lost", v)
+			}
+		})
+	}
 }
 
 func TestPreservationComparisonIndependentNegativeWitnesses(t *testing.T) {

@@ -1,0 +1,40 @@
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/live
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-record
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-intent
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-durable-intent
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/committed
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-scratch
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-writer
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/root-identity
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/inactive-writer
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/missing-journal
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/unresolved
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/released
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-tree
+=== RUN   TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-store
+--- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed (8.48s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/live (0.63s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-record (0.51s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-intent (0.70s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-durable-intent (0.57s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/committed (0.48s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/foreign-scratch (0.76s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-writer (0.55s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/root-identity (0.81s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/inactive-writer (0.64s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/missing-journal (0.56s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/unresolved (0.53s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/released (0.86s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-tree (0.46s)
+    --- PASS: TestDirectoryClaimCheckLiveRejectsUnresolvedForeignAndClosed/closed-store (0.43s)
+=== RUN   TestDirectoryClaimDurableRefusalAndCheckedRelease
+--- PASS: TestDirectoryClaimDurableRefusalAndCheckedRelease (1.20s)
+=== RUN   TestDirectoryClaimReleasedPathCannotAdoptReplacement
+--- PASS: TestDirectoryClaimReleasedPathCannotAdoptReplacement (0.50s)
+=== RUN   TestDirectoryClaimEarlyJournalFailureAndCancellation
+--- PASS: TestDirectoryClaimEarlyJournalFailureAndCancellation (0.41s)
+=== RUN   TestDirectoryClaimPartialCreationRetainsExactCustody
+--- PASS: TestDirectoryClaimPartialCreationRetainsExactCustody (0.46s)
+PASS
+ok  	uupbuilder/internal/jobstore	11.082s

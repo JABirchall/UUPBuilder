@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,6 +36,14 @@ func preservationFixture(t *testing.T, emptyKernel bool, clean ...bool) (source.
 }
 
 func preservationFixtureWithHardlinkGroup(t *testing.T, emptyKernel bool, hardlinkGroup uint64, clean ...bool) (source.Inputs, []byte, func()) {
+	return preservationFixtureRecords(t, emptyKernel, hardlinkGroup, "", clean...)
+}
+
+func preservationFixtureRecords(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, clean ...bool) (source.Inputs, []byte, func()) {
+	return preservationFixtureExtraFiles(t, emptyKernel, hardlinkGroup, short, 0, clean...)
+}
+
+func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, extra int, clean ...bool) (source.Inputs, []byte, func()) {
 	t.Helper()
 	ctx := context.Background()
 	le := binary.LittleEndian
@@ -45,6 +54,9 @@ func preservationFixtureWithHardlinkGroup(t *testing.T, emptyKernel bool, hardli
 		kernel = nil
 	}
 	nodes := testNode{attrs: 16, children: []testNode{{name: "Windows", attrs: 16, children: []testNode{{name: "System32", attrs: 16, children: []testNode{{name: "ntoskrnl.exe", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "kernel.link", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "config", attrs: 16, children: []testNode{{name: "SOFTWARE", attrs: 32, hash: h1[:]}, {name: "SYSTEM", attrs: 32, hash: h1[:]}}}, {name: "named", attrs: 32, hash: h1[:], ads: h2[:], tag: true}, {name: "empty", attrs: 32}, {name: "reparse", attrs: 0x420, hash: h3[:]}}}}}}}
+	for j := 0; j < extra; j++ {
+		nodes.children[0].children[0].children = append(nodes.children[0].children[0].children, testNode{name: fmt.Sprintf("extra-%04d", j), attrs: 32, hash: h1[:]})
+	}
 	if len(clean) > 0 && clean[0] {
 		nodes.children[0].children[0].children[3].tag = false
 	}
@@ -85,9 +97,16 @@ func preservationFixtureWithHardlinkGroup(t *testing.T, emptyKernel bool, hardli
 		for _, n := range nodes {
 			positions = append(positions, len(meta))
 			u := utf16.Encode([]rune(n.name))
+			var su []uint16
+			if n.name == "ntoskrnl.exe" {
+				su = utf16.Encode([]rune(short))
+			}
 			length := 104
 			if len(u) > 0 {
 				length = (102 + len(u)*2 + 2 + 7) &^ 7
+			}
+			if len(su) > 0 {
+				length = (102 + len(u)*2 + 2 + len(su)*2 + 2 + 7) &^ 7
 			}
 			extra := 0
 			if n.tag {
@@ -109,8 +128,12 @@ func preservationFixtureWithHardlinkGroup(t *testing.T, emptyKernel bool, hardli
 				le.PutUint64(b[88:], n.link)
 			}
 			le.PutUint16(b[100:], uint16(len(u)*2))
+			le.PutUint16(b[98:], uint16(len(su)*2))
 			for j, v := range u {
 				le.PutUint16(b[102+j*2:], v)
+			}
+			for j, v := range su {
+				le.PutUint16(b[104+len(u)*2+j*2:], v)
 			}
 			if n.tag {
 				code, data := n.tagCode, n.tagData
