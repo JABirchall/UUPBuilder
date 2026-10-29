@@ -59,14 +59,15 @@ type Receipt struct {
 	BytesVerified, WindowsCompatible, NativeFilesystemPreservation bool
 }
 type Artifact struct {
-	mu       sync.RWMutex
-	store    *privatestore.Store
-	file     *privatestore.File
-	name     string
-	receipt  Receipt
-	expected ImageInformation
-	closed   bool
-	closeErr error
+	mu          sync.RWMutex
+	store       *privatestore.Store
+	file        *privatestore.File
+	name        string
+	receipt     Receipt
+	expected    ImageInformation
+	boundRecipe *source.BoundRecipe
+	closed      bool
+	closeErr    error
 }
 
 func (a *Artifact) Receipt() Receipt {
@@ -138,6 +139,7 @@ func Reconstruct(ctx context.Context, r *source.BoundRecipe, l Limits) (*Artifac
 		return nil, e
 	}
 	a.expected = expected
+	a.boundRecipe = r
 	return a, nil
 }
 func expectedImage(d source.Descriptor) (ImageInformation, error) {

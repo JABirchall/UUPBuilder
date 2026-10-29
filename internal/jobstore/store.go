@@ -104,13 +104,15 @@ type MountInspector interface {
 }
 
 type Store struct {
-	mu        sync.Mutex
-	w         *platform.Workspace
-	lock      *os.File
-	state     journal
-	inspector MountInspector
-	active    *Transaction
-	closed    bool
+	mu          sync.Mutex
+	w           *platform.Workspace
+	lock        *os.File
+	state       journal
+	inspector   MountInspector
+	active      *Transaction
+	closed      bool
+	directories []*DirectoryClaim
+	closeErr    error
 	// Unexported, nil in production; tests inject one bounded interruption.
 	fail func(string) error
 	// Unexported barrier dependency; nil uses the real post-rename file flush.
@@ -183,10 +185,19 @@ func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
-		return nil
+		return s.closeErr
 	}
 	s.closed = true
-	return errors.Join(s.release(), s.w.Close())
+	for _, c := range s.directories {
+		if !c.released {
+			s.closeErr = errors.Join(s.closeErr, fmt.Errorf("%w: unreleased directory claim %s", platform.ErrTreePreserved, c.record.Path))
+		}
+		if c.tree != nil {
+			s.closeErr = errors.Join(s.closeErr, c.tree.Close())
+		}
+	}
+	s.closeErr = errors.Join(s.closeErr, s.release(), s.w.Close())
+	return s.closeErr
 }
 
 func (s *Store) check(ctx context.Context, jobID string) error {

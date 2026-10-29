@@ -46,12 +46,31 @@ func (s *Store) resourceState(ctx context.Context) ([]string, []PreservedResourc
 	if len(preserved) > 0 {
 		return nil, preserved, nil
 	}
+	// An active native-tree claim is opaque to generic file checkpoints. Never
+	// weaken their topology policy or walk a tree merely because it is claimed.
+	for _, st := range s.state.Stages {
+		for _, r := range st.Directories {
+			if !r.Released {
+				preserved = append(preserved, PreservedResource{Path: r.Path, Reason: "source-bound directory scope has not been safely released"})
+			}
+		}
+	}
+	if len(preserved) > 0 {
+		return nil, preserved, nil
+	}
 	entries, err := topology(ctx, s.w.Path())
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, nil, ctx.Err()
 		}
 		return nil, []PreservedResource{{Path: s.w.Path(), Reason: err.Error()}}, nil
+	}
+	for _, st := range s.state.Stages {
+		for _, r := range st.Directories {
+			if r.Released && contains(entries, r.Path) {
+				preserved = append(preserved, PreservedResource{Path: r.Path, Reason: "released directory path reappeared with no active ownership"})
+			}
+		}
 	}
 	for _, st := range s.state.Stages {
 		for _, path := range st.MountPaths {

@@ -61,6 +61,11 @@ func (tx *Transaction) ClaimMount(relative string) (platform.OwnedMount, error) 
 	full := tx.scratch + "/" + n
 	idx := s.stageIndex(tx.id)
 	next := clone(s.state)
+	for _, r := range next.Stages[idx].Directories {
+		if directoryOverlap(full, r.Path) {
+			return platform.OwnedMount{}, errors.New("mount overlaps native directory claim")
+		}
+	}
 	for _, prior := range next.Stages[idx].MountPaths {
 		a, b := strings.ToLower(full), strings.ToLower(prior)
 		if a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/") {
@@ -229,6 +234,11 @@ func (s *Store) knownPaths() (map[string]bool, map[string]bool) {
 		}
 		for _, p := range st.MountPaths {
 			addDir(p)
+		}
+		for _, r := range st.Directories {
+			if !r.Released {
+				addDir(r.Path)
+			}
 		}
 	}
 	return files, dirs

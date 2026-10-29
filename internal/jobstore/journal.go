@@ -20,14 +20,15 @@ import (
 const maxJournal = 16 << 20
 
 type stageRecord struct {
-	ID         string                `json:"id"`
-	Scratch    string                `json:"scratch"`
-	Promotion  string                `json:"promotion"`
-	Intent     MutationIntent        `json:"intent"`
-	MountPaths []string              `json:"mount_paths,omitempty"`
-	Mounts     []platform.OwnedMount `json:"mounts,omitempty"`
-	Candidates []OutputIdentity      `json:"candidates,omitempty"`
-	Committed  bool                  `json:"committed"`
+	ID          string                `json:"id"`
+	Scratch     string                `json:"scratch"`
+	Promotion   string                `json:"promotion"`
+	Intent      MutationIntent        `json:"intent"`
+	MountPaths  []string              `json:"mount_paths,omitempty"`
+	Mounts      []platform.OwnedMount `json:"mounts,omitempty"`
+	Directories []directoryRecord     `json:"directories,omitempty"`
+	Candidates  []OutputIdentity      `json:"candidates,omitempty"`
+	Committed   bool                  `json:"committed"`
 }
 type checkpointRecord struct {
 	Checkpoint Checkpoint `json:"checkpoint"`
@@ -118,6 +119,9 @@ func (s *Store) validateJournal(j journal) error {
 			return errors.New("foreign stage")
 		}
 		if _, err := normalizeIntent(st.Intent); err != nil {
+			return err
+		}
+		if err := s.validateDirectoryRecords(st); err != nil {
 			return err
 		}
 		for _, p := range st.MountPaths {
