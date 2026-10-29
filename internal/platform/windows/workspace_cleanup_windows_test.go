@@ -1,6 +1,8 @@
 package windows
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +10,66 @@ import (
 
 	native "golang.org/x/sys/windows"
 )
+
+// A reader that consents to deletion can keep legacy delete disposition
+// pending. Closing cleanup's own marker handle does not confirm unlinking.
+func TestWorkspaceCleanupReportsPendingMarkerDeletionWithSharedReader(t *testing.T) {
+	w, err := CreateWorkspace(t.TempDir(), "shared-marker-preflight")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	root, err := w.root.Open(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootInfo, err := nativeInfo(root)
+	if err != nil {
+		root.Close()
+		t.Fatal(err)
+	}
+	reader, err := nativeTreeOpenShared(native.Handle(root.Fd()), ownerFile, native.FILE_GENERIC_READ, native.FILE_OPEN, native.FILE_NON_DIRECTORY_FILE, native.FILE_SHARE_READ|native.FILE_SHARE_DELETE, nil)
+	closeErr := root.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	if closeErr != nil {
+		t.Fatal(closeErr)
+	}
+	ownerInfo, err := nativeInfo(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = w.RemoveEmpty()
+	if !errors.Is(err, native.ERROR_DIR_NOT_EMPTY) {
+		t.Fatalf("pending marker deletion lost actual native refusal: %v", err)
+	}
+	if _, statErr := os.Stat(w.Path()); statErr != nil {
+		t.Fatalf("refused directory was not preserved: %v", statErr)
+	}
+	if strings.Contains(err.Error(), "marker-removed=true") {
+		t.Fatalf("pending legacy disposition was reported as confirmed marker removal: %v", err)
+	}
+	rootID := uint64(rootInfo.FileIndexHigh)<<32 | uint64(rootInfo.FileIndexLow)
+	ownerID := uint64(ownerInfo.FileIndexHigh)<<32 | uint64(ownerInfo.FileIndexLow)
+	for _, fact := range []string{
+		w.Path(),
+		fmt.Sprintf("volume=%d file=%d owner-file=%d", rootInfo.VolumeSerialNumber, rootID, ownerID),
+		"marker-deletion-requested=true",
+		"marker-local-handle-closed=true",
+		"marker-removal=unconfirmed",
+		"root-deletion-requested=false",
+	} {
+		if !strings.Contains(err.Error(), fact) {
+			t.Fatalf("cleanup diagnostic lost %q: %v", fact, err)
+		}
+	}
+	var marker [1]byte
+	if n, readErr := reader.ReadAt(marker[:], 0); n != 1 || readErr != nil {
+		t.Fatalf("cleanup affected the independently owned reader: %d %v", n, readErr)
+	}
+}
 
 // This rejects deleting a reopened, replaced, nonempty or stream-bearing root,
 // and proves successful deletion rather than merely releasing its handles.

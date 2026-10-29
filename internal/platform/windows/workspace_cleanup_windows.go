@@ -13,13 +13,13 @@ import (
 )
 
 type workspaceRemoval struct {
-	parent                    *os.File
-	created, owner            *os.File
-	parentID, rootID, ownerID FileIdentity
-	removed                   bool
-	ready, markerRemoved      bool
-	markerRemovalRequested    bool
-	removeErr                 error
+	parent                         *os.File
+	created, owner                 *os.File
+	parentID, rootID, ownerID      FileIdentity
+	removed                        bool
+	ready, markerLocalHandleClosed bool
+	markerRemovalRequested         bool
+	removeErr                      error
 }
 
 // RemoveEmpty consumes only a freshly created workspace's empty root. Its
@@ -42,7 +42,7 @@ func (w *Workspace) RemoveEmpty() (err error) {
 	}
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("workspace cleanup incomplete; custody preserved at %s [job=%s volume=%d file=%d owner-file=%d marker-deletion-requested=%t marker-removed=%t root-deletion-requested=%t]: %w", w.Path(), w.Identity().JobID, c.rootID.VolumeSerial, c.rootID.FileIndex, c.ownerID.FileIndex, c.markerRemovalRequested, c.markerRemoved, c.removed, err)
+			err = fmt.Errorf("workspace cleanup incomplete; custody preserved at %s [job=%s volume=%d file=%d owner-file=%d marker-deletion-requested=%t marker-local-handle-closed=%t marker-removal=unconfirmed root-deletion-requested=%t]: %w", w.Path(), w.Identity().JobID, c.rootID.VolumeSerial, c.rootID.FileIndex, c.ownerID.FileIndex, c.markerRemovalRequested, c.markerLocalHandleClosed, c.removed, err)
 		}
 		c.removeErr = err
 	}()
@@ -103,7 +103,9 @@ func (w *Workspace) RemoveEmpty() (err error) {
 	if err != nil {
 		return err
 	}
-	c.markerRemoved = true
+	// Legacy disposition may remain pending on independently held readers.
+	// Only this handle's successful closure is observed here, not unlinking.
+	c.markerLocalHandleClosed = true
 	// The native directory disposition independently refuses a concurrent new
 	// entry. It cannot recursively delete or follow that entry.
 	if err := deleteHeld(root); err != nil {
