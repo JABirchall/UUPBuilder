@@ -432,3 +432,89 @@ func TestFixedApplyDuplicateRunCannotTakeActiveNativeLifetimes(t *testing.T) {
 	// finish is closed by defer, then settle the original owner in a cleanup.
 	t.Cleanup(func() { r := <-done; r.Close() })
 }
+
+// The private synthetic close cause is joined to the actual small observer's
+// preservation error. No privilege adapter or selected/native source is run.
+func TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure(t *testing.T) {
+	for _, kind := range []string{"privilege-refusal", "execution-refusal", "assigned-preparation-error"} {
+		t.Run(kind, func(t *testing.T) {
+			b, _ := applyTestBinding(t)
+			primary, closeFailure := errors.New(kind), errors.New("synthetic observer close failure")
+			closes := 0
+			owner := &fixedTrialPreparedOwner{binding: b, closePrepared: func(s *sourceNativeObservation) error {
+				closes++
+				return errors.Join(s.Close(), closeFailure)
+			}}
+			trialErr := func() (runErr error) {
+				defer func() { runErr = errors.Join(runErr, owner.Close()) }()
+				prepare := func() error {
+					if e := prepareFixedApplyObservation(context.Background(), b); e != nil {
+						return e
+					}
+					// Synthetic final preparation refusal after the real small
+					// observer has been assigned, as session.Evidence may refuse.
+					if kind == "assigned-preparation-error" {
+						return primary
+					}
+					return nil
+				}
+				if e := prepare(); e != nil {
+					return e
+				}
+				if kind == "privilege-refusal" {
+					return errors.Join(primary, (&applyTestPrivilege{}).CheckActive())
+				}
+				var order []string
+				busy := &applyCallbackHub{retained: &fixedApplyRun{}}
+				r, e := invokeFixedApply(context.Background(), b, applyTestPorts(b, &order), &applyTestPrivilege{active: true}, busy)
+				if r != nil || e == nil || len(order) != 0 || owner.Transfer(r) == nil {
+					t.Fatal("refused execution took prepared/native ownership", r != nil, e, order)
+				}
+				return errors.Join(primary, e)
+			}()
+			if !errors.Is(trialErr, primary) || !errors.Is(trialErr, closeFailure) || !errors.Is(trialErr, platform.ErrTreePreserved) {
+				t.Fatal("primary failure hid prepared observer close evidence", trialErr)
+			}
+			if closes != 1 || !b.prepared.closed {
+				t.Fatal("partial prepared observer not settled", closes)
+			}
+			first := owner.Close()
+			if !errors.Is(first, closeFailure) || owner.Close() != first || closes != 1 {
+				t.Fatal("prepared observer close not latched", first, closes)
+			}
+		})
+	}
+}
+
+func TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun(t *testing.T) {
+	b, _ := applyTestBinding(t)
+	closes := 0
+	owner := &fixedTrialPreparedOwner{binding: b, closePrepared: func(s *sourceNativeObservation) error { closes++; return s.Close() }}
+	if e := prepareFixedApplyObservation(context.Background(), b); e != nil {
+		t.Fatal(e)
+	}
+	if e := owner.Transfer(&fixedApplyRun{b: b, observer: b.prepared, hub: &applyCallbackHub{}}); e == nil {
+		t.Fatal("counterfeit run took prepared observer ownership")
+	}
+	var order []string
+	priv := &applyTestPrivilege{active: true}
+	// A real executor ownership transfer with synthetic native ports only;
+	// invoke does not mint a native-image/comparison result.
+	r, e := invokeFixedApply(context.Background(), b, applyTestPorts(b, &order), priv, &applyCallbackHub{})
+	if e != nil || r == nil {
+		t.Fatal(e)
+	}
+	defer r.Close()
+	if e = owner.Transfer(r); e != nil {
+		t.Fatal(e)
+	}
+	if e = owner.Close(); e != nil || closes != 0 || b.prepared.closed {
+		t.Fatal("entry cleanup closed transferred observer", e, closes)
+	}
+	if e = r.Close(); !errors.Is(e, platform.ErrTreePreserved) || !b.prepared.closed || priv.closed != 1 {
+		t.Fatal("owning run did not settle observer", e, priv.closed)
+	}
+	if e = owner.Close(); e != nil || closes != 0 {
+		t.Fatal("entry cleanup repeated transferred close", e, closes)
+	}
+}

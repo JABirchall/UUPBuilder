@@ -1,0 +1,18 @@
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal
+    fixed_apply_windows_test.go:476: primary failure hid prepared observer close evidence privilege-refusal
+        image preservation privilege requirement unmet
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal
+    fixed_apply_windows_test.go:476: primary failure hid prepared observer close evidence execution-refusal
+        unbound WIM reconstruction input
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error
+    fixed_apply_windows_test.go:476: primary failure hid prepared observer close evidence assigned-preparation-error
+--- FAIL: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure (1.49s)
+    --- FAIL: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal (0.51s)
+    --- FAIL: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal (0.44s)
+    --- FAIL: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error (0.54s)
+=== RUN   TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun
+--- PASS: TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun (0.48s)
+FAIL
+FAIL	uupbuilder/internal/engine	1.983s
+FAIL

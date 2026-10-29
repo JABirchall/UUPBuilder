@@ -1,0 +1,44 @@
+=== RUN   TestFixedApplyRejectsSyntheticCompletionAndPreservesScopes
+--- PASS: TestFixedApplyRejectsSyntheticCompletionAndPreservesScopes (0.41s)
+=== RUN   TestFixedApplyCancellationWaitsForActualReturn
+--- PASS: TestFixedApplyCancellationWaitsForActualReturn (0.49s)
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/open
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/temporary
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/load
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/register
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/apply
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/modules
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/unregister
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/close-image
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/close-wim
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/privilege-close
+=== RUN   TestFixedApplyNativeFailuresNeverBecomeObservation/provider-close
+--- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation (5.03s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/open (0.43s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/temporary (0.37s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/load (0.38s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/register (0.45s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/apply (0.43s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/modules (0.43s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/unregister (0.52s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/close-image (0.43s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/close-wim (0.45s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/privilege-close (0.62s)
+    --- PASS: TestFixedApplyNativeFailuresNeverBecomeObservation/provider-close (0.51s)
+=== RUN   TestObservedSourceContractRejectsCounterfeitCompletionAndComparison
+--- PASS: TestObservedSourceContractRejectsCounterfeitCompletionAndComparison (0.43s)
+=== RUN   TestFixedApplyDuplicateRunCannotTakeActiveNativeLifetimes
+--- PASS: TestFixedApplyDuplicateRunCannotTakeActiveNativeLifetimes (0.60s)
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error
+--- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure (1.39s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal (0.44s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal (0.43s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error (0.52s)
+=== RUN   TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun
+--- PASS: TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun (0.41s)
+PASS
+ok  	uupbuilder/internal/engine	8.780s

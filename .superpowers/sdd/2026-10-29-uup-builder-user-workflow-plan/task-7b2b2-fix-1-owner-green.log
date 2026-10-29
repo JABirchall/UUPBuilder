@@ -1,0 +1,12 @@
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal
+=== RUN   TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error
+--- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure (1.43s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/privilege-refusal (0.39s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/execution-refusal (0.63s)
+    --- PASS: TestFixedTrialPreparedOwnerUnwindsEveryPreTransferFailure/assigned-preparation-error (0.42s)
+=== RUN   TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun
+--- PASS: TestFixedTrialPreparedOwnerTransfersOnlyToOwningRun (0.42s)
+PASS
+ok  	uupbuilder/internal/engine	1.866s

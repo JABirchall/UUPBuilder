@@ -73,16 +73,17 @@ func TestConfiguredFixedSelectedSourceApply(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	preparedOwner := &fixedTrialPreparedOwner{binding: b}
+	defer func() {
+		if e := preparedOwner.Close(); e != nil {
+			t.Errorf("prepared observer pre-transfer cleanup: %v", e)
+		}
+	}()
 	// Build and retain the exact source-derived observer/preflight before any
 	// privilege adjustment. executeFixedApply consumes this very session.
 	if e = prepareFixedApplyObservation(ctx, b); e != nil {
 		t.Fatal("fresh source observation preflight refused", e)
 	}
-	defer func() {
-		if b.prepared != nil {
-			b.prepared.Close()
-		}
-	}()
 	t.Logf("FRESH selected entries=%d source=%s preflight=%+v; requested capacities are not actual disk/query bytes", len(x.entries), p.state.Source.Recipe.Source.BuildLabel, b.preflight)
 	priv, e := platform.AcquireImagePreservationPrivileges(ctx) // UNCALLED in this slice.
 	if e != nil {
@@ -99,6 +100,9 @@ func TestConfiguredFixedSelectedSourceApply(t *testing.T) {
 	r, runErr := executeFixedApply(ctx, b, provider.ports, priv, &installedApplyCallbacks)
 	if r == nil {
 		t.Fatal(runErr)
+	}
+	if e := preparedOwner.Transfer(r); e != nil {
+		t.Fatal("returned execution did not own the prepared observer", errors.Join(runErr, e, r.Close()))
 	}
 	providerOwned = false
 	privOwned = false
@@ -142,6 +146,52 @@ func TestConfiguredFixedSelectedSourceApply(t *testing.T) {
 		t.Fatal("native file/cache claims unexpectedly reported clean removal")
 	}
 	t.Fatal("component trial finished with preserved destination/cache resources; cleanup and production acceptance remain incomplete", applyOutcome(closeErr))
+}
+
+// fixedTrialPreparedOwner is test-entry ownership only, before the executor
+// accepts the same observer. Its Close reads the current binding, including a
+// partially assigned observer when preparation returns an error.
+type fixedTrialPreparedOwner struct {
+	binding             *fixedApplyBinding
+	closePrepared       func(*sourceNativeObservation) error
+	transferred, closed bool
+	closeErr            error
+}
+
+func (o *fixedTrialPreparedOwner) Close() error {
+	if o == nil || o.transferred {
+		return nil
+	}
+	if o.closed {
+		return o.closeErr
+	}
+	o.closed = true
+	if o.binding != nil && o.binding.prepared != nil {
+		if o.closePrepared != nil {
+			o.closeErr = o.closePrepared(o.binding.prepared)
+		} else {
+			o.closeErr = o.binding.prepared.Close()
+		}
+	}
+	return o.closeErr
+}
+
+func (o *fixedTrialPreparedOwner) Transfer(r *fixedApplyRun) error {
+	if o == nil || o.closed || o.transferred || o.binding == nil || o.binding.prepared == nil || r == nil {
+		return ErrInput
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed || r.b != o.binding || r.observer != o.binding.prepared || r.hub == nil {
+		return ErrInput
+	}
+	r.hub.mu.Lock()
+	defer r.hub.mu.Unlock()
+	if r.hub.retained != r {
+		return ErrInput
+	}
+	o.transferred = true
+	return nil
 }
 
 // Session.Evidence precharges its bounded copied fields. Lower that allowance
