@@ -328,7 +328,9 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 			}
 		}
 	}
-	if e = c.charge(uint64(len(x.entries)) * 1024); e != nil {
+	// Retain the existing observation/map allowance plus two tagged source
+	// keys per entry, conservatively 16 bytes each on every supported target.
+	if e = c.charge(uint64(len(x.entries)) * (1024 + 32)); e != nil {
 		return nil, e
 	}
 	observations := make(map[string]platform.MetadataObservation, len(x.entries))
@@ -336,8 +338,14 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 		Volume uint64
 		ID     [16]byte
 	}
-	groups := map[uint64]nativeKey{}
-	nativeGroups := map[nativeKey]uint64{}
+	// Original IDs use all 64 bits. Singleton ordinals occupy a separate
+	// tagged domain, never a synthesized value inside the source-ID domain.
+	type sourceGroupKey struct {
+		ID        uint64
+		Singleton bool
+	}
+	groups := map[sourceGroupKey]nativeKey{}
+	nativeGroups := map[nativeKey]sourceGroupKey{}
 	for n, en := range x.entries {
 		if e = ctx.Err(); e != nil {
 			return nil, e
@@ -411,9 +419,9 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 				}
 			}
 			key := nativeKey{o.VolumeSerial, o.FileID128}
-			group := en.Original.HardlinkID
-			if group == 0 {
-				group = uint64(n) | 1<<63
+			group := sourceGroupKey{ID: en.Original.HardlinkID}
+			if group.ID == 0 {
+				group = sourceGroupKey{ID: uint64(n), Singleton: true}
 			}
 			if prior, ok := groups[group]; ok && prior != key {
 				var expectedID, observedID [24]byte
@@ -426,10 +434,18 @@ func comparePreservation(ctx context.Context, x *SourceExpectations, p preservat
 				}
 			}
 			if prior, ok := nativeGroups[key]; ok && prior != group {
-				var expectedGroups [16]byte
+				// Each source key is a domain byte (0=original, 1=singleton)
+				// followed by its full-width ID or ordinal. Retain both tags.
+				var expectedGroups [18]byte
 				var observedID [24]byte
-				binary.LittleEndian.PutUint64(expectedGroups[:], prior)
-				binary.LittleEndian.PutUint64(expectedGroups[8:], group)
+				if prior.Singleton {
+					expectedGroups[0] = 1
+				}
+				binary.LittleEndian.PutUint64(expectedGroups[1:9], prior.ID)
+				if group.Singleton {
+					expectedGroups[9] = 1
+				}
+				binary.LittleEndian.PutUint64(expectedGroups[10:], group.ID)
 				binary.LittleEndian.PutUint64(observedID[:], key.Volume)
 				copy(observedID[8:], key.ID[:])
 				if e = c.mismatch(path, "hardlinks.equivalence", "distinct source identities", "same native identity", expectedGroups[:], observedID[:]); e != nil {

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"unicode/utf16"
 
+	"uupbuilder/internal/engine/source"
 	platform "uupbuilder/internal/platform/windows"
 )
 
@@ -611,5 +612,99 @@ func TestPreservationComparisonEmptyOriginalSecurityStaysUnresolved(t *testing.T
 	v, e := r.Evidence(ctx, 1<<24)
 	if e != nil || v.Complete || !hasComparisonField(v, "source.security") {
 		t.Fatal("empty original security accepted", e)
+	}
+}
+
+func TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity(t *testing.T) {
+	ctx := context.Background()
+	// The original group uses the literal full-width ID that previously collided
+	// with the zero-ID SOFTWARE file at disk-order DFS ordinal 6. Build original
+	// bytes before live production parsing; do not mutate an Oracle/expectation.
+	in, _, _ := preservationFixtureWithHardlinkGroup(t, false, 0x8000000000000006, true)
+	recipe, e := source.BindCanonical(ctx, in, source.Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	artifact, e := Reconstruct(ctx, recipe, Limits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() {
+		if e := artifact.Close(); e != nil {
+			t.Error(e)
+		}
+	})
+	proof, e := BindPreservationProof(ctx, recipe, artifact, PreservationLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	expected, e := BindSourceExpectations(ctx, proof, ComparisonLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	group, e := expected.EntryAt(ctx, 3, 1<<20)
+	if e != nil {
+		t.Fatal(e)
+	}
+	singleton, e := expected.EntryAt(ctx, 6, 1<<20)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if group.Original.Path != "/Windows/System32/ntoskrnl.exe" || group.Original.HardlinkID != 0x8000000000000006 || group.ExpectedLinks != 2 || singleton.Original.Path != "/Windows/System32/config/SOFTWARE" || singleton.Original.HardlinkID != 0 || singleton.ExpectedLinks != 1 {
+		t.Fatal("source fixture lost independent group/singleton identities")
+	}
+	for _, sameNative := range []bool{false, true} {
+		name := "distinct native identities"
+		if sameNative {
+			name = "accidental native equivalence"
+		}
+		t.Run(name, func(t *testing.T) {
+			observed := &syntheticPreservationPort{id: platform.TreeIdentity{SourceDigest: proof.state.Digest, OperationID: "synthetic", Root: platform.FileIdentity{VolumeSerial: 1, FileIndex: 1}}}
+			if sameNative {
+				// Three actual names of one native inode: the source hardlink pair
+				// and its distinct source singleton. Link counts and equivalence
+				// must each be checked independently of the equal literal bytes.
+				observed.paths = func(entries []platform.InventoryEntry) []platform.InventoryEntry {
+					for n := range entries {
+						if entries[n].Path == "Windows/System32/config/SOFTWARE" {
+							entries[n].Identity.FileIndex = 4
+						}
+					}
+					return entries
+				}
+				observed.mutate = func(_ string, o *platform.MetadataObservation) {
+					if o.Identity.FileIndex == 4 {
+						o.LinkCount = 3
+					}
+				}
+			}
+			comparison, e := comparePreservation(ctx, expected, observed, ComparisonLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			evidence, e := comparison.Evidence(ctx, 1<<24)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if !sameNative {
+				if !evidence.Complete || len(evidence.Mismatches) != 0 || len(evidence.Unresolved) != 0 {
+					t.Fatalf("distinct high-bit source group/singleton rejected: complete=%v mismatches=%+v unresolved=%+v", evidence.Complete, evidence.Mismatches, evidence.Unresolved)
+				}
+			} else if evidence.Complete || !hasComparisonField(evidence, "hardlinks.equivalence") || !hasComparisonField(evidence, "hardlinks.count") {
+				t.Fatalf("accidental native equivalence lost independent witnesses: complete=%v mismatches=%+v", evidence.Complete, evidence.Mismatches)
+			}
+			if sameNative {
+				wantSourceKeys := []byte{0, 6, 0, 0, 0, 0, 0, 0, 0x80, 1, 6, 0, 0, 0, 0, 0, 0, 0}
+				found := false
+				for _, m := range evidence.Mismatches {
+					if m.Path == "/Windows/System32/config/SOFTWARE" && m.Field == "hardlinks.equivalence" && bytes.Equal(m.ExpectedRaw, wantSourceKeys) {
+						found = true
+					}
+				}
+				if !found {
+					t.Fatal("source high-bit ID/singleton domain witness lost")
+				}
+			}
+		})
 	}
 }

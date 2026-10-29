@@ -31,6 +31,10 @@ type testNode struct {
 }
 
 func preservationFixture(t *testing.T, emptyKernel bool, clean ...bool) (source.Inputs, []byte, func()) {
+	return preservationFixtureWithHardlinkGroup(t, emptyKernel, 7, clean...)
+}
+
+func preservationFixtureWithHardlinkGroup(t *testing.T, emptyKernel bool, hardlinkGroup uint64, clean ...bool) (source.Inputs, []byte, func()) {
 	t.Helper()
 	ctx := context.Background()
 	le := binary.LittleEndian
@@ -40,7 +44,7 @@ func preservationFixture(t *testing.T, emptyKernel bool, clean ...bool) (source.
 	if emptyKernel {
 		kernel = nil
 	}
-	nodes := testNode{attrs: 16, children: []testNode{{name: "Windows", attrs: 16, children: []testNode{{name: "System32", attrs: 16, children: []testNode{{name: "ntoskrnl.exe", attrs: 32, hash: kernel, link: 7}, {name: "kernel.link", attrs: 32, hash: kernel, link: 7}, {name: "config", attrs: 16, children: []testNode{{name: "SOFTWARE", attrs: 32, hash: h1[:]}, {name: "SYSTEM", attrs: 32, hash: h1[:]}}}, {name: "named", attrs: 32, hash: h1[:], ads: h2[:], tag: true}, {name: "empty", attrs: 32}, {name: "reparse", attrs: 0x420, hash: h3[:]}}}}}}}
+	nodes := testNode{attrs: 16, children: []testNode{{name: "Windows", attrs: 16, children: []testNode{{name: "System32", attrs: 16, children: []testNode{{name: "ntoskrnl.exe", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "kernel.link", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "config", attrs: 16, children: []testNode{{name: "SOFTWARE", attrs: 32, hash: h1[:]}, {name: "SYSTEM", attrs: 32, hash: h1[:]}}}, {name: "named", attrs: 32, hash: h1[:], ads: h2[:], tag: true}, {name: "empty", attrs: 32}, {name: "reparse", attrs: 0x420, hash: h3[:]}}}}}}}
 	if len(clean) > 0 && clean[0] {
 		nodes.children[0].children[0].children[3].tag = false
 	}
