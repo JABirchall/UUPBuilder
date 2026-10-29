@@ -13,7 +13,7 @@ func (p *Planner) dependencies(req Request) ([]tools.Requirement, error) {
 	if err != nil {
 		return nil, err
 	}
-	requirement := tools.Requirement{Host: req.Host, Target: req.Selection.Architecture, Operations: []tools.Operation{tools.Extract, tools.Inspect, tools.Reconstruct, tools.Service, tools.MasterISO}, ManifestDigest: manifest.Digest()}
+	requirement := tools.Requirement{Host: req.Host, Target: req.Selection.Architecture, Operations: []tools.Operation{tools.Extract, tools.Inspect, tools.Reconstruct, tools.Service, tools.MasterISO}, ManifestDigest: manifest.Digest(), Source: req.Resolution.Manifest.Source, SourceManifestDigest: req.Resolution.Manifest.Digest, RuleDigest: hash("u06-source-preparation-v1")}
 	selectTools := manifest.Select
 	if p != nil && p.SelectTools != nil {
 		selectTools = p.SelectTools
@@ -50,6 +50,11 @@ func graph(f frozen) []Operation {
 	var ops []Operation
 	for _, kind := range kinds {
 		op := Operation{ID: string(kind), Kind: kind, SourceDigest: f.Manifest.Digest, Rules: []Identity{{Name: "u05-graph-v1", Version: "1", Digest: hash("u05-graph-v1")}, {Name: "source-inventory", Version: "1", Digest: f.InventoryDigest}}, Inputs: []InputIdentity{{Name: "manifest", Digest: f.Manifest.Digest}}, OwnedPaths: []string{"result.json"}}
+		if kind == DownloadPayloads {
+			for _, payload := range f.Manifest.Payloads {
+				op.OwnedPaths = append(op.OwnedPaths, "payloads/"+payload.Identity.Key()+".data")
+			}
+		}
 		if len(ops) > 0 {
 			op.DependsOn = []string{ops[len(ops)-1].ID}
 		}

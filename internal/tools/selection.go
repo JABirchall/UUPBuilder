@@ -18,10 +18,13 @@ const (
 )
 
 type Requirement struct {
-	Host           model.Host
-	Target         model.Architecture
-	Operations     []Operation
-	ManifestDigest string
+	Host                 model.Host
+	Target               model.Architecture
+	Operations           []Operation
+	ManifestDigest       string
+	Source               model.SourceIdentity
+	SourceManifestDigest string
+	RuleDigest           string
 }
 
 // IntentOperations records documented investigation scope, never supported
@@ -49,6 +52,13 @@ func (e *BlockedError) Unwrap() error { return ErrUnverified }
 func (r Requirement) Validate() error {
 	if r.Host.WindowsBuild < 10240 || r.Host.NativeArchitecture.Validate() != nil || r.Host.ProcessArchitecture.Validate() != nil || r.Target.Validate() != nil || len(r.Operations) == 0 || !validSHA(r.ManifestDigest) {
 		return ErrInvalidInput
+	}
+	// Unbound legacy candidate queries remain readable, but a source-specific
+	// request must carry its complete generation, frozen payload and rule identity.
+	if r.Source != (model.SourceIdentity{}) || r.SourceManifestDigest != "" || r.RuleDigest != "" {
+		if r.Source.Validate() != nil || r.Source.Architecture != r.Target || !validSHA(r.SourceManifestDigest) || !validSHA(r.RuleDigest) {
+			return ErrInvalidInput
+		}
 	}
 	ops := map[Operation]bool{}
 	for _, op := range r.Operations {

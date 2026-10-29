@@ -42,6 +42,33 @@ func fixture(t *testing.T) (*Planner, Request) {
 	return p, Request{Selection: sel, Settings: settings, Resolution: res, Host: host, DraftRevision: 7, Intent: DownloadOnly}
 }
 
+func TestPlannerBindsCapabilitiesToSourceAndPreparationRule(t *testing.T) {
+	p, req := fixture(t)
+	req.Intent = BuildMedia
+	p.SelectTools = func(r tools.Requirement) (tools.Selection, error) {
+		if r.Source != req.Resolution.Manifest.Source || r.SourceManifestDigest != req.Resolution.Manifest.Digest || (model.Digest{Algorithm: model.DigestSHA256, Value: r.RuleDigest}).Validate() != nil {
+			t.Fatalf("capability request omits exact source/rule binding: %+v", r)
+		}
+		return tools.Selection{Requirement: r}, nil
+	}
+	if _, err := p.Resolve(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDownloadPreparationReservesTransferScratchAndCheckpointCopies(t *testing.T) {
+	p, req := fixture(t)
+	prior := p.InspectStorage
+	p.InspectStorage = func(ctx context.Context, path string) (Volume, error) {
+		v, e := prior(ctx, path)
+		v.AvailableBytes = 11 << 30
+		return v, e
+	}
+	if _, err := p.Resolve(context.Background(), req); !errors.Is(err, ErrBlocked) {
+		t.Fatalf("download checkpoint copies exceed available space but were permitted: %v", err)
+	}
+}
+
 func TestDecoderIndependentlyValidatesResealedShape(t *testing.T) {
 	p, req := fixture(t)
 	req.Intent = BuildMedia

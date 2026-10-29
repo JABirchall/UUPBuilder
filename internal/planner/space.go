@@ -25,7 +25,9 @@ func (p *Planner) space(ctx context.Context, req Request) (Estimate, []StorageCh
 	if e.KnownPayloadBytes > math.MaxUint64/4 {
 		return e, nil, fmt.Errorf("%w: space estimate overflow", ErrBlocked)
 	}
-	e.ScratchBytes = e.KnownPayloadBytes
+	// Network staging, the worker's verified input copy and the independent
+	// checkpoint copy can coexist. Cache space is accounted separately below.
+	e.ScratchBytes = e.KnownPayloadBytes * 3
 	e.ScratchEstimated = true
 	if req.Intent == BuildMedia {
 		e.ScratchBytes = e.KnownPayloadBytes * 3

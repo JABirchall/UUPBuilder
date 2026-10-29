@@ -169,7 +169,7 @@ func (p ReadyPlan) Validate() error {
 		return ErrInvalidPlan
 	}
 	for _, r := range f.Tools {
-		if r.Validate() != nil || !reflect.DeepEqual(r.Host, f.Host) || r.Target != f.Selection.Architecture {
+		if r.Validate() != nil || !reflect.DeepEqual(r.Host, f.Host) || r.Target != f.Selection.Architecture || r.Source != f.Manifest.Source || r.SourceManifestDigest != f.Manifest.Digest || r.RuleDigest != hash("u06-source-preparation-v1") {
 			return ErrInvalidPlan
 		}
 		manifest, err := tools.DefaultManifest()
