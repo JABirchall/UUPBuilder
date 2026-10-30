@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"uupbuilder/internal/config"
 	"uupbuilder/internal/model"
@@ -50,7 +53,7 @@ func TestDownloadBarsUpdateInPlaceWithConcurrentFileIdentity(t *testing.T) {
 	}
 	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "b", "apps/source.esd", "downloading", 256*1024, &total)})
 	text := progressText(m, 78, 20)
-	for _, want := range []string{"packages/source.esd", "apps/source.esd", "50%", "25%", "512 KiB / 1.0 MiB", "256 KiB / 1.0 MiB", "[", "#", "-", "]"} {
+	for _, want := range []string{"packages/source.esd", "apps/source.esd", "50%", "25%", "512 KiB / 1.0 MiB", "256 KiB / 1.0 MiB"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q in progress:\n%s", want, text)
 		}
@@ -67,7 +70,7 @@ func TestGenericByteEventsRetainCountersAndUnknownTotals(t *testing.T) {
 	n := int64(1536)
 	m = send(m, buildProgressMsg{event: model.Event{StageID: "tools", Kind: model.EventBytes, Message: "Acquiring helper", CompletedBytes: &n}})
 	text := progressText(m, 78, 15)
-	for _, want := range []string{"Acquiring helper", "1.5 KiB / unknown", "--%", "["} {
+	for _, want := range []string{"Acquiring helper", "1.5 KiB / unknown", "--%"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q:\n%s", want, text)
 		}
@@ -253,5 +256,174 @@ func TestIdleProgressRowsRespectAvailableCells(t *testing.T) {
 				t.Fatalf("idle progress exceeded width: %q", row.text)
 			}
 		}
+	}
+}
+
+func TestDownloadProgressAnimatesBetweenByteEvents(t *testing.T) {
+	m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+	defer m.Close()
+	m.buildAction.busy, m.buildAction.status = true, "Running"
+	updates := make(chan tea.Msg, 1)
+	updates <- nil // Let the independent build event listener complete.
+	m.buildAction.updates = updates
+	total := int64(100)
+	m, cmd := step(m, buildProgressMsg{event: fileProgressEvent(t, "animated", "animated.bin", "downloading", 50, &total)})
+	var frame tea.Msg
+	for _, msg := range runCommands(cmd) {
+		if _, ok := msg.(progress.FrameMsg); ok {
+			frame = msg
+		}
+	}
+	if frame == nil {
+		t.Fatal("download did not schedule a Bubbles progress animation")
+	}
+	before := progressText(m, 78, 20)
+	for range 8 {
+		m, cmd = step(m, frame)
+		if cmd == nil {
+			t.Fatal("progress animation stopped before advancing to the received byte count")
+		}
+		frame = cmd()
+	}
+	after := progressText(m, 78, 20)
+	if before == after || !strings.Contains(after, "50%") || !strings.Contains(after, "50 B / 100 B") {
+		t.Fatalf("animation did not advance independently of byte events while preserving counters:\n%s", after)
+	}
+	barLine := func(text string) string {
+		for _, line := range strings.Split(text, "\n") {
+			if strings.Contains(line, "B / 100 B") {
+				return strings.Fields(line)[0]
+			}
+		}
+		t.Fatal("download bar is missing")
+		return ""
+	}
+	updates <- nil
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "animated", "animated.bin", "downloading", 75, &total)})
+	if next := progressText(m, 78, 20); barLine(after) != barLine(next) || !strings.Contains(next, "75%") {
+		t.Fatal("a new byte update reset the spring animation instead of preserving its current position")
+	}
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "animated", "animated.bin", "completed", 100, &total)})
+	_, cmd = step(m, frame)
+	if cmd != nil {
+		t.Fatal("a removed download continued scheduling animation frames")
+	}
+}
+
+func TestConcurrentDownloadAnimationFramesStayWithTheirFile(t *testing.T) {
+	m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+	defer m.Close()
+	m.buildAction.busy, m.buildAction.status = true, "Running"
+	updates := make(chan tea.Msg, 1)
+	m.buildAction.updates = updates
+	total := int64(100)
+	var firstFrame tea.Msg
+	for _, id := range []string{"first", "second"} {
+		updates <- nil
+		var cmd tea.Cmd
+		m, cmd = step(m, buildProgressMsg{event: fileProgressEvent(t, id, id+".bin", "downloading", 50, &total)})
+		for _, msg := range runCommands(cmd) {
+			if _, ok := msg.(progress.FrameMsg); ok && id == "first" {
+				firstFrame = msg
+			}
+		}
+	}
+	barLines := func() []string {
+		var bars []string
+		for _, line := range strings.Split(progressText(m, 78, 20), "\n") {
+			if strings.Contains(line, "50 B / 100 B") {
+				bars = append(bars, line)
+			}
+		}
+		if len(bars) != 2 {
+			t.Fatalf("missing concurrent download bars: %v", bars)
+		}
+		return bars
+	}
+	before := barLines()
+	for range 8 {
+		var cmd tea.Cmd
+		m, cmd = step(m, firstFrame)
+		if cmd == nil {
+			t.Fatal("first transfer's animation stopped")
+		}
+		firstFrame = cmd()
+	}
+	after := barLines()
+	if before[0] == after[0] || before[1] != after[1] {
+		t.Fatal("a file's animation frame advanced the wrong concurrent progress bar")
+	}
+}
+
+func TestUnknownDownloadSpinnerStopsAndRejectsPreviousTransferTicks(t *testing.T) {
+	m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+	defer m.Close()
+	m.buildAction.busy, m.buildAction.status = true, "Running"
+	updates := make(chan tea.Msg, 1)
+	updates <- nil
+	m.buildAction.updates = updates
+	m, cmd := step(m, buildProgressMsg{event: fileProgressEvent(t, "unknown", "unknown.bin", "downloading", 512, nil)})
+	var tick tea.Msg
+	for _, msg := range runCommands(cmd) {
+		if _, ok := msg.(spinner.TickMsg); ok {
+			tick = msg
+		}
+	}
+	if tick == nil {
+		t.Fatal("unknown-length download did not start a Bubbles spinner")
+	}
+	before := progressText(m, 78, 20)
+	m, cmd = step(m, tick)
+	if cmd == nil || before == progressText(m, 78, 20) {
+		t.Fatal("spinner did not animate while no byte event arrived")
+	}
+	staleTick := cmd()
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "unknown", "unknown.bin", "completed", 512, nil)})
+	_, cmd = step(m, staleTick)
+	if cmd != nil {
+		t.Fatal("spinner kept ticking after the last active download completed")
+	}
+	updates <- nil
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "next", "next.bin", "checking", 0, nil)})
+	before = progressText(m, 78, 20)
+	m, cmd = step(m, staleTick)
+	if cmd != nil || before != progressText(m, 78, 20) {
+		t.Fatal("a previous download's spinner tick affected a new transfer")
+	}
+}
+
+func TestUnknownFailedDownloadStaysStillWhileAnotherFileAnimates(t *testing.T) {
+	for _, state := range []string{"failed", "cancelled"} {
+		t.Run(state, func(t *testing.T) {
+			m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+			defer m.Close()
+			m.buildAction.busy, m.buildAction.status = true, "Running"
+			updates := make(chan tea.Msg, 1)
+			updates <- nil
+			m.buildAction.updates = updates
+			m, cmd := step(m, buildProgressMsg{event: fileProgressEvent(t, "active", "active.bin", "downloading", 512, nil)})
+			var tick tea.Msg
+			for _, msg := range runCommands(cmd) {
+				if _, ok := msg.(spinner.TickMsg); ok {
+					tick = msg
+				}
+			}
+			m = send(m, buildProgressMsg{event: fileProgressEvent(t, "diagnostic", "diagnostic.bin", state, 512, nil)})
+			diagnosticRows := func() string {
+				rows := m.progressRows(78, 20)
+				for i, r := range rows {
+					if strings.Contains(ansi.Strip(r.text), "diagnostic.bin") && i+1 < len(rows) {
+						return r.text + rows[i+1].text
+					}
+				}
+				t.Fatal("diagnostic download is missing")
+				return ""
+			}
+			before := diagnosticRows()
+			m, cmd = step(m, tick)
+			if cmd == nil || before != diagnosticRows() {
+				t.Fatal("a shared spinner frame animated a failed or cancelled unknown-length download")
+			}
+		})
 	}
 }

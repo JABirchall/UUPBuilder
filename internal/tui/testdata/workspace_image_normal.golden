@@ -5,7 +5,7 @@
 │ │ ┌ Target ───────────────────────────────────────────────────────────────────────────────────┐ │
 │ 02 Image │ │ amd64 arm64 │ │
 │ 03 Apps │ ┌ Language ─────────────────────────────────────────────────────────────────────────────────┐ │
-│ │ │ en-us · English [1/2] (selected) │ │
+│ │ │ en-us · English [1/2] (selected) ▾ │ │
 │ 04 Conversion │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
 │ │ Available (cache or network) | checked 12:30Z | r refresh │
 │ 05 Review │ Available (cache or network) | checked 12:30Z | r refresh │

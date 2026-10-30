@@ -197,8 +197,10 @@ func TestKeyboardSearchSpaceEnterEscapeHelp(t *testing.T) {
 	if m.ActiveArea() != Image || m.Snapshot().Config.Image.UpdateID != firstID {
 		t.Fatal("enter did not select current build")
 	}
-	// Image focus begins with architecture; tab moves to language, enter chooses.
+	// Image focus begins with architecture; Enter opens the language menu,
+	// then a second Enter chooses its highlighted option.
 	m = send(m, key(tea.KeyTab, ""))
+	m = send(m, key(tea.KeyEnter, ""))
 	m, cmd = step(m, key(tea.KeyEnter, ""))
 	m = send(m, cmd())
 	m = send(m, key(tea.KeyTab, ""))

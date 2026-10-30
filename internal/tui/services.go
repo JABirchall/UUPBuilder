@@ -80,6 +80,7 @@ func (m *Model) beginSearch(force bool) tea.Cmd {
 	}
 }
 func (m *Model) beginLanguages(force bool) tea.Cmd {
+	m.image.languageOpen = false
 	if m.image.languageCancel != nil {
 		m.image.languageCancel()
 	}

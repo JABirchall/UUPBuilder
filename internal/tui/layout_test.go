@@ -142,6 +142,7 @@ func TestWorkspaceMouseNavigationSelectionAndResize(t *testing.T) {
 			t.Fatal("mouse chose the wrong source")
 		}
 		click(func(msg tea.Msg) bool { field, ok := msg.(imageFocusMsg); return ok && field.field == 1 })
+		click(func(msg tea.Msg) bool { choice, ok := msg.(SelectLanguageMsg); return ok && choice.Language == "en-us" })
 		if m.cfg.Image.Language != "en-us" {
 			t.Fatal("mouse did not select the displayed language")
 		}

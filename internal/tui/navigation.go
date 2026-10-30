@@ -27,6 +27,7 @@ func (m *Model) navigate(area Area) {
 		return
 	}
 	m.area = area
+	m.image.languageOpen = false
 	m.builds.search.Blur()
 	m.builds.filter.Blur()
 	m.conversion.input.Blur()
@@ -152,6 +153,10 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+left", "shift+tab":
 		return m.Update(NavigateMsg{Area: (m.area + 5) % 6})
 	case "esc":
+		if m.area == Image && m.image.languageOpen {
+			m.image.languageOpen = false
+			return m, nil
+		}
 		if m.area > Builds {
 			return m.Update(NavigateMsg{Area: m.area - 1})
 		}
@@ -163,6 +168,7 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.move(1)
 	case "tab":
 		if m.area == Image {
+			m.image.languageOpen = false
 			m.image.focus = (m.image.focus + 1) % 3
 		} else if m.area == Conversion {
 			m.move(1)
@@ -255,6 +261,9 @@ func (m *Model) move(delta int) {
 		case 0:
 			m.image.archCursor = max(0, min(m.image.archCursor+delta, len(m.imageArchitectures())-1))
 		case 1:
+			if !m.image.languageOpen {
+				m.openLanguageDropdown()
+			}
 			m.image.languageCursor = max(0, min(m.image.languageCursor+delta, len(m.image.languages)-1))
 		case 2:
 			m.image.editionCursor = max(0, min(m.image.editionCursor+delta, len(m.editionChoices())-1))
@@ -285,6 +294,10 @@ func (m Model) activate() (tea.Model, tea.Cmd) {
 				return m.Update(ChangeArchitectureMsg{Architecture: choices[m.image.archCursor]})
 			}
 		case 1:
+			if !m.image.languageOpen {
+				m.openLanguageDropdown()
+				return m, nil
+			}
 			if len(m.image.languages) > m.image.languageCursor {
 				return m.Update(SelectLanguageMsg{Language: m.image.languages[m.image.languageCursor].ID})
 			}

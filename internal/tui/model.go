@@ -6,6 +6,8 @@ import (
 	"context"
 	"slices"
 
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
 	"uupbuilder/internal/catalog"
@@ -99,6 +101,8 @@ func (m Model) Snapshot() DraftSnapshot {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case progress.FrameMsg, spinner.TickMsg:
+		return m.updateDownloadAnimation(msg)
 	case initializeMsg:
 		if m.initialized {
 			return m, nil
@@ -195,6 +199,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.selectBuild(msg.UpdateID)
 		return m, cmd
 	case ChangeArchitectureMsg:
+		m.image.languageOpen = false
 		m.image.focus = 0
 		cmd := m.changeArchitecture(msg.Architecture)
 		m.syncArchitectureCursor()
@@ -231,8 +236,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case imageFocusMsg:
 		m.image.focus = msg.field
+		if msg.field != 1 {
+			m.image.languageOpen = false
+		}
 		return m.activate()
 	case editionClickMsg:
+		m.image.languageOpen = false
 		m.image.focus = 2
 		m.image.editionCursor = msg.index
 		m.toggleEdition(msg.edition)
@@ -243,9 +252,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_, hits := m.layout()
 			for _, hit := range hits {
 				if hit.contains(msg.X, msg.Y) {
+					if field, ok := hit.msg.(imageFocusMsg); !ok || field.field != 1 {
+						m.image.languageOpen = false
+					}
 					return m.Update(hit.msg)
 				}
 			}
+			m.image.languageOpen = false
 		}
 	case tea.MouseWheelMsg:
 		if m.showTOML {

@@ -3,7 +3,11 @@ package tui
 import (
 	"fmt"
 	"slices"
-	"strings"
+
+	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"uupbuilder/internal/model"
 )
@@ -15,6 +19,7 @@ type downloadProgress struct {
 	key, name        string
 	state            model.DownloadState
 	completed, total *int64
+	bar              progress.Model
 }
 
 func (p downloadProgress) active() bool {
@@ -70,6 +75,7 @@ func (b *buildActionState) acceptDownload(event model.Event) bool {
 	entry := downloadProgress{key: key, name: name, state: state, completed: copyByteCounter(event.CompletedBytes), total: copyByteCounter(event.TotalBytes)}
 	for i := range b.downloads {
 		if b.downloads[i].key == key {
+			entry.bar = b.downloads[i].bar
 			b.downloads[i] = entry
 			return true
 		}
@@ -92,16 +98,68 @@ func (b *buildActionState) acceptDownload(event model.Event) bool {
 		}
 		b.downloads = append(b.downloads[:evict], b.downloads[evict+1:]...)
 	}
+	entry.bar = progress.New(progress.WithColors(accentColor, textColor), progress.WithoutPercentage())
+	entry.bar.EmptyColor = lineColor
 	b.downloads = append(b.downloads, entry)
 	return true
 }
 
 func (b *buildActionState) settleDownloads(state model.DownloadState) {
+	b.downloadSpinning = false
 	for i := range b.downloads {
 		if b.downloads[i].active() {
 			b.downloads[i].state = state
 		}
 	}
+}
+
+// Keep the spring models across byte events. Each component's frame ID routes
+// its animation independently, while one spinner serves all active downloads.
+func (b *buildActionState) animateDownloads() tea.Cmd {
+	var cmds []tea.Cmd
+	active := false
+	for i := range b.downloads {
+		p := &b.downloads[i]
+		if !p.active() {
+			continue
+		}
+		active = true
+		if ratio := p.fraction(); ratio >= 0 && ratio != p.bar.Percent() {
+			cmds = append(cmds, p.bar.SetPercent(ratio))
+		}
+	}
+	if active && !b.downloadSpinning {
+		b.downloadSpinner = spinner.New(spinner.WithSpinner(spinner.MiniDot), spinner.WithStyle(accent))
+		b.downloadSpinning = true
+		cmds = append(cmds, b.downloadSpinner.Tick)
+	} else if !active {
+		b.downloadSpinning = false
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m Model) updateDownloadAnimation(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if !m.buildAction.busy {
+		return m, nil
+	}
+	if tick, ok := msg.(spinner.TickMsg); ok {
+		if !m.buildAction.downloadSpinning || tick.ID != m.buildAction.downloadSpinner.ID() {
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.buildAction.downloadSpinner, cmd = m.buildAction.downloadSpinner.Update(tick)
+		return m, cmd
+	}
+	var cmds []tea.Cmd
+	for i := range m.buildAction.downloads {
+		p := &m.buildAction.downloads[i]
+		if p.active() {
+			var cmd tea.Cmd
+			p.bar, cmd = p.bar.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func byteSize(n int64) string {
@@ -142,7 +200,17 @@ func (p downloadProgress) label() string {
 	}
 }
 
-func (p downloadProgress) rows(width int) []row {
+func (p downloadProgress) fraction() float64 {
+	if p.state == model.DownloadCompleted {
+		return 1
+	}
+	if p.completed != nil && p.total != nil && *p.total > 0 {
+		return min(1, float64(*p.completed)/float64(*p.total))
+	}
+	return -1
+}
+
+func (p downloadProgress) rows(width int, activity string) []row {
 	width = max(0, width)
 	completed, total := "unknown", "unknown"
 	if p.completed != nil {
@@ -152,12 +220,7 @@ func (p downloadProgress) rows(width int) []row {
 		total = byteSize(*p.total)
 	}
 	sizes := completed + " / " + total
-	percent, ratio := " --%", float64(-1)
-	if p.state == model.DownloadCompleted {
-		ratio = 1
-	} else if p.completed != nil && p.total != nil && *p.total > 0 {
-		ratio = min(1, float64(*p.completed)/float64(*p.total))
-	}
+	percent, ratio := " --%", p.fraction()
 	if ratio >= 0 {
 		n := int(ratio * 100)
 		if p.state != model.DownloadCompleted && p.completed != nil && p.total != nil && *p.completed < *p.total {
@@ -166,23 +229,33 @@ func (p downloadProgress) rows(width int) []row {
 		percent = fmt.Sprintf("%3d%%", n)
 	}
 	bar := func(cells int) string {
-		cells = max(1, cells)
+		cells = max(0, cells)
 		if ratio < 0 {
-			return "[" + strings.Repeat("?", cells) + "]"
+			if p.active() {
+				return fit(activity, cells)
+			}
+			return fit("", cells)
 		}
-		filled := min(cells, int(ratio*float64(cells)))
-		return "[" + strings.Repeat("#", filled) + strings.Repeat("-", cells-filled) + "]"
+		bar := p.bar
+		bar.SetWidth(cells)
+		if p.active() {
+			return bar.View()
+		}
+		return bar.ViewAs(ratio)
 	}
 	label := p.label()
+	if p.active() {
+		label = activity + " " + label
+	}
 	nameLine := label
-	if width > len(label)+3 {
-		nameLine = fit(p.name, width-len(label)-3) + " · " + label
+	if labelWidth := ansi.StringWidth(label); width > labelWidth+3 {
+		nameLine = fit(p.name, width-labelWidth-3) + " · " + label
 	}
 	rows := []row{{text: fit(nameLine, width)}}
 	if width < 36 {
-		return append(rows, row{text: fit(bar(width-len(percent)-3)+" "+percent, width)}, row{text: fit(sizes, width)})
+		return append(rows, row{text: fit(bar(width-len(percent)-1)+" "+percent, width)}, row{text: fit(sizes, width)})
 	}
-	return append(rows, row{text: fit(bar(width-len(percent)-len(sizes)-4)+" "+percent+" "+sizes, width)})
+	return append(rows, row{text: fit(bar(width-len(percent)-len(sizes)-2)+" "+percent+" "+sizes, width)})
 }
 
 func (b buildActionState) downloadRows(width, budget int) []row {
@@ -212,8 +285,12 @@ func (b buildActionState) downloadRows(width, budget int) []row {
 		count = (budget - 1) / perFile
 	}
 	var rows []row
+	activity := ""
+	if b.downloadSpinning {
+		activity = b.downloadSpinner.View()
+	}
 	for _, p := range ordered[:count] {
-		rows = append(rows, p.rows(width)...)
+		rows = append(rows, p.rows(width, activity)...)
 	}
 	if count < len(ordered) && len(rows) < budget {
 		rows = append(rows, row{text: fit(fmt.Sprintf("Downloads: %d active · %d recent · %d more", active, len(ordered)-active, len(ordered)-count), width)})

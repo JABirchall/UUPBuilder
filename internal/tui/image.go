@@ -13,6 +13,7 @@ import (
 type imageState struct {
 	focus                                     int // target, language, editions
 	archCursor, languageCursor, editionCursor int
+	languageOpen                              bool
 	sourceGeneration, editionGeneration       uint64
 	languageCancel, editionCancel             context.CancelFunc
 	languageStatus, editionStatus             requestStatus
@@ -32,6 +33,7 @@ func (m *Model) invalidateSource() {
 	m.image.languageStatus = requestStatus{}
 	m.image.languageChecked = false
 	m.image.languageCursor = 0
+	m.image.languageOpen = false
 	m.invalidateEditions()
 }
 func (m *Model) invalidateEditions() {
@@ -82,6 +84,7 @@ func (m *Model) selectLanguage(language string) tea.Cmd {
 		if choice.ID != language {
 			continue
 		}
+		m.image.languageOpen = false
 		if m.cfg.Image.Language == language && m.image.languageChecked {
 			return nil
 		}
@@ -95,6 +98,20 @@ func (m *Model) selectLanguage(language string) tea.Cmd {
 	}
 	return nil
 }
+
+func (m *Model) openLanguageDropdown() {
+	if m.cfg.Image.UpdateID == "" || m.image.languageStatus.loading || len(m.image.languages) == 0 {
+		return
+	}
+	m.image.languageOpen = true
+	for i, choice := range m.image.languages {
+		if choice.ID == m.cfg.Image.Language {
+			m.image.languageCursor = i
+			break
+		}
+	}
+}
+
 func (m *Model) acceptEditions(msg editionsResultMsg) {
 	if msg.generation != m.image.editionGeneration || msg.updateID != m.cfg.Image.UpdateID || msg.language != m.cfg.Image.Language {
 		return

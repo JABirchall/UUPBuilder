@@ -414,7 +414,7 @@ func (m Model) buildRows(width, height int) []row {
 
 func (m Model) imageRows(width, height int) []row {
 	rows := []row{{text: heading.Render("Configure the image")}}
-	if height >= 10 {
+	if height >= 10 && !m.image.languageOpen {
 		rows = append(rows, row{text: muted.Render("One target, one language, one or more editions.")})
 	}
 	if m.cfg.Image.UpdateID == "" {
@@ -440,7 +440,7 @@ func (m Model) imageRows(width, height int) []row {
 		shownArches = arches[m.image.archCursor : m.image.archCursor+1]
 		archText = []string{marker + terminalText(string(shownArches[0]))}
 	}
-	dense := height < 15
+	dense := height < 15 || m.image.languageOpen
 	targetRows := controlRows("Target", targetLine, width, m.image.focus == 0, dense, imageFocusMsg{field: 0})
 	valueRow, x := 1, 2 // border and the value's leading space
 	if dense {
@@ -456,16 +456,60 @@ func (m Model) imageRows(width, height int) []row {
 		}
 		x += cells + 2
 	}
-	rows = append(rows, targetRows...)
-	language := "no languages available"
-	if len(m.image.languages) > m.image.languageCursor {
-		choice := m.image.languages[m.image.languageCursor]
-		language = fmt.Sprintf("%s · %s [%d/%d]", terminalText(choice.ID), terminalText(choice.Name), m.image.languageCursor+1, len(m.image.languages))
+	// On compact screens the open menu takes the target row's space so all
+	// six language choices remain visible above the source summary.
+	if !m.image.languageOpen || height >= 10 {
+		rows = append(rows, targetRows...)
+	}
+	language := "Choose a language"
+	languageCursor := m.image.languageCursor
+	if !m.image.languageOpen {
+		languageCursor = -1
+		for i, choice := range m.image.languages {
+			if choice.ID == m.cfg.Image.Language {
+				languageCursor = i
+				break
+			}
+		}
+	}
+	if languageCursor >= 0 && languageCursor < len(m.image.languages) {
+		choice := m.image.languages[languageCursor]
+		language = fmt.Sprintf("%s · %s [%d/%d]", terminalText(choice.ID), terminalText(choice.Name), languageCursor+1, len(m.image.languages))
 		if m.cfg.Image.Language == choice.ID {
 			language += " (selected)"
 		}
 	}
+	if m.image.languageStatus.loading {
+		language = "Loading languages..."
+	} else if len(m.image.languages) == 0 {
+		language = "no languages available"
+	}
+	if m.image.languageOpen {
+		language += " ▴"
+	} else {
+		language += " ▾"
+	}
 	rows = append(rows, controlRows("Language", language, width, m.image.focus == 1, dense, imageFocusMsg{field: 1})...)
+	if m.image.languageOpen {
+		count := min(6, max(1, height-len(rows)-1))
+		start := max(0, m.image.languageCursor-count+1)
+		for i := start; i < min(len(m.image.languages), start+count); i++ {
+			choice := m.image.languages[i]
+			mark := "  "
+			if m.cfg.Image.Language == choice.ID {
+				mark = "* "
+			}
+			selected := i == m.image.languageCursor
+			if selected {
+				mark = "> "
+			}
+			text := mark + terminalText(choice.Name) + " (" + terminalText(choice.ID) + ")"
+			rows = append(rows, row{text: divider.Render("│") + selectedLine(text, max(0, width-2), selected) + divider.Render("│"), msg: SelectLanguageMsg{Language: choice.ID}})
+		}
+		end := min(len(m.image.languages), start+count)
+		scroll := fmt.Sprintf(" %d-%d of %d · ↑↓ / wheel ", start+1, end, len(m.image.languages))
+		rows = append(rows, row{text: divider.Render("└" + fit(scroll, max(0, width-2)) + "┘")})
+	}
 	if height-len(rows) >= 6 {
 		rows = append(rows, row{text: muted.Render(statusText(m.image.languageStatus, "Choose a source to load languages"))}, row{text: muted.Render(statusText(m.image.editionStatus, "Select language to load editions"))})
 	}

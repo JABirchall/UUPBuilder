@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"uupbuilder/internal/config"
 	"uupbuilder/internal/model"
@@ -64,6 +65,8 @@ type buildActionState struct {
 	updates                             <-chan tea.Msg
 	logs                                []string
 	downloads                           []downloadProgress
+	downloadSpinner                     spinner.Model
+	downloadSpinning                    bool
 	stage, status                       string
 	offset, reviewOffset                int
 }
@@ -150,6 +153,7 @@ func (m Model) startReviewedBuild() (tea.Model, tea.Cmd) {
 	m.buildAction.busy, m.buildAction.cancelled, m.buildAction.reviewed = true, false, false
 	m.buildAction.logs, m.buildAction.offset = nil, 0
 	m.buildAction.downloads = nil
+	m.buildAction.downloadSpinning = false
 	m.buildAction.stage, m.buildAction.status = "prepare-source", "Running"
 	updates := make(chan tea.Msg, 128)
 	m.buildAction.updates = updates
@@ -221,7 +225,7 @@ func (m Model) acceptBuildProgress(msg buildProgressMsg) (tea.Model, tea.Cmd) {
 		m.buildAction.stage = boundedText(msg.event.StageID, 120)
 	}
 	if m.buildAction.acceptDownload(msg.event) {
-		return m, waitBuildUpdate(m.ctx, m.buildAction.updates)
+		return m, tea.Batch(waitBuildUpdate(m.ctx, m.buildAction.updates), m.buildAction.animateDownloads())
 	}
 	text := msg.event.Message
 	if text == "" && msg.event.CompletedBytes != nil {

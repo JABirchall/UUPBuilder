@@ -6,7 +6,7 @@ func (m Model) helpLines() []string {
 	case Builds:
 		lines = append(lines, "/: edit upstream query (300ms debounce)", "f: filter retrieved sources locally; paste an exact UUID/revision", "a: target filter   r: refresh from upstream / retry", "One row per exact title/build; all available targets are shown.", "Choose uses the filtered/requested target, otherwise the first source.", "For repeated targets, keep the requested UUID or use the first source.")
 	case Image:
-		lines = append(lines, "tab: target, language, editions   space: choose / toggle edition", "r: refresh the focused language/edition choices", "Targets use actual sources in the selected title/build version.", "Missing source: return to Builds to select an exact record.", "Repeated targets use the first source; UUID filters select revisions.", "App requests are retained; their applicability needs checking.")
+		lines = append(lines, "tab: target, language, editions   space: choose / toggle edition", "Language: enter/space opens six choices; up/down or wheel scrolls.", "Enter/space or click selects; esc closes the dropdown.", "r: refresh the focused language/edition choices", "Targets use actual sources in the selected title/build version.", "Missing source: return to Builds to select an exact record.", "Repeated targets use the first source; UUID filters select revisions.", "App requests are retained; their applicability needs checking.")
 	case Conversion:
 		lines = append(lines, "up/down or tab: settings, TOML actions and Build ISO", "enter / space: cycle choices, edit text, or run selected action", "Text: enter applies; esc cancels. Lists use commas.", "Select config path, then Load or Save. Save reports backup/normalization.", "Build ISO checks tool availability, then opens Review.", "Downloads and native work begin only after Start build in Review.")
 	case Apps:
@@ -37,6 +37,9 @@ func (m Model) footer() string {
 	case Builds:
 		return "↑↓ move | / search | f filter | a target | enter select | r refresh | t TOML | esc back | ? help"
 	case Image:
+		if m.image.languageOpen {
+			return "↑↓ / wheel scroll | space / enter select | tab field | esc close | ? help"
+		}
 		if m.image.focus < 2 {
 			return "tab field | ↑↓ move | space / enter choose | r retry | t TOML | esc back | ? help"
 		}
