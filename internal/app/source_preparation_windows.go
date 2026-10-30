@@ -24,6 +24,7 @@ type sourcePreparation struct {
 	transport            *http.Transport
 	inspect              func(context.Context, string) (planner.Volume, error)
 	payloads             map[model.PayloadIdentity]bool
+	retainDownloads      bool
 }
 
 func (p *sourcePreparation) check(ctx context.Context, payloads []model.Payload) error {
@@ -104,7 +105,10 @@ func (p *sourcePreparation) Close() error {
 			continue
 		}
 		cleanupErr := leaseErr
-		if leaseErr == nil && !scope.ready {
+		if leaseErr == nil && scope.w == p.cache && p.retainDownloads {
+			// The selected job explicitly requested retaining these verified
+			// downloads. Release handles but preserve this owned cache and marker.
+		} else if leaseErr == nil && !scope.ready {
 			cleanupErr = w.RemoveEmpty()
 		} else if leaseErr == nil {
 			for id := range p.payloads {

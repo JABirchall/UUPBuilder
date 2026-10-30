@@ -24,14 +24,15 @@ var masterScript []byte
 // executable. Acquisition belongs to the production provider composition.
 // Commands are fixed; the adapter never elevates or runs target image files.
 type Native struct {
-	Workspace *platform.Workspace
-	WIMLib    string
-	Emit      model.Emit
-	mu        sync.Mutex
+	Workspace       *platform.Workspace
+	WIMLib          string
+	Emit            model.Emit
+	AdditionalTools []ToolIdentity
+	mu              sync.Mutex
 }
 
 func (n *Native) ToolIdentities(ctx context.Context) ([]ToolIdentity, error) {
-	var out []ToolIdentity
+	out := append([]ToolIdentity(nil), n.AdditionalTools...)
 	if n.WIMLib != "" {
 		f, err := fileIdentity(ctx, n.WIMLib)
 		if err != nil {

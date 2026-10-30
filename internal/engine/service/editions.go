@@ -32,6 +32,11 @@ func (e *Executor) serviceOne(ctx context.Context, req ServiceRequest, path, mou
 		}
 	}
 	if !final || req.Plan.Strategy == model.ServicingPerEdition {
+		if req.Plan.SourceEdge != nil {
+			if err = e.Backend.(SourceEdgeBackend).ApplySourceEdge(ctx, mount, updates["source-edge-content"], emit); err != nil {
+				return out, err
+			}
+		}
 		for _, update := range req.Plan.Updates {
 			if !update.Integrate || !rules.Applies(update, edition) {
 				continue
@@ -52,6 +57,11 @@ func (e *Executor) serviceOne(ctx context.Context, req ServiceRequest, path, mou
 		}
 	}
 	if final {
+		if req.Plan.SourceEdge != nil {
+			if err = e.Backend.(SourceEdgeBackend).VerifySourceEdge(ctx, mount, updates["source-edge-content"], emit); err != nil {
+				return out, err
+			}
+		}
 		if err = e.cleanup(ctx, req, mount, emit); err != nil {
 			return out, err
 		}

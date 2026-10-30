@@ -3,6 +3,7 @@
 package worker
 
 import (
+	"archive/tar"
 	"context"
 	"crypto/md5"
 	"crypto/sha1"
@@ -56,6 +57,9 @@ func PreparationHandler(fetcher PreparationFetcher, emit model.Emit) Handler {
 		if len(files) != len(manifest.Payloads) {
 			return Result{}, download.ErrIntegrity
 		}
+		if stage.Plan.Intent() == planner.BuildMedia {
+			return prepareArchive(ctx, stage, files)
+		}
 		receipt := PreparedInputs{Version: 1, PlanDigest: stage.Plan.Digest(), ManifestDigest: manifest.Digest}
 		var outputs []jobstore.OutputIdentity
 		for _, p := range manifest.Payloads {
@@ -88,6 +92,54 @@ func PreparationHandler(fetcher PreparationFetcher, emit model.Emit) Handler {
 		outputs = append(outputs, jobstore.OutputIdentity{Path: "result.json", Size: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), Role: "prepared-inputs"})
 		return Result{Outputs: outputs}, ctx.Err()
 	}}
+}
+
+func prepareArchive(ctx context.Context, stage Stage, files download.Materialized) (Result, error) {
+	manifest := stage.Plan.Manifest()
+	receipt := PreparedInputs{Version: 1, PlanDigest: stage.Plan.Digest(), ManifestDigest: manifest.Digest}
+	dst, err := stage.Transaction.OpenFile("payloads.tar", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return Result{}, err
+	}
+	h := sha256.New()
+	counter := &countWriter{w: io.MultiWriter(dst, h)}
+	tw := tar.NewWriter(counter)
+	for _, payload := range manifest.Payloads {
+		file, ok := files[payload.Identity]
+		if !ok || file.Identity != payload.Identity {
+			dst.Close()
+			return Result{}, download.ErrIntegrity
+		}
+		name := "payloads/" + payload.Identity.Key() + ".data"
+		receipt.Files = append(receipt.Files, PreparedPayload{Identity: file.Identity, Path: name, SHA256: file.SHA256})
+		if err = tw.WriteHeader(&tar.Header{Name: name, Size: file.Identity.Size, Mode: 0600, Typeflag: tar.TypeReg}); err != nil {
+			dst.Close()
+			return Result{}, err
+		}
+		src, e := os.Open(file.Path)
+		if e != nil {
+			dst.Close()
+			return Result{}, e
+		}
+		err = copyCheckpoint(ctx, tw, src, file.Identity.Size, file.SHA256)
+		src.Close()
+		if err != nil {
+			dst.Close()
+			return Result{}, err
+		}
+		// Download.Materialized records the original digest; selected production
+		// payloads are SHA256 and the copied bytes must match that authority too.
+		if file.Identity.Digest.Algorithm != model.DigestSHA256 || file.Identity.Digest.Value != file.SHA256 {
+			dst.Close()
+			return Result{}, download.ErrIntegrity
+		}
+	}
+	err = errors.Join(tw.Close(), dst.Sync(), dst.Close())
+	if err != nil {
+		return Result{}, err
+	}
+	result, err := writeStageResult(stage, receipt, "prepared-inputs")
+	return Result{Outputs: []jobstore.OutputIdentity{{Path: "payloads.tar", Size: counter.n, SHA256: hex.EncodeToString(h.Sum(nil)), Role: "prepared-payload-archive"}, result}}, err
 }
 
 type preparationReader struct {

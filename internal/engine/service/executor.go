@@ -60,6 +60,27 @@ func (e *Executor) Execute(ctx context.Context, req ServiceRequest, emit model.E
 	if err != nil {
 		return out, err
 	}
+	if req.Plan.SourceEdge != nil {
+		if _, ok := e.Backend.(SourceEdgeBackend); !ok {
+			return out, ErrProviderUnavailable
+		}
+		var edge string
+		for _, input := range req.Payloads {
+			if input.Resource == *req.Plan.SourceEdge {
+				if edge != "" {
+					return out, ErrVerification
+				}
+				edge = input.Path
+			}
+		}
+		if edge == "" {
+			return out, fmt.Errorf("source EdgeContent input missing")
+		}
+		if err = verifyUpdateFile(ctx, req.Plan.SourceEdge.Payload, edge); err != nil {
+			return out, err
+		}
+		updatePaths["source-edge-content"] = edge
+	}
 	out.PlanDigest = req.Plan.Digest
 	for i, update := range req.Plan.Updates {
 		if !update.Retain {

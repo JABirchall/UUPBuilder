@@ -187,6 +187,67 @@ func containsPredecessor(list []PredecessorIdentity, p PredecessorIdentity) bool
 	}
 	return false
 }
+
+// PredecessorReadAllowance counts the exact committed ancestry bytes that
+// OpenPredecessor must verify plus one complete read of the requested output.
+// It grants no additional file authority; OpenPredecessor still checks identity,
+// direct dependency, live custody and content before returning a reader.
+func (tx *Transaction) PredecessorReadAllowance(ctx context.Context, p PredecessorIdentity, out OutputIdentity) (uint64, error) {
+	if tx == nil || tx.store == nil {
+		return 0, os.ErrClosed
+	}
+	s := tx.store
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := tx.readUsable(ctx); err != nil {
+		return 0, err
+	}
+	if !containsPredecessor(tx.intent.Predecessors, p) || out.Size < 0 {
+		return 0, errors.New("undeclared predecessor")
+	}
+	seen := map[PredecessorIdentity]bool{}
+	total := uint64(out.Size)
+	matched := false
+	var visit func(PredecessorIdentity) error
+	visit = func(id PredecessorIdentity) error {
+		if seen[id] {
+			return nil
+		}
+		seen[id] = true
+		for _, record := range s.state.Checkpoints {
+			cp := record.Checkpoint
+			if cp.Intent.StageID != id.StageID || cp.Digest != id.Digest {
+				continue
+			}
+			for _, file := range cp.Outputs {
+				if id == p && file == out {
+					matched = true
+				}
+				if file.Size < 0 || uint64(file.Size) > ^uint64(0)-total {
+					return ErrPredecessorLimit
+				}
+				total += uint64(file.Size)
+			}
+			for _, ancestor := range cp.Intent.Predecessors {
+				if err := visit(ancestor); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		return errors.New("predecessor ancestry missing")
+	}
+	if err := visit(p); err != nil {
+		return 0, err
+	}
+	if !matched {
+		return 0, errors.New("predecessor output missing")
+	}
+	if total == 0 {
+		total = 1
+	}
+	return total, nil
+}
 func (r *PredecessorReader) checkLocked(pins bool) error {
 	if e := r.tx.readUsable(r.ctx); e != nil {
 		return e

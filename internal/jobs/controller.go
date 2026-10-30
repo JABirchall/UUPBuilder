@@ -122,10 +122,17 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 	if runErr == nil && plan.Intent() == planner.BuildMedia && len(artifacts) != 1 {
 		runErr = ErrPublicationUnavailable
 	}
+	if runErr == nil && plan.Intent() == planner.BuildMedia && !plan.EffectiveSettings().Storage.KeepIntermediates {
+		// Publication has already been independently verified. Retained source
+		// downloads belong to the preparation cache, outside these stage files.
+		if err := store.Discard(context.WithoutCancel(ctx), active.id); err != nil {
+			runErr = fmt.Errorf("%w: published ISO exists; intermediate cleanup incomplete at %s: %w", errCleanup, store.Identity().Path, err)
+		}
+	}
 	if runErr != nil {
-		if lastKind == planner.PublishISO {
+		if lastKind == planner.PublishISO && len(artifacts) == 0 {
 			runErr = fmt.Errorf("%w; local ISO and active workspace retained at %s", runErr, store.Identity().Path)
-		} else {
+		} else if len(artifacts) == 0 {
 			runErr = errors.Join(runErr, cleanupActive(store, active.id))
 		}
 	}

@@ -17,6 +17,9 @@ func Run(ctx context.Context, args []string) error {
 	if handled, err := runPrivateWorker(ctx, args); handled {
 		return err
 	}
+	if handled, err := runHeadlessBuild(ctx, args); handled {
+		return err
+	}
 	return run(ctx, args, RunInteractive)
 }
 

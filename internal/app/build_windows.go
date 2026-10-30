@@ -26,6 +26,7 @@ type buildService struct {
 	active     *buildPreparation
 	cleanupErr error
 	preserved  []*sourcePreparation
+	selected   *selectedEnvironment
 }
 
 type buildPreparation struct {
@@ -56,8 +57,9 @@ func composeInteractiveBuild(opts *Options) func() error {
 	}
 	base, _ := os.UserCacheDir()
 	p := &planner.Planner{InspectStorage: inspectBuildStorage, DefaultWorkspace: base, DefaultCache: base}
-	controller := jobs.NewController(jobs.Options{Registry: operationRegistry(), InspectStorage: inspectBuildStorage})
-	opts.Dependencies.Builder = &buildService{planner: p, controller: controller}
+	service := &buildService{planner: p}
+	service.controller = jobs.NewController(jobs.Options{Registry: service.selectedRegistry(), InspectStorage: inspectBuildStorage})
+	opts.Dependencies.Builder = service
 	return closeBuildService(opts.Dependencies.Builder)
 }
 
@@ -114,6 +116,10 @@ func (s *buildService) Close(ctx context.Context) error {
 	// No new Prepare/Execute can begin after closed. Wait for preflight's
 	// catalogue, downloader, parsers and cleanup before closing job resources.
 	err := s.controller.Close(ctx)
+	if s.selected != nil {
+		err = errors.Join(err, s.selected.Close())
+		s.selected = nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return errors.Join(err, s.cleanupErr)
@@ -122,25 +128,18 @@ func (s *buildService) Close(ctx context.Context) error {
 // All stage registrations are composed here for both the normal application
 // and private worker. U06-U10 provide real producers; absence stays a blocker.
 func operationRegistry() *worker.Registry {
-	registry := worker.NewRegistry()
-	// U08's native handler is fixed here. Until U07 supplies inspected mutable
-	// images and a verified runtime provider, invocation reports that exact gap.
-	if err := registry.Register(planner.ServiceImage, worker.ServicingHandler(nil, nil, nil)); err != nil {
-		panic(err)
-	}
-	if err := registry.Register(planner.InspectApps, worker.AppInspectionHandler(nil)); err != nil {
-		panic(err)
-	}
-	if err := registry.Register(planner.CustomizeImage, worker.CustomizationHandler(nil, nil, nil)); err != nil {
-		panic(err)
-	}
-	return registry
+	return (&buildService{}).selectedRegistry()
 }
 func runPrivateWorker(ctx context.Context, args []string) (bool, error) {
 	if len(args) == 0 || args[0] != "--uup-worker" {
 		return false, nil
 	}
-	return true, worker.Entry(ctx, args, operationRegistry())
+	s := &buildService{}
+	err := worker.Entry(ctx, args, s.selectedRegistry())
+	if s.selected != nil {
+		err = errors.Join(err, s.selected.Close())
+	}
+	return true, err
 }
 func (s *buildService) Prepare(ctx context.Context, draft tui.BuildDraft) (ready planner.ReadyPlan, resultErr error) {
 	ctx, finish, err := s.begin(ctx)
@@ -158,6 +157,9 @@ func (s *buildService) Prepare(ctx context.Context, draft tui.BuildDraft) (ready
 	host, err := platform.DetectHost(ctx)
 	if err != nil {
 		return planner.ReadyPlan{}, fmt.Errorf("host discovery: %w", err)
+	}
+	if selectedRequest(selection) {
+		return s.prepareSelected(ctx, draft, selection, settings, host)
 	}
 	owner := &sourcePreparation{inspect: s.planner.InspectStorage}
 	defer func() {

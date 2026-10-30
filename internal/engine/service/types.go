@@ -80,3 +80,8 @@ type Backend interface {
 }
 
 type Executor struct{ Backend Backend }
+
+type SourceEdgeBackend interface {
+	ApplySourceEdge(context.Context, platform.OwnedMount, string, model.Emit) error
+	VerifySourceEdge(context.Context, platform.OwnedMount, string, model.Emit) error
+}

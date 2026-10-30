@@ -276,3 +276,17 @@ func inspectImage(r io.ReaderAt, size int64) ([]service.ImageIdentity, error) {
 	}
 	return out, nil
 }
+
+// InspectWIMFile reads actual image identities without invoking DISM or mounting.
+func InspectWIMFile(path string) ([]service.ImageIdentity, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	return inspectImage(f, info.Size())
+}
