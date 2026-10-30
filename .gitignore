@@ -2,7 +2,10 @@
 /downloads/
 /cache/
 /UUP/
+/UUPs/
 /artifacts/
+/builds/
+/uupbuilder.exe
 /.superpowers/
 /output
 /.superpowers
