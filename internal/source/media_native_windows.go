@@ -37,6 +37,7 @@ import (
 type NativeInspector struct {
 	WIMLib    string
 	Workspace *platform.Workspace
+	Emit      model.Emit
 	runner    platform.ProcessRunner
 }
 
@@ -261,7 +262,7 @@ func (r *mediaNativeRun) run(ctx context.Context, exe string, args ...string) (p
 	if runner == nil {
 		runner = platform.NewRunner()
 	}
-	out, err := runner.Run(bounded, platform.Invocation{Executable: exe, Arguments: args, Workspace: r.inspector.Workspace, JobID: r.inspector.Workspace.Identity().JobID, OperationID: "inspect-source", Cancellation: platform.CancelTerminateTree}, nil)
+	out, err := runner.Run(bounded, platform.Invocation{Executable: exe, Arguments: args, Workspace: r.inspector.Workspace, JobID: r.inspector.Workspace.Identity().JobID, OperationID: "inspect-source", Cancellation: platform.CancelTerminateTree}, r.inspector.Emit)
 	if ctx.Err() != nil {
 		return out, ctx.Err()
 	}
@@ -1106,6 +1107,9 @@ func (r *mediaNativeRun) listWIMPaths(ctx context.Context, file string, index in
 	var mu sync.Mutex
 	overflow := false
 	out, err := runner.Run(bounded, platform.Invocation{Executable: r.inspector.WIMLib, Arguments: mediaProcessArguments([]string{"dir", file, strconv.Itoa(index)}), Workspace: r.inspector.Workspace, JobID: r.inspector.Workspace.Identity().JobID, OperationID: "inspect-source-directory", Cancellation: platform.CancelTerminateTree}, func(event model.Event) {
+		if r.inspector.Emit != nil {
+			r.inspector.Emit(event)
+		}
 		if event.Kind != model.EventLog {
 			return
 		}

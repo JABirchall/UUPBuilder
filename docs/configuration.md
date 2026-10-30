@@ -157,6 +157,19 @@ schema beyond the design's abbreviated example.
 | `storage.workspace`, `cache` | Directory or `auto`; the later storage planner resolves automatic locations. |
 | `storage.keep_downloads`, `keep_intermediates` | Retention booleans. |
 
+The interactive Build ISO action checks inbox tool files and managed tool
+availability, then opens Review. It does not resolve source payloads, create
+build workspaces, download packages or run DISM. Review shows the requested
+source, settings, output and tools to download. Use up/down or page up/down for
+details, or `t` for the complete draft. Changing the draft invalidates Review.
+
+Select Start build in Review to open Progress and begin source resolution,
+tool acquisition, downloads, inspection and building. Those stages stream their
+logs to Progress. Up/down and page up/down scroll the retained log history;
+End follows the latest output. Press `c` to cancel and wait for active work and
+cleanup. Source applicability and integrity checks still run inside the confirmed
+build. Headless `--plan-iso` remains an explicit deep-planning command.
+
 `auto` and all explicit source-dependent choices survive decoding and request
 creation. For example, an explicit WinRE-update request survives when WinRE is
 disabled, and custom app families survive in `none` mode. The later engine

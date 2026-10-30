@@ -21,6 +21,7 @@ type Options struct {
 	Registry       *worker.Registry
 	InspectStorage func(context.Context, string) (planner.Volume, error)
 	MountInspector jobstore.MountInspector
+	Emit           model.Emit
 }
 type activeJob struct {
 	id     string
@@ -102,6 +103,9 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 		c.mu.Lock()
 		c.last.Stage = op.ID
 		c.mu.Unlock()
+		if c.options.Emit != nil {
+			c.options.Emit(model.Event{JobID: active.id, StageID: op.ID, Kind: model.EventStage, Message: "Starting " + op.ID})
+		}
 		var result worker.Result
 		result, runErr = session.Dispatch(ctx, self, worker.RequestFor(d, plan.Intent(), op.ID))
 		if runErr == nil && op.Kind == planner.PublishISO {

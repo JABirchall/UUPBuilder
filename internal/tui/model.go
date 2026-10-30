@@ -1,5 +1,5 @@
-// Package tui owns the Workspace draft and discovery interface. It does not
-// start conversion tools or own a job lifecycle.
+// Package tui owns the Workspace draft, review gate and progress presentation.
+// Native conversion and resource ownership belong to the build service.
 package tui
 
 import (
@@ -166,8 +166,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.beginConfigAction(true)
 	case BuildMsg:
 		return m.beginBuild()
-	case buildPreparedMsg:
-		return m.acceptBuildPlan(msg)
+	case buildToolsCheckedMsg:
+		return m.acceptBuildTools(msg)
+	case StartBuildMsg:
+		return m.startReviewedBuild()
+	case CancelBuildMsg:
+		return m.cancelBuild()
+	case buildProgressMsg:
+		return m.acceptBuildProgress(msg)
 	case buildFinishedMsg:
 		return m.acceptBuildResult(msg)
 	case configActionResultMsg:

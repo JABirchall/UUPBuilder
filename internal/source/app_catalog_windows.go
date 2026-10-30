@@ -23,6 +23,7 @@ import (
 // admission; only the most recent, fully verified metadata CAB is cached in
 // memory. Locators live only on the active Load stack and never enter snapshots.
 type SourceAppCatalog struct {
+	Emit             model.Emit
 	metadata, online *catalog.Client
 	http             *http.Client
 	gate             chan struct{}
@@ -138,6 +139,9 @@ func (c *SourceAppCatalog) Load(ctx context.Context, selection model.Selection) 
 			err = portError(ctx, "app metadata", err)
 		}
 	}()
+	if c.Emit != nil {
+		c.Emit(model.Event{StageID: "app-metadata", Kind: model.EventStage, Message: "Reading selected app composition metadata"})
+	}
 	editions, err := c.metadata.Editions(ctx, selection.UpdateID, "neutral")
 	if err != nil {
 		return result, err
@@ -258,6 +262,9 @@ func verifiedCAB(id model.PayloadIdentity, body []byte) bool {
 	return false
 }
 func (c *SourceAppCatalog) acquire(ctx context.Context, id model.PayloadIdentity, locator model.Locator) ([]byte, error) {
+	if c.Emit != nil {
+		c.Emit(model.Event{StageID: "app-metadata", Kind: model.EventLog, Message: "Acquiring app metadata: " + id.Provenance.Name})
+	}
 	u, err := url.Parse(locator.URL)
 	if err != nil || !appURL(u) || !locator.ExpiresAt.IsZero() && !time.Now().Before(locator.ExpiresAt) {
 		return nil, ErrPayloadUnavailable

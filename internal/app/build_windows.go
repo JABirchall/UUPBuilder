@@ -11,6 +11,7 @@ import (
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/download"
 	"uupbuilder/internal/jobs"
+	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
 	platform "uupbuilder/internal/platform/windows"
 	"uupbuilder/internal/source"
@@ -33,6 +34,7 @@ type buildPreparation struct {
 	cancel    context.CancelFunc
 	done      chan struct{}
 	resources []string
+	emit      model.Emit
 }
 
 func (s *buildService) ownWorkspace(w *platform.Workspace) {
@@ -58,7 +60,7 @@ func composeInteractiveBuild(opts *Options) func() error {
 	base, _ := os.UserCacheDir()
 	p := &planner.Planner{InspectStorage: inspectBuildStorage, DefaultWorkspace: base, DefaultCache: base}
 	service := &buildService{planner: p}
-	service.controller = jobs.NewController(jobs.Options{Registry: service.selectedRegistry(), InspectStorage: inspectBuildStorage})
+	service.controller = jobs.NewController(jobs.Options{Registry: service.selectedRegistry(), InspectStorage: inspectBuildStorage, Emit: service.emitEvent})
 	opts.Dependencies.Builder = service
 	return closeBuildService(opts.Dependencies.Builder)
 }
@@ -142,11 +144,31 @@ func runPrivateWorker(ctx context.Context, args []string) (bool, error) {
 	return true, err
 }
 func (s *buildService) Prepare(ctx context.Context, draft tui.BuildDraft) (ready planner.ReadyPlan, resultErr error) {
+	return s.PrepareWithEvents(ctx, draft, nil)
+}
+func (s *buildService) emitEvent(event model.Event) {
+	s.mu.Lock()
+	var emit model.Emit
+	if s.active != nil {
+		emit = s.active.emit
+	}
+	s.mu.Unlock()
+	if emit != nil {
+		emit(event)
+	}
+}
+func (s *buildService) setEvents(emit model.Emit) {
+	s.mu.Lock()
+	s.active.emit = emit
+	s.mu.Unlock()
+}
+func (s *buildService) PrepareWithEvents(ctx context.Context, draft tui.BuildDraft, emit model.Emit) (ready planner.ReadyPlan, resultErr error) {
 	ctx, finish, err := s.begin(ctx)
 	if err != nil {
 		return ready, err
 	}
 	defer finish()
+	s.setEvents(emit)
 	selection, settings, err := draft.Config.Request()
 	if err != nil {
 		return planner.ReadyPlan{}, err
@@ -195,7 +217,7 @@ func (s *buildService) Prepare(ctx context.Context, draft tui.BuildDraft) (ready
 	if err != nil {
 		return ready, err
 	}
-	resolver := source.Resolver{Catalog: catalog.New(&http.Client{Transport: owner.transport}, draft.Config.Catalog.Endpoint)}
+	resolver := source.Resolver{Catalog: catalog.New(&http.Client{Transport: owner.transport}, draft.Config.Catalog.Endpoint), Emit: emit}
 	owner.manager, err = NewSourceManager(download.Options{Cache: owner.cache, Job: owner.job, Transport: owner.transport, ParallelFiles: settings.Downloads.ParallelFiles, Retries: settings.Downloads.Retries, Proxy: settings.Downloads.Proxy}, &resolver)
 	if err != nil {
 		return ready, err
@@ -208,11 +230,15 @@ func (s *buildService) Prepare(ctx context.Context, draft tui.BuildDraft) (ready
 	return s.planner.Resolve(ctx, planner.Request{Selection: selection, Settings: settings, Resolution: resolution, Host: host, DraftRevision: draft.Revision, Intent: planner.BuildMedia})
 }
 func (s *buildService) Execute(ctx context.Context, plan planner.ReadyPlan) (tui.BuildResult, error) {
+	return s.ExecuteWithEvents(ctx, plan, nil)
+}
+func (s *buildService) ExecuteWithEvents(ctx context.Context, plan planner.ReadyPlan, emit model.Emit) (tui.BuildResult, error) {
 	ctx, finish, err := s.begin(ctx)
 	if err != nil {
 		return tui.BuildResult{}, err
 	}
 	defer finish()
+	s.setEvents(emit)
 	view, err := s.controller.Start(ctx, plan)
 	if err != nil {
 		return tui.BuildResult{}, err

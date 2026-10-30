@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"uupbuilder/internal/config"
@@ -26,34 +27,49 @@ type BuildService interface {
 	Prepare(context.Context, BuildDraft) (planner.ReadyPlan, error)
 	Execute(context.Context, planner.ReadyPlan) (BuildResult, error)
 }
+
+// Tool checks must be read-only: no acquisition, source resolution or helpers.
+type BuildToolChecker interface {
+	CheckTools(context.Context, BuildDraft) ([]string, error)
+}
+type EventBuildService interface {
+	PrepareWithEvents(context.Context, BuildDraft, model.Emit) (planner.ReadyPlan, error)
+	ExecuteWithEvents(context.Context, planner.ReadyPlan, model.Emit) (BuildResult, error)
+}
+
 type BuildMsg struct{}
-type buildPreparedMsg struct {
+type StartBuildMsg struct{}
+type CancelBuildMsg struct{}
+type buildToolsCheckedMsg struct {
 	generation, revision uint64
-	plan                 planner.ReadyPlan
+	tools                []string
 	err                  error
+}
+type buildProgressMsg struct {
+	generation uint64
+	event      model.Event
 }
 type buildFinishedMsg struct {
 	generation uint64
+	plan       planner.ReadyPlan
 	result     BuildResult
 	err        error
 }
 type buildActionState struct {
-	busy       bool
-	planning   bool
-	cancelled  bool
-	generation uint64
-	cancel     context.CancelFunc
-	draft      BuildDraft
+	busy, planning, cancelled, reviewed bool
+	generation                          uint64
+	cancel                              context.CancelFunc
+	draft                               BuildDraft
+	tools                               []string
+	updates                             <-chan tea.Msg
+	logs                                []string
+	stage, status                       string
+	offset, reviewOffset                int
 }
 
 func (m Model) beginBuild() (tea.Model, tea.Cmd) {
 	if m.buildAction.busy {
-		m.buildAction.cancelled = true
-		if m.buildAction.cancel != nil {
-			m.buildAction.cancel()
-		}
-		m.notice = "Cancellation requested for the active build action."
-		return m, nil
+		return m.cancelBuild()
 	}
 	if !m.image.ready(m.cfg.Image) {
 		m.notice = "Build blocked: validate image choices in Builds and Image first."
@@ -69,81 +85,199 @@ func (m Model) beginBuild() (tea.Model, tea.Cmd) {
 		m.notice = "Build blocked: " + err.Error()
 		return m, nil
 	}
-	if m.deps.Builder == nil {
-		m.notice = "Build blocked: planning/controller producer unavailable."
+	checker, ok := m.deps.Builder.(BuildToolChecker)
+	if !ok {
+		m.notice = "Build blocked: tool availability checker unavailable."
 		return m, nil
 	}
 	m.buildAction.generation++
-	m.buildAction.busy = true
-	m.buildAction.planning = true
-	m.buildAction.cancelled = false
+	m.buildAction.busy, m.buildAction.planning = true, true
+	m.buildAction.cancelled, m.buildAction.reviewed = false, false
+	m.buildAction.reviewOffset = 0
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.buildAction.cancel = cancel
-	draft := BuildDraft{Config: resolved, ConfigPath: m.configActions.path, Revision: m.revision}
+	draft := BuildDraft{Config: cloneConfig(resolved), ConfigPath: m.configActions.path, Revision: m.revision}
 	m.buildAction.draft = draft
-	generation, service := m.buildAction.generation, m.deps.Builder
-	m.notice = "Checking source, requested settings, storage and execution providers..."
+	generation := m.buildAction.generation
+	m.notice = "Checking required tool availability..."
 	return m, func() tea.Msg {
-		plan, err := service.Prepare(ctx, draft)
-		return buildPreparedMsg{generation: generation, revision: draft.Revision, plan: plan, err: err}
+		tools, err := checker.CheckTools(ctx, draft)
+		return buildToolsCheckedMsg{generation: generation, revision: draft.Revision, tools: tools, err: err}
 	}
 }
-func (m Model) acceptBuildPlan(msg buildPreparedMsg) (tea.Model, tea.Cmd) {
+
+func (m Model) acceptBuildTools(msg buildToolsCheckedMsg) (tea.Model, tea.Cmd) {
 	if !m.buildAction.busy || !m.buildAction.planning || msg.generation != m.buildAction.generation {
 		return m, nil
 	}
-	fail := func(message string) (tea.Model, tea.Cmd) {
-		m.buildAction.cancel()
-		m.buildAction.busy = false
-		m.buildAction.planning = false
-		m.notice = message
+	m.buildAction.cancel()
+	m.buildAction.busy, m.buildAction.planning = false, false
+	switch {
+	case m.buildAction.cancelled:
+		m.notice = "Build cancelled before review."
+	case msg.revision != m.revision:
+		m.notice = "Build discarded: draft changed during tool checks."
+	case msg.err != nil:
+		m.notice = "Build blocked: " + msg.err.Error()
+	default:
+		m.buildAction.tools = append([]string(nil), msg.tools...)
+		m.buildAction.reviewed = true
+		m.notice = "Review the requested settings, then select Start build."
+		m.navigate(Review)
+	}
+	return m, nil
+}
+
+func (m Model) startReviewedBuild() (tea.Model, tea.Cmd) {
+	if m.buildAction.busy {
 		return m, nil
 	}
-	if m.buildAction.cancelled {
-		return fail("Build cancelled before execution.")
+	if !m.buildAction.reviewed {
+		m.notice = "Select Build ISO in Conversion to check tools first."
+		return m, nil
 	}
-	if msg.revision != m.revision {
-		return fail("Build discarded: draft changed during preflight.")
-	}
-	if msg.err != nil {
-		return fail("Build blocked: " + msg.err.Error())
-	}
-	selection, settings, err := m.buildAction.draft.Config.Request()
-	if err != nil || msg.plan.Validate() != nil || msg.plan.Intent() != planner.BuildMedia || msg.plan.DraftRevision() != m.revision || !reflect.DeepEqual(msg.plan.Selection(), selection) || !reflect.DeepEqual(msg.plan.RequestedSettings(), settings) {
-		return fail("Build blocked: frozen plan does not match the current draft identity.")
-	}
-	m.buildAction.planning = false
-	if customization := msg.plan.CustomizationPlan(); customization != nil && !customization.Apps.Deferred {
-		validated := msg.plan
-		m.apps.validated = &validated
-		m.appsUnchecked = false
+	cfg, issues := m.conversion.Apply(m.cfg)
+	resolved, err := config.ResolvePaths(cfg, m.configActions.path)
+	draft := m.buildAction.draft
+	if len(issues) > 0 || err != nil || draft.Revision != m.revision || draft.ConfigPath != m.configActions.path || !reflect.DeepEqual(resolved, draft.Config) {
+		m.buildAction.reviewed = false
+		m.notice = "Build discarded: draft changed after review. Select Build ISO again."
+		return m, nil
 	}
 	ctx, cancel := context.WithCancel(m.ctx)
-	m.buildAction.cancel()
 	m.buildAction.cancel = cancel
-	generation, service, plan := m.buildAction.generation, m.deps.Builder, msg.plan
-	m.notice = "Executing the validated build request. Draft edits apply to the next build."
+	m.buildAction.busy, m.buildAction.cancelled, m.buildAction.reviewed = true, false, false
+	m.buildAction.logs, m.buildAction.offset = nil, 0
+	m.buildAction.stage, m.buildAction.status = "prepare-source", "Running"
+	updates := make(chan tea.Msg, 128)
+	m.buildAction.updates = updates
+	generation, service, parent := m.buildAction.generation, m.deps.Builder, m.ctx
+	m.navigate(Progress)
+	m.notice = "Build started. Preparation and build output appear in Progress."
 	return m, func() tea.Msg {
-		result, err := service.Execute(ctx, plan)
-		return buildFinishedMsg{generation: generation, result: result, err: err}
+		go func() {
+			defer close(updates)
+			emit := func(event model.Event) {
+				select {
+				case updates <- buildProgressMsg{generation, event}:
+				case <-ctx.Done():
+				}
+			}
+			result := runReviewedBuild(ctx, service, draft, emit)
+			result.generation = generation
+			select {
+			case updates <- result:
+			case <-parent.Done():
+			}
+		}()
+		return waitBuildUpdate(parent, updates)()
 	}
+}
+
+func runReviewedBuild(ctx context.Context, service BuildService, draft BuildDraft, emit model.Emit) (done buildFinishedMsg) {
+	emit(model.Event{StageID: "prepare-source", Kind: model.EventStage, Message: "Preparing selected source and required tools"})
+	streamed, hasEvents := service.(EventBuildService)
+	if hasEvents {
+		done.plan, done.err = streamed.PrepareWithEvents(ctx, draft, emit)
+	} else {
+		done.plan, done.err = service.Prepare(ctx, draft)
+	}
+	if done.err != nil {
+		return
+	}
+	selection, settings, err := draft.Config.Request()
+	if err != nil || done.plan.Validate() != nil || done.plan.Intent() != planner.BuildMedia || done.plan.DraftRevision() != draft.Revision || !reflect.DeepEqual(done.plan.Selection(), selection) || !reflect.DeepEqual(done.plan.RequestedSettings(), settings) {
+		done.err = fmt.Errorf("frozen plan does not match the reviewed draft identity")
+		return
+	}
+	if done.err = ctx.Err(); done.err != nil {
+		return
+	}
+	emit(model.Event{StageID: "build", Kind: model.EventStage, Message: "Executing validated build"})
+	if hasEvents {
+		done.result, done.err = streamed.ExecuteWithEvents(ctx, done.plan, emit)
+	} else {
+		done.result, done.err = service.Execute(ctx, done.plan)
+	}
+	return
+}
+func waitBuildUpdate(ctx context.Context, updates <-chan tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		select {
+		case msg := <-updates:
+			return msg
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+func (m Model) acceptBuildProgress(msg buildProgressMsg) (tea.Model, tea.Cmd) {
+	if !m.buildAction.busy || msg.generation != m.buildAction.generation {
+		return m, nil
+	}
+	if msg.event.StageID != "" {
+		m.buildAction.stage = boundedText(msg.event.StageID, 120)
+	}
+	text := msg.event.Message
+	if text == "" && msg.event.CompletedBytes != nil {
+		text = fmt.Sprintf("%d bytes", *msg.event.CompletedBytes)
+		if msg.event.TotalBytes != nil {
+			text += fmt.Sprintf(" / %d", *msg.event.TotalBytes)
+		}
+	}
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r", "\n"), "\n") {
+		if line = boundedText(line, 4096); line != "" {
+			m.buildAction.logs = append(m.buildAction.logs, line)
+			if m.buildAction.offset > 0 {
+				m.buildAction.offset++
+			}
+		}
+	}
+	if len(m.buildAction.logs) > 1000 {
+		m.buildAction.logs = append([]string(nil), m.buildAction.logs[len(m.buildAction.logs)-1000:]...)
+	}
+	m.buildAction.offset = min(m.buildAction.offset, max(0, len(m.buildAction.logs)-1))
+	return m, waitBuildUpdate(m.ctx, m.buildAction.updates)
+}
+func (m Model) cancelBuild() (tea.Model, tea.Cmd) {
+	if m.buildAction.busy {
+		m.buildAction.cancelled = true
+		m.buildAction.cancel()
+		m.buildAction.status = "Cancelling"
+		m.notice = "Cancellation requested; waiting for active work and cleanup."
+	}
+	return m, nil
 }
 func (m Model) acceptBuildResult(msg buildFinishedMsg) (tea.Model, tea.Cmd) {
 	if !m.buildAction.busy || msg.generation != m.buildAction.generation {
 		return m, nil
 	}
 	m.buildAction.cancel()
-	m.buildAction.busy = false
+	m.buildAction.busy, m.buildAction.planning = false, false
+	m.buildAction.status = "Finished"
 	if msg.err != nil {
-		m.notice = "Build failed: " + msg.err.Error()
-		return m, nil
+		m.buildAction.status = "Failed"
+		if msg.result.State == "cancelled" || msg.err == context.Canceled {
+			m.buildAction.status = "Cancelled"
+		}
+		m.notice = "Build " + strings.ToLower(m.buildAction.status) + ": " + msg.err.Error()
+	} else {
+		m.buildAction.status = msg.result.State
+		m.notice = fmt.Sprintf("Build %s: %s", msg.result.JobID, msg.result.State)
+		if msg.result.Error != "" {
+			m.notice += "; " + msg.result.Error
+		}
+		for _, artifact := range msg.result.Artifacts {
+			m.notice += "; " + artifact.Path
+		}
+		if msg.plan.Validate() == nil && m.revision == msg.plan.DraftRevision() {
+			if customization := msg.plan.CustomizationPlan(); customization != nil && !customization.Apps.Deferred {
+				validated := msg.plan
+				m.apps.validated = &validated
+				m.appsUnchecked = false
+			}
+		}
 	}
-	m.notice = fmt.Sprintf("Build %s: %s", msg.result.JobID, msg.result.State)
-	if msg.result.Error != "" {
-		m.notice += "; " + msg.result.Error
-	}
-	for _, artifact := range msg.result.Artifacts {
-		m.notice += "; " + artifact.Path
-	}
+	m.buildAction.logs = append(m.buildAction.logs, boundedText(m.notice, 4096))
 	return m, nil
 }

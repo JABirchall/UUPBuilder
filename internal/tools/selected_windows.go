@@ -66,6 +66,7 @@ func IsSelectedRequirement(r Requirement) bool {
 // SelectedRuntime holds read-only, deny-write/delete handles for every runtime
 // file until Close. It never installs/registers drivers or launches elevation.
 type SelectedRuntime struct {
+	emit           model.Emit
 	wimlib, dism   string
 	files          []*os.File
 	workspace      *platform.Workspace
@@ -137,7 +138,7 @@ func AcquireSelected(ctx context.Context, w *platform.Workspace, fetch Fetcher, 
 	if e != nil {
 		return nil, e
 	}
-	runtime = &SelectedRuntime{workspace: w}
+	runtime = &SelectedRuntime{workspace: w, emit: emit}
 	defer func() {
 		if err != nil {
 			runtime.Close()
@@ -332,7 +333,7 @@ func (r *SelectedRuntime) AcquireSourceEdge(ctx context.Context, source SourceIm
 		}
 	}()
 	for _, member := range members {
-		result, e := platform.NewRunner().Run(ctx, platform.Invocation{Executable: r.WIMLib(), Arguments: []string{"extract", plainRuntimePath(source.Path), "1", "/Windows/System32/Dism/" + member, "--dest-dir=" + dir, "--no-acls", "--preserve-dir-structure"}, Workspace: r.workspace, JobID: r.workspace.Identity().JobID, OperationID: "source-edge-provider", Cancellation: platform.CancelTerminateTree}, nil)
+		result, e := platform.NewRunner().Run(ctx, platform.Invocation{Executable: r.WIMLib(), Arguments: []string{"extract", plainRuntimePath(source.Path), "1", "/Windows/System32/Dism/" + member, "--dest-dir=" + dir, "--no-acls", "--preserve-dir-structure"}, Workspace: r.workspace, JobID: r.workspace.Identity().JobID, OperationID: "source-edge-provider", Cancellation: platform.CancelTerminateTree}, r.emit)
 		if e != nil {
 			return fmt.Errorf("extract source Edge provider (exit %d): %w", result.ExitCode, e)
 		}

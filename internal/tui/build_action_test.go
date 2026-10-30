@@ -25,6 +25,13 @@ type preparedBuild struct {
 	calls *int
 }
 
+func (b preparedBuild) CheckTools(context.Context, BuildDraft) ([]string, error) {
+	return []string{"tools available"}, nil
+}
+func (b blockedBuild) CheckTools(context.Context, BuildDraft) ([]string, error) {
+	return []string{"tools available"}, nil
+}
+
 func (b preparedBuild) Prepare(context.Context, BuildDraft) (planner.ReadyPlan, error) {
 	return b.plan, nil
 }
@@ -75,8 +82,13 @@ func TestAppsApplicableRequiresMatchingValidatedSourceAndDraft(t *testing.T) {
 		t.Fatal("unprepared draft is applicable")
 	}
 	m, prepare := step(m, BuildMsg{})
-	m, execute := step(m, prepare())
-	if execute == nil || !m.Snapshot().AppsApplicable {
+	m, _ = step(m, prepare())
+	if m.Snapshot().AppsApplicable {
+		t.Fatal("tool check asserted app applicability")
+	}
+	m, execute := step(m, StartBuildMsg{})
+	m = drainBuild(t, m, execute)
+	if !m.Snapshot().AppsApplicable {
 		t.Fatalf("matching semantic plan not bound: %s", m.notice)
 	}
 	m.setAppStub(model.AppStub)
@@ -86,6 +98,8 @@ func TestAppsApplicableRequiresMatchingValidatedSourceAndDraft(t *testing.T) {
 	m, _ = preparedModel(t, planner.BuildMedia, true)
 	m, prepare = step(m, BuildMsg{})
 	m, _ = step(m, prepare())
+	m, execute = step(m, StartBuildMsg{})
+	m = drainBuild(t, m, execute)
 	m.cfg.Image.Language = "de-de"
 	if m.Snapshot().AppsApplicable {
 		t.Fatal("source change retained applicability")
@@ -107,10 +121,9 @@ func TestCancelledPreflightCannotExecuteLatePlan(t *testing.T) {
 func TestConversionBuildRequiresBuildMediaIntent(t *testing.T) {
 	m, calls := preparedModel(t, planner.DownloadOnly)
 	m, cmd := step(m, BuildMsg{})
-	m, next := step(m, cmd())
-	if next != nil {
-		next()
-	}
+	m, _ = step(m, cmd())
+	m, next := step(m, StartBuildMsg{})
+	m = drainBuild(t, m, next)
 	if *calls != 0 || !strings.Contains(m.notice, "identity") {
 		t.Fatalf("wrong user intent executed %d times: %s", *calls, m.notice)
 	}
@@ -121,12 +134,13 @@ func TestConversionBuildConnectsFrozenRequestAndResult(t *testing.T) {
 	if cmd == nil {
 		t.Fatalf("Conversion action did not invoke preflight: %s", m.notice)
 	}
-	m, execute := step(m, cmd())
-	if execute == nil {
-		t.Fatalf("valid frozen plan did not connect controller: %s", m.notice)
+	m, next := step(m, cmd())
+	if next != nil || m.area != Review {
+		t.Fatalf("tool check did not wait in Review: %s", m.notice)
 	}
-	m = send(m, execute())
-	if *calls != 1 || m.area != Conversion || !strings.Contains(m.notice, "master-iso handler unavailable") {
+	m, execute := step(m, StartBuildMsg{})
+	m = drainBuild(t, m, execute)
+	if *calls != 1 || m.area != Progress || !strings.Contains(m.notice, "master-iso handler unavailable") {
 		t.Fatalf("result connection: %d %s", *calls, m.notice)
 	}
 }
@@ -172,6 +186,8 @@ func TestConversionBuildShowsSpecificBlockerAndDiscardsStalePlanning(t *testing.
 	}
 	result := cmd()
 	m = send(m, result)
+	m, cmd = step(m, StartBuildMsg{})
+	m = drainBuild(t, m, cmd)
 	if !strings.Contains(m.notice, "metadata-discovery-unavailable") {
 		t.Fatalf("specific blocker hidden: %s", m.notice)
 	}

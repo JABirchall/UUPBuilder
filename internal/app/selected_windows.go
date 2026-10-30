@@ -29,6 +29,7 @@ type selectedEnvironment struct {
 	pipeline   *worker.CheckpointPipeline
 	catalog    *catalog.Client
 	planDigest string
+	emit       model.Emit
 }
 
 func newSelectedEnvironment(ctx context.Context, settings model.ResolvedSettings, endpoint string) (e *selectedEnvironment, err error) {
@@ -78,7 +79,10 @@ func (e *selectedEnvironment) acquireRuntime(ctx context.Context) error {
 	if e.runtime != nil {
 		return nil
 	}
-	runtime, err := tools.AcquireSelected(ctx, e.native, e.source, nil)
+	if e.emit != nil {
+		e.emit(model.Event{StageID: "acquire-runtime", Kind: model.EventStage, Message: "Acquiring required build tools"})
+	}
+	runtime, err := tools.AcquireSelected(ctx, e.native, e.source, e.emit)
 	if err != nil {
 		return err
 	}
@@ -88,7 +92,7 @@ func (e *selectedEnvironment) acquireRuntime(ctx context.Context) error {
 		return err
 	}
 	digest, version := runtime.DISMIdentity()
-	e.pipeline = &worker.CheckpointPipeline{Workspace: e.native, Runtime: runtime, Native: &output.Native{Workspace: e.native, WIMLib: runtime.WIMLib(), AdditionalTools: []output.ToolIdentity{{Name: "DISM", Version: version, SHA256: digest}}}}
+	e.pipeline = &worker.CheckpointPipeline{Workspace: e.native, Runtime: runtime, Native: &output.Native{Workspace: e.native, WIMLib: runtime.WIMLib(), Emit: e.emit, AdditionalTools: []output.ToolIdentity{{Name: "DISM", Version: version, SHA256: digest}}}}
 	return nil
 }
 func (e *selectedEnvironment) Close() error {
@@ -164,20 +168,24 @@ func (s *buildService) prepareSelected(ctx context.Context, draft tui.BuildDraft
 	if err != nil {
 		return planner.ReadyPlan{}, err
 	}
+	env.emit = s.emitEvent
 	if s.planner.InspectStorage != nil {
 		env.source.inspect = s.planner.InspectStorage
 	}
 	s.ownWorkspace(env.source.cache)
 	s.ownWorkspace(env.source.job)
 	s.ownWorkspace(env.native)
-	resolution, err := source.ResolveMedia(ctx, env.catalog, source.NewAppCatalog(draft.Config.Catalog.Endpoint), env.source, selection, settings, nil, func(ctx context.Context, inv *metadata.Inventory, files download.Materialized) error {
+	apps := source.NewAppCatalog(draft.Config.Catalog.Endpoint)
+	apps.Emit = env.emit
+	env.emit(model.Event{StageID: "resolve-source", Kind: model.EventStage, Message: "Resolving exact selected source and downloading required inputs"})
+	resolution, err := source.ResolveMedia(ctx, env.catalog, apps, env.source, selection, settings, env.emit, func(ctx context.Context, inv *metadata.Inventory, files download.Materialized) error {
 		// Retention applies once the complete source closure has been verified.
 		// Invalid metadata-only probes release their fresh workspaces normally.
 		env.source.retainDownloads = settings.Storage.KeepDownloads
 		if err := env.acquireRuntime(ctx); err != nil {
 			return err
 		}
-		return (&source.NativeInspector{WIMLib: env.runtime.WIMLib(), Workspace: env.native}).Complete(ctx, inv, files)
+		return (&source.NativeInspector{WIMLib: env.runtime.WIMLib(), Workspace: env.native, Emit: env.emit}).Complete(ctx, inv, files)
 	})
 	if err != nil {
 		return planner.ReadyPlan{}, errors.Join(err, s.closeSelectedPreparation(env))
@@ -219,6 +227,7 @@ func (s *buildService) selectedRegistry() *worker.Registry {
 				return nil, err
 			}
 			s.selected = env
+			env.emit = s.emitEvent
 			env.planDigest = stage.Plan.Digest()
 			if err = env.acquireRuntime(ctx); err != nil {
 				return nil, err
@@ -241,16 +250,16 @@ func (s *buildService) selectedRegistry() *worker.Registry {
 		}
 	}
 	register(planner.DownloadPayloads, false, func(ctx context.Context, stage worker.Stage, e *selectedEnvironment) (worker.Result, error) {
-		return worker.PreparationHandler(e.source, nil).Run(ctx, stage)
+		return worker.PreparationHandler(e.source, e.emit).Run(ctx, stage)
 	})
 	register(planner.AssembleImage, false, func(ctx context.Context, stage worker.Stage, e *selectedEnvironment) (worker.Result, error) {
 		return e.pipeline.AssemblyHandler().Run(ctx, stage)
 	})
 	register(planner.ServiceImage, true, func(ctx context.Context, stage worker.Stage, e *selectedEnvironment) (worker.Result, error) {
-		return worker.ServicingHandler(&service.Executor{Backend: e.dism}, e.pipeline, nil).Run(ctx, stage)
+		return worker.ServicingHandler(&service.Executor{Backend: e.dism}, e.pipeline, e.emit).Run(ctx, stage)
 	})
 	register(planner.CustomizeImage, true, func(ctx context.Context, stage worker.Stage, e *selectedEnvironment) (worker.Result, error) {
-		return worker.CustomizationHandler(&service.CustomizationExecutor{Backend: e.dism}, e.pipeline, nil).Run(ctx, stage)
+		return worker.CustomizationHandler(&service.CustomizationExecutor{Backend: e.dism}, e.pipeline, e.emit).Run(ctx, stage)
 	})
 	register(planner.ExportImage, false, func(ctx context.Context, stage worker.Stage, e *selectedEnvironment) (worker.Result, error) {
 		return e.pipeline.ExportHandler().Run(ctx, stage)

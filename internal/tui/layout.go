@@ -328,9 +328,9 @@ func (m Model) areaRows(width, height int) []row {
 	case Conversion:
 		return m.conversionRows(width, height)
 	case Review:
-		return []row{{text: heading.Render("Review build")}, {}, {text: "Source metadata, settings and preflight must be resolved first."}, {text: muted.Render("No build can be started from this browsing view.")}}
+		return m.reviewRows(width, height)
 	case Progress:
-		return []row{{text: heading.Render("Build progress")}, {}, {text: muted.Render("No job is connected.")}}
+		return m.progressRows(width, height)
 	}
 	return nil
 }

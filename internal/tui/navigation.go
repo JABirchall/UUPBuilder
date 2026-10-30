@@ -112,6 +112,40 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m.Update(appModeMsg{mode: "none"})
 		}
 	}
+	if m.area == Progress {
+		switch key {
+		case "c":
+			return m.Update(CancelBuildMsg{})
+		case "pgup":
+			m.move(-max(1, m.height-12))
+			return m, nil
+		case "pgdown":
+			m.move(max(1, m.height-12))
+			return m, nil
+		case "end":
+			m.buildAction.offset = 0
+			return m, nil
+		case "home":
+			m.buildAction.offset = max(0, len(m.buildAction.logs)-1)
+			return m, nil
+		}
+	}
+	if m.area == Review {
+		switch key {
+		case "pgup":
+			m.move(-max(1, m.height-12))
+			return m, nil
+		case "pgdown":
+			m.move(max(1, m.height-12))
+			return m, nil
+		case "home":
+			m.buildAction.reviewOffset = 0
+			return m, nil
+		case "end":
+			m.move(len(m.reviewDetails(m.contentWidth())))
+			return m, nil
+		}
+	}
 	switch key {
 	case "ctrl+right":
 		return m.Update(NavigateMsg{Area: (m.area + 1) % 6})
@@ -201,6 +235,12 @@ func (m Model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 func (m *Model) move(delta int) {
+	if m.area == Review {
+		m.buildAction.reviewOffset = max(0, min(m.buildAction.reviewOffset+delta, max(0, len(m.reviewDetails(m.contentWidth()))-1)))
+	}
+	if m.area == Progress {
+		m.buildAction.offset = max(0, min(m.buildAction.offset-delta, max(0, len(m.buildAction.logs)-1)))
+	}
 	if m.area == Apps {
 		m.apps.cursor = max(0, min(m.apps.cursor+delta, len(m.appChoices())-1))
 	}
@@ -222,6 +262,9 @@ func (m *Model) move(delta int) {
 	}
 }
 func (m Model) activate() (tea.Model, tea.Cmd) {
+	if m.area == Review {
+		return m.Update(StartBuildMsg{})
+	}
 	if m.area == Apps {
 		return m.activateAppControl()
 	}
