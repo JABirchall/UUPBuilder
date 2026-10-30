@@ -257,8 +257,12 @@ func TestFixedApplyCallbackOpaqueMetadataExcludeContinuesWithoutParameterUse(t *
 	runtime.KeepAlive(path)
 }
 
-func TestFixedApplyCallbackOpaqueMetadataExcludeKeepsFailureAndCancellation(t *testing.T) {
-	for _, kind := range []string{"outside-path", "cancel", "error", "info", "warning", "object-id", "lower-neighbor", "upper-neighbor"} {
+func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
+	kinds := []string{"outside-path", "outside-fileinfo", "cancel", "error", "info", "warning", "object-id", "unknown", "text", "compress", "alignment", "retry", "split", "bad-percent", "lower-neighbor", "upper-neighbor"}
+	if ^uintptr(0) > 0xffffffff {
+		kinds = append(kinds, "bad-time")
+	}
+	for _, kind := range kinds {
 		t.Run(kind, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -271,6 +275,22 @@ func TestFixedApplyCallbackOpaqueMetadataExcludeKeepsFailureAndCancellation(t *t
 				cancel()
 			} else if kind == "outside-path" {
 				callbackPath(t, h, s.token, 0x9479, `C:\owned\foreign`)
+			} else if kind == "outside-fileinfo" {
+				path, _ := windows.UTF16FromString(`C:\owned\foreign`)
+				info := windows.Win32finddata{FileAttributes: 32}
+				var pin runtime.Pinner
+				pin.Pin(&path[0])
+				pin.Pin(&info)
+				h.deliver(s.token, 0x9483, uintptr(unsafe.Pointer(&path[0])), uintptr(unsafe.Pointer(&info)))
+				pin.Unpin()
+				runtime.KeepAlive(path)
+				runtime.KeepAlive(info)
+			} else if msg := map[string]uint32{"unknown": 0xdeadbeef, "text": 0x9477, "compress": 0x947e, "alignment": 0x9480, "retry": 0x9481, "split": 0x9482}[kind]; msg != 0 {
+				h.deliver(s.token, msg, 1, ^uintptr(0))
+			} else if kind == "bad-percent" {
+				h.deliver(s.token, 0x9478, 101, 0)
+			} else if kind == "bad-time" {
+				h.deliver(s.token, 0x9478, 1, ^uintptr(0))
 			} else if kind == "lower-neighbor" || kind == "upper-neighbor" {
 				msg := uint32(0x9494)
 				if kind == "upper-neighbor" {
@@ -290,12 +310,14 @@ func TestFixedApplyCallbackOpaqueMetadataExcludeKeepsFailureAndCancellation(t *t
 			if kind != "cancel" && before.Failure == nil {
 				t.Fatal("existing failure was not latched")
 			}
-			if ret := h.deliver(s.token, 0x9495, 1, ^uintptr(0)); ret != 0 {
-				t.Fatal(ret)
+			for _, msg := range []uint32{0x947a, 0x947b, 0x947c, 0x947d, 0x9478, 0x9495} {
+				if ret := h.deliver(s.token, msg, 1, ^uintptr(0)); ret != 0 {
+					t.Fatal("feedback used an undocumented abort return", msg, ret)
+				}
 			}
 			after := s.snapshot()
 			if after.Failure != before.Failure || after.FailureText != before.FailureText || kind == "cancel" && !after.CancellationRequested {
-				t.Fatal("opaque notification cleared failure/cancel")
+				t.Fatal("feedback cleared failure/cancel")
 			}
 			if got := metadataExcludeRecord(t, after); got.Count != 0 {
 				t.Fatalf("failed/cancelled dispatch counted as healthy opaque handling: %+v", got)
@@ -310,6 +332,162 @@ func TestFixedApplyCallbackOpaqueMetadataExcludeKeepsFailureAndCancellation(t *t
 				t.Fatal(e)
 			}
 		})
+	}
+}
+
+// An immediate SUCCESS is insufficient: the old unsupported branch returned
+// it while poisoning the next valid PROCESS and suppressing FILEINFO copying.
+func TestFixedApplyCallbackPassiveFeedbackAllowsFollowingFileCallbacks(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		msg  uint32
+	}{{"scanning", 0x947a}, {"set-range", 0x947b}, {"set-pos", 0x947c}} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &applyCallbackHub{}
+			s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			for _, words := range [][2]uintptr{{0, 0}, {0xffffffff, 0xffffffff}, {1, ^uintptr(0)}, {0, 2}} {
+				if ret := h.deliver(s.token, tc.msg, words[0], words[1]); ret != 0 {
+					t.Fatal("passive feedback did not return SUCCESS", ret)
+				}
+			}
+			first, second := uint32(7), uint32(11)
+			info := windows.Win32finddata{FileAttributes: 32, Reserved0: 23}
+			path, _ := windows.UTF16FromString(`C:\owned\known`)
+			var pin runtime.Pinner
+			pin.Pin(&first)
+			pin.Pin(&second)
+			pin.Pin(&info)
+			pin.Pin(&path[0])
+			defer pin.Unpin()
+			h.deliver(s.token, tc.msg, uintptr(unsafe.Pointer(&first)), uintptr(unsafe.Pointer(&second)))
+			processRet := callbackPath(t, h, s.token, 0x9479, `C:\owned\known`)
+			fileRet := h.deliver(s.token, 0x9483, uintptr(unsafe.Pointer(&path[0])), uintptr(unsafe.Pointer(&info)))
+			v := s.snapshot()
+			if processRet != 0 || fileRet != 0 || v.Failure != nil || v.LastFile.Data.Reserved0 != 23 {
+				t.Fatalf("feedback %#x poisoned PROCESS/FILEINFO: process=%#x file=%#x failure=%s", tc.msg, processRet, fileRet, v.FailureText)
+			}
+			if first != 7 || second != 11 || v.Deliveries != 7 || v.Progress != 0 || v.Returned || v.AbortDelivered || v.LastFile.Path != `C:\owned\known` || v.OpaqueMetadataExclude.Count != 0 {
+				t.Fatal("passive feedback changed parameters, evidence or completion", first, second, v.Deliveries)
+			}
+			if e = h.retire(s, true); e != nil {
+				t.Fatal(e)
+			}
+			runtime.KeepAlive(first)
+			runtime.KeepAlive(second)
+			runtime.KeepAlive(info)
+			runtime.KeepAlive(path)
+		})
+	}
+}
+
+func TestFixedApplyCallbackPassiveFeedbackSequenceDoesNotComplete(t *testing.T) {
+	h := &applyCallbackHub{}
+	s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, msg := range []uint32{0x947a, 0x947b, 0x947c, 0x947d} {
+		h.deliver(s.token, msg, 0, 0)
+	}
+	h.deliver(s.token, 0x9478, 37, 500)
+	if ret := callbackPath(t, h, s.token, 0x9479, `C:\owned\known`); ret != 0 {
+		t.Fatal("feedback sequence aborted PROCESS", ret)
+	}
+	if v := s.snapshot(); v.Progress != 37 || v.Returned {
+		t.Fatal("file-count feedback replaced percent or completed application", v.Progress, v.Returned)
+	}
+	h.deliver(s.token, 0x947c, 0, 2)
+	h.deliver(s.token, 0x947a, 1, 0)
+	h.deliver(s.token, 0x9495, 1, ^uintptr(0))
+	info := windows.Win32finddata{FileAttributes: 32, Reserved0: 31}
+	path, _ := windows.UTF16FromString(`C:\owned\known`)
+	var pin runtime.Pinner
+	pin.Pin(&info)
+	pin.Pin(&path[0])
+	defer pin.Unpin()
+	if ret := h.deliver(s.token, 0x9483, uintptr(unsafe.Pointer(&path[0])), uintptr(unsafe.Pointer(&info))); ret != 0 {
+		t.Fatal("interleaved feedback changed FILEINFO return", ret)
+	}
+	info.Reserved0 = 99
+	path[3] = 'X'
+	h.deliver(s.token, 0x947b, 0xffffffff, 0xffffffff)
+	h.deliver(s.token, 0x947c, 1, ^uintptr(0))
+	h.deliver(s.token, 0x947d, 1, ^uintptr(0))
+	h.deliver(s.token, 0x9478, 100, 0xffffffff)
+	h.deliver(s.token, 0x9495, 1, ^uintptr(0))
+	if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0 {
+		t.Fatal("healthy sequence requested abort", ret)
+	}
+	v := s.snapshot()
+	if v.Failure != nil || v.Progress != 100 || v.Deliveries != 16 || v.Returned || v.AbortDelivered || v.LastFile.Path != `C:\owned\known` || v.LastFile.Data.Reserved0 != 31 {
+		t.Fatal("feedback sequence corrupted evidence or fabricated completion", v.FailureText, v.Progress, v.Deliveries, v.Returned)
+	}
+	if got := metadataExcludeRecord(t, v); got != (opaqueCallbackRecord{MessageID: 0x9495, Count: 2, ReturnValue: 0}) {
+		t.Fatalf("feedback changed existing opaque policy %+v", got)
+	}
+	if e = h.retire(s, true); e != nil {
+		t.Fatal(e)
+	}
+	runtime.KeepAlive(info)
+	runtime.KeepAlive(path)
+}
+
+func TestFixedApplyCallbackPassiveFeedbackBudgetAndLifetime(t *testing.T) {
+	h := &applyCallbackHub{}
+	s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true}, applyCallbackLimits{MaxDeliveries: 3})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, msg := range []uint32{0x947a, 0x947b, 0x947c} {
+		h.deliver(s.token, msg, 1, ^uintptr(0))
+	}
+	if v := s.snapshot(); v.Failure != nil || v.Deliveries != 3 {
+		t.Fatal("healthy feedback admission failed", v.Deliveries, v.FailureText)
+	}
+	for j := 0; j < 64; j++ {
+		for _, msg := range []uint32{0x947a, 0x947b, 0x947c} {
+			h.deliver(s.token, msg, 1, ^uintptr(0))
+		}
+	}
+	if v := s.snapshot(); !errors.Is(v.Failure, ErrLimit) || v.Deliveries != 3 {
+		t.Fatal("feedback bypassed delivery cap", v.Deliveries, v.FailureText)
+	}
+	if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0xffffffff {
+		t.Fatal("exhausted feedback did not abort", ret)
+	}
+	if e = h.retire(s, true); e != nil {
+		t.Fatal(e)
+	}
+	before := s.snapshot()
+	for _, msg := range []uint32{0x947a, 0x947b, 0x947c} {
+		if ret := h.deliver(s.token, msg, 1, ^uintptr(0)); ret != 0 {
+			t.Fatal("late feedback returned abort", ret)
+		}
+	}
+	if after := s.snapshot(); after != before {
+		t.Fatal("late feedback touched retired evidence")
+	}
+	next, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true}, applyCallbackLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, msg := range []uint32{0x947a, 0x947b, 0x947c} {
+		h.deliver(s.token, msg, 1, ^uintptr(0))
+	}
+	if next.snapshot().Deliveries != 0 {
+		t.Fatal("stale feedback touched next generation")
+	}
+	if e = h.retire(next, false); e == nil {
+		t.Fatal("failed unregister forgotten")
+	}
+	for _, msg := range []uint32{0x947a, 0x947b, 0x947c} {
+		h.deliver(next.token, msg, 1, ^uintptr(0))
+	}
+	if next.snapshot().Deliveries != 0 {
+		t.Fatal("frozen feedback changed evidence")
 	}
 }
 

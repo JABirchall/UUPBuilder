@@ -21,6 +21,9 @@ import (
 const (
 	applyMsgProgress        = uint32(0x9478)
 	applyMsgProcess         = uint32(0x9479)
+	applyMsgScanning        = uint32(0x947a)
+	applyMsgSetRange        = uint32(0x947b)
+	applyMsgSetPos          = uint32(0x947c)
 	applyMsgStep            = uint32(0x947d)
 	applyMsgError           = uint32(0x947f)
 	applyMsgFileInfo        = uint32(0x9483)
@@ -200,6 +203,9 @@ func (h *applyCallbackHub) deliver(token uintptr, msg uint32, w, l uintptr) uint
 		}
 	case applyMsgStep:
 		// No parameters, no completion authority.
+	case applyMsgScanning, applyMsgSetRange, applyMsgSetPos:
+		// Documented passive count feedback requires SUCCESS. Neither word is
+		// consumed or changed; counts supply no source or completion authority.
 	case applyMsgProcess, applyMsgFileInfo:
 		name, e := copyApplyCallbackString(w)
 		if e == nil {
