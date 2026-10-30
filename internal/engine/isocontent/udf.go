@@ -1,4 +1,4 @@
-package probes
+package isocontent
 
 import (
 	"bytes"
@@ -235,7 +235,7 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 	seen := map[uint32]bool{}
 	var walk func(uint32, string, uint32, int) error
 	walk = func(lba uint32, path string, parent uint32, depth int) error {
-		if depth > 16 || len(seen) >= 1024 || seen[lba] {
+		if depth > 32 || len(seen) >= 65536 || seen[lba] {
 			return errors.New("cyclic or oversized UDF directory/ICB graph")
 		}
 		seen[lba] = true
@@ -244,7 +244,7 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 			return err
 		}
 		if !dir {
-			if path == "" || len(files) >= 512 {
+			if path == "" || len(files) >= 32768 {
 				return errors.New("invalid UDF file count")
 			}
 			files[path] = f
@@ -295,10 +295,14 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 				continue
 			}
 			name, err := udfName(p[38+impl : 38+impl+nameLen])
-			if err != nil || !isoPath(name) || strings.Contains(name, "/") || local[name] {
+			validName := isoPath(name)
+			if r.windowsMedia {
+				validName = windowsPath(name)
+			}
+			if err != nil || !validName || strings.Contains(name, "/") || local[strings.ToLower(name)] {
 				return errors.New("invalid/duplicate UDF file name")
 			}
-			local[name] = true
+			local[strings.ToLower(name)] = true
 			child := name
 			if path != "" {
 				child = path + "/" + name
@@ -556,7 +560,11 @@ func (r *isoReader) udfEntry(a udfLayout, lba uint32, path string) (isoFile, boo
 	}
 	length := binary.LittleEndian.Uint64(p[56:])
 	ea, ad := uint64(le32(p[168:])), uint64(le32(p[172:]))
-	if length > uint64(isoLimit) || 176+ea+ad > 2048 || 176+ea+ad > uint64(16+le16(p[10:])) || ea%4 != 0 {
+	limit := uint64(isoLimit)
+	if r.windowsMedia {
+		limit = uint64(windowsLimit)
+	}
+	if length > limit || 176+ea+ad > 2048 || 176+ea+ad > uint64(16+le16(p[10:])) || ea%4 != 0 {
 		return f, false, errors.New("UDF entry/allocation length bound")
 	}
 	f.size = int64(length)

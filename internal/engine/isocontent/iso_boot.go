@@ -1,4 +1,4 @@
-package probes
+package isocontent
 
 import (
 	"bytes"
@@ -112,8 +112,20 @@ func inspectEFIPE(reader io.ReaderAt, size int64, want uint16) (uint16, error) {
 // chains. It verifies the complete selected loader separately from the direct
 // media loader, whose original bytes can legitimately be different.
 func inspectEFIFAT(reader io.ReaderAt, size int64, expected ISOExpectedFile, machine uint16) (uint16, error) {
+	return inspectFAT(reader, size, expected, machine, nil)
+}
+
+// ObserveEFILoader reads the original source EFI image before mastering. The
+// resulting loader binding is checked again against bytes in the final ISO.
+func ObserveEFILoader(reader io.ReaderAt, size int64, machine uint16) (ISOExpectedFile, error) {
 	path, _ := isoEFIBinding(machine)
-	if reader == nil || path == "" || size < 4096 || size > 8<<20 || size%512 != 0 || !isoHash(expected.SHA256) || expected.Size <= 0 || expected.Size > size || expected.Path != path {
+	var observed ISOExpectedFile
+	_, err := inspectFAT(reader, size, ISOExpectedFile{Path: path}, machine, &observed)
+	return observed, err
+}
+func inspectFAT(reader io.ReaderAt, size int64, expected ISOExpectedFile, machine uint16, observed *ISOExpectedFile) (uint16, error) {
+	path, _ := isoEFIBinding(machine)
+	if reader == nil || path == "" || size < 4096 || size > 8<<20 || size%512 != 0 || observed == nil && (!isoHash(expected.SHA256) || expected.Size <= 0 || expected.Size > size) || expected.Path != path {
 		return 0, errors.New("bounded source EFI FAT expectations required")
 	}
 	bpb := make([]byte, 512)
@@ -267,7 +279,7 @@ func inspectEFIFAT(reader io.ReaderAt, size int64, expected ISOExpectedFile, mac
 			continue
 		}
 		length := int64(le32(entry[28:]))
-		if length != expected.Size || length > capacity || capacity-length >= clusterBytes {
+		if observed == nil && length != expected.Size || length <= 0 || length > capacity || capacity-length >= clusterBytes {
 			return 0, errors.New("FAT loader size/allocation differs")
 		}
 		file := isoFile{length, extents}
@@ -275,7 +287,9 @@ func inspectEFIFAT(reader io.ReaderAt, size int64, expected ISOExpectedFile, mac
 		if _, err = io.Copy(h, io.NewSectionReader(extentReader{reader, file}, 0, length)); err != nil {
 			return 0, err
 		}
-		if hex.EncodeToString(h.Sum(nil)) != expected.SHA256 {
+		if observed != nil {
+			*observed = ISOExpectedFile{path, length, hex.EncodeToString(h.Sum(nil))}
+		} else if hex.EncodeToString(h.Sum(nil)) != expected.SHA256 {
 			return 0, errors.New("embedded EFI loader differs from original expected bytes")
 		}
 		return inspectEFIPE(extentReader{reader, file}, length, machine)

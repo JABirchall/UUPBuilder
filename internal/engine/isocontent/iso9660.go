@@ -1,4 +1,4 @@
-package probes
+package isocontent
 
 import (
 	"crypto/sha256"
@@ -22,12 +22,13 @@ type ISOExpectedFile struct {
 	SHA256 string `json:"sha256"`
 }
 type ISOExpectations struct {
-	Volume           string            `json:"volume"`
-	Files            []ISOExpectedFile `json:"files"`
-	TargetMachine    uint16            `json:"target_machine"`
-	DirectLoaderPath string            `json:"direct_loader_path"`
-	BootImagePath    string            `json:"boot_image_path"`
-	EmbeddedLoader   ISOExpectedFile   `json:"embedded_loader"`
+	Volume            string            `json:"volume"`
+	Files             []ISOExpectedFile `json:"files"`
+	TargetMachine     uint16            `json:"target_machine"`
+	DirectLoaderPath  string            `json:"direct_loader_path"`
+	BootImagePath     string            `json:"boot_image_path"`
+	BIOSBootImagePath string            `json:"bios_boot_image_path,omitempty"`
+	EmbeddedLoader    ISOExpectedFile   `json:"embedded_loader"`
 }
 type ISOInspection struct {
 	Size            int64             `json:"size"`
@@ -49,9 +50,10 @@ type isoClaim struct {
 }
 type isoReader struct {
 	io.ReaderAt
-	size    int64
-	isoSize int64
-	claims  []isoClaim
+	size         int64
+	isoSize      int64
+	claims       []isoClaim
+	windowsMedia bool
 }
 
 func (r *isoReader) isoClaim(off, n int64, name string, data bool) error {
@@ -95,7 +97,7 @@ func (r *isoReader) claim(off, n int64, name string, data bool) error {
 			return fmt.Errorf("overlapping ISO allocations: %s and %s", name, x.name)
 		}
 	}
-	if len(r.claims) >= 8192 {
+	if len(r.claims) >= 262144 {
 		return errors.New("ISO allocation count bound exceeded")
 	}
 	r.claims = append(r.claims, isoClaim{off, off + n, name, data})
