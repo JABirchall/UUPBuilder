@@ -3,6 +3,7 @@ package jobstore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"golang.org/x/sys/windows"
 	"io"
 	"os"
@@ -24,6 +25,109 @@ func predecessorFixture(t *testing.T, ctx context.Context) (*Store, *Transaction
 		t.Fatal(err)
 	}
 	return s, tx, cp
+}
+
+func TestPredecessorSharedAncestryChecksCachedRemainingHeight(t *testing.T) {
+	s, _ := newStore(t)
+	commit := func(stage string, predecessors ...PredecessorIdentity) Checkpoint {
+		in := intent(stage)
+		in.Predecessors = predecessors
+		return commitStage(t, s, in, "x")
+	}
+	identity := func(c Checkpoint) PredecessorIdentity {
+		return PredecessorIdentity{StageID: c.Intent.StageID, Digest: c.Digest}
+	}
+	// All nodes are actual committed, owned one-byte outputs. Sharing is first
+	// visited shallowly because normalizeIntent orders predecessor digests.
+	nodes := []Checkpoint{commit("shared-leaf")}
+	for level := 1; level <= 63; level++ {
+		threshold := ""
+		if level == 62 {
+			threshold = nodes[2].Digest
+		} else if level == 63 {
+			threshold = max(nodes[0].Digest, nodes[2].Digest)
+		}
+		var node Checkpoint
+		for salt := 0; salt < 32; salt++ {
+			node = commit(fmt.Sprintf("node-%d-%d", level, salt), identity(nodes[level-1]))
+			if node.Digest > threshold {
+				break
+			}
+		}
+		if node.Digest <= threshold {
+			t.Fatal("could not establish bounded shallow-first fixture ordering")
+		}
+		nodes = append(nodes, node)
+	}
+	leaf := commit("shared-leaf-overflow", identity(nodes[0]), identity(nodes[63]))
+	tail := commit("shared-tail-overflow", identity(nodes[2]), identity(nodes[63]))
+	valid := commit("shared-tail-boundary", identity(nodes[2]), identity(nodes[62]))
+	for _, c := range []Checkpoint{leaf, tail, valid} {
+		if c.Intent.Predecessors[0] != identity(nodes[0]) && c.Intent.Predecessors[0] != identity(nodes[2]) {
+			t.Fatal("fixture did not visit shared tail first")
+		}
+	}
+	in := intent("consume-shared")
+	in.Predecessors = []PredecessorIdentity{identity(leaf), identity(tail), identity(valid)}
+	tx, err := s.Begin(testContext, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name   string
+		cp     Checkpoint
+		refuse bool
+	}{{"cached-leaf-at-depth64", leaf, true}, {"cached-nonleaf-tail-past64", tail, true}, {"shared-dag-exactly64", valid, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			verified := 0
+			s.fail = func(point string) error {
+				if point == "predecessor-before-verify" {
+					verified++
+				}
+				return nil
+			}
+			r, err := tx.OpenPredecessor(testContext, identity(tc.cp), tc.cp.Outputs[0], 1024)
+			s.fail = nil
+			if tc.refuse {
+				if r != nil {
+					r.Close()
+				}
+				if !errors.Is(err, ErrPredecessorLimit) {
+					t.Errorf("shared path past64 admitted: %v", err)
+				}
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				b := make([]byte, 1)
+				if n, e := r.ReadAt(b, 0); n != 1 || e != nil || string(b) != "x" {
+					t.Fatal(n, e)
+				}
+				if verified != 64 {
+					t.Errorf("shared DAG rewalked or omitted nodes: %d", verified)
+				}
+				if err = r.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if len(tx.readers) != 0 {
+				t.Fatal("refusal/close retained borrower capacity")
+			}
+			// Every potentially acquired pin must unwind, including the shallow
+			// cached subtree. Opening for write does not alter committed bytes.
+			for _, c := range s.state.Checkpoints {
+				for _, o := range c.Checkpoint.Outputs {
+					f, e := s.w.OpenFile(o.Path, os.O_WRONLY, 0)
+					if e != nil {
+						t.Fatal("ancestry pin leaked after refusal/close", e)
+					}
+					if e = f.Close(); e != nil {
+						t.Fatal(e)
+					}
+				}
+			}
+		})
+	}
 }
 
 func TestPredecessorLiveBorrowerBoundReleasesCapacity(t *testing.T) {

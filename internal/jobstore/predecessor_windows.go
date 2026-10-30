@@ -90,17 +90,23 @@ func (tx *Transaction) OpenPredecessor(ctx context.Context, p PredecessorIdentit
 			resultErr = errors.Join(resultErr, r.closeLocked())
 		}
 	}()
-	visited := map[int]bool{}
+	heights := map[int]int{}
 	byPath := map[string]*platform.ReadPin{}
 	var buf [64 << 10]byte
 	var bind func(int, int) error
 	bind = func(j, depth int) error {
-		if visited[j] {
-			return nil
-		}
 		if depth >= 64 {
 			return ErrPredecessorLimit
 		}
+		// Count checkpoint nodes, including this one. Reusing verified pins must
+		// still charge the cached subtree's longest path at the caller's depth.
+		if height := heights[j]; height != 0 {
+			if height > 64-depth {
+				return ErrPredecessorLimit
+			}
+			return nil
+		}
+		height := 1
 		c := s.state.Checkpoints[j].Checkpoint
 		if c.Intent.JobID != tx.intent.JobID || c.Intent.PlanDigest != tx.intent.PlanDigest || c.Intent.ConfigDigest != tx.intent.ConfigDigest {
 			return errors.New("foreign predecessor job/plan/config")
@@ -120,6 +126,7 @@ func (tx *Transaction) OpenPredecessor(ctx context.Context, p PredecessorIdentit
 			if e := bind(found, depth+1); e != nil {
 				return e
 			}
+			height = max(height, 1+heights[found])
 		}
 		for _, o := range c.Outputs {
 			if len(r.pins) >= 256 || uint64(o.Size) > r.remaining {
@@ -155,7 +162,7 @@ func (tx *Transaction) OpenPredecessor(ctx context.Context, p PredecessorIdentit
 				return errors.New("predecessor SHA256 changed")
 			}
 		}
-		visited[j] = true
+		heights[j] = height
 		return nil
 	}
 	if e := bind(target, 0); e != nil {
