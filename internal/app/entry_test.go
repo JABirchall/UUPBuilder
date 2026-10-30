@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -37,7 +36,7 @@ func TestEntryConfigPathBoundary(t *testing.T) {
 		t.Fatalf("entry created configuration files: %v", err)
 	}
 	t.Setenv("LOCALAPPDATA", t.TempDir())
-	wantDefault := filepath.Join(os.Getenv("LOCALAPPDATA"), "UUPBuilder", "config.toml")
+	wantDefault := filepath.Join(portableDirectory(t), "config.toml")
 	if got, err := configPath(nil); err != nil || got != wantDefault {
 		t.Fatalf("default path = %q, %v; want %q", got, err, wantDefault)
 	}
@@ -49,8 +48,8 @@ func TestEntryConfigPathBoundary(t *testing.T) {
 		t.Fatalf("relative path = %q, %v; want %q", got, err, wantRelative)
 	}
 	t.Setenv("LOCALAPPDATA", "")
-	if err := Run(context.Background(), nil); err == nil || !strings.Contains(err.Error(), "LOCALAPPDATA") {
-		t.Fatalf("missing default config location: %v", err)
+	if got, err := configPath(nil); err != nil || got != wantDefault {
+		t.Fatalf("default without LOCALAPPDATA = %q, %v; want %q", got, err, wantDefault)
 	}
 }
 
@@ -102,12 +101,14 @@ cache = "cache"
 }
 
 func TestMissingDefaultConfigUsesBrowsingDefaultsWithoutSaving(t *testing.T) {
-	root := t.TempDir()
-	t.Setenv("LOCALAPPDATA", root)
+	if portableTestProcess(t) {
+		return
+	}
+	root := portableDirectory(t)
 	launchCalls := 0
 	err := run(context.Background(), nil, func(_ context.Context, opts Options) error {
 		launchCalls++
-		if opts.ConfigPath != filepath.Join(root, "UUPBuilder", "config.toml") || opts.Config.Output.Directory != filepath.Join(root, "UUPBuilder") {
+		if opts.ConfigPath != filepath.Join(root, "config.toml") || opts.Config.Output.Directory != root {
 			t.Errorf("default paths = %q, %q", opts.ConfigPath, opts.Config.Output.Directory)
 		}
 		cfg := opts.Config
@@ -119,17 +120,8 @@ func TestMissingDefaultConfigUsesBrowsingDefaultsWithoutSaving(t *testing.T) {
 	if err != nil || launchCalls != 1 {
 		t.Fatalf("first run = %v; launchCalls = %d, want 1", err, launchCalls)
 	}
-	writes := 0
-	if err := filepath.WalkDir(root, func(path string, _ fs.DirEntry, err error) error {
-		if err == nil && path != root {
-			writes++
-		}
-		return err
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if writes != 0 {
-		t.Fatalf("first run created %d files/directories; want writes == 0", writes)
+	if _, err := os.Stat(root); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("first run initialized default directory: %v", err)
 	}
 }
 
@@ -149,14 +141,16 @@ func TestExplicitMissingConfigReturnsUsefulError(t *testing.T) {
 }
 
 func TestMalformedConfigNeverLaunchesOrOverwrites(t *testing.T) {
+	if portableTestProcess(t) {
+		return
+	}
 	for _, data := range []string{"schema_version = [", "schema_version = 1\nunknown_key = true", "schema_version = 2"} {
 		t.Run(data, func(t *testing.T) {
-			root := t.TempDir()
-			t.Setenv("LOCALAPPDATA", root)
-			if err := os.Mkdir(filepath.Join(root, "UUPBuilder"), 0700); err != nil {
+			root := portableDirectory(t)
+			if err := os.MkdirAll(root, 0700); err != nil {
 				t.Fatal(err)
 			}
-			path := filepath.Join(root, "UUPBuilder", "config.toml")
+			path := filepath.Join(root, "config.toml")
 			if err := os.WriteFile(path, []byte(data), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -183,9 +177,12 @@ func TestMalformedConfigNeverLaunchesOrOverwrites(t *testing.T) {
 }
 
 func TestEntryReturnsLaunchError(t *testing.T) {
-	t.Setenv("LOCALAPPDATA", t.TempDir())
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("schema_version = 1"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	want := errors.New("terminal unavailable")
-	if err := run(context.Background(), nil, func(context.Context, Options) error { return want }); !errors.Is(err, want) {
+	if err := run(context.Background(), []string{"--config", path}, func(context.Context, Options) error { return want }); !errors.Is(err, want) {
 		t.Fatalf("launch error = %v, want %v", err, want)
 	}
 }

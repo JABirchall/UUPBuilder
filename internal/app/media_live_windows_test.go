@@ -196,7 +196,7 @@ func TestLiveGenericMediaPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	base, err := os.UserCacheDir()
+	base, err := config.DefaultDirectory()
 	if err != nil {
 		t.Fatal(err)
 	}

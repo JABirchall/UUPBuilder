@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -26,18 +27,18 @@ func TestDefaultsAllowBrowsingButRequestNeedsSelection(t *testing.T) {
 	}
 }
 
-func TestDefaultPathUsesLocalAppData(t *testing.T) {
-	root := t.TempDir()
-	t.Setenv("LOCALAPPDATA", root)
-	got, err := DefaultPath()
+func TestDefaultPathStaysBesideExecutableWhenWorkingDirectoryAndAppDataChange(t *testing.T) {
+	executable, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(root, "UUPBuilder", "config.toml"); got != want {
-		t.Fatalf("got %q want %q", got, want)
-	}
-	t.Setenv("LOCALAPPDATA", "")
-	if _, err := DefaultPath(); err == nil {
-		t.Fatal("missing LOCALAPPDATA accepted")
+	want := filepath.Join(filepath.Dir(executable), "UUP", "config.toml")
+	t.Chdir(t.TempDir())
+	for _, appData := range []string{t.TempDir(), ""} {
+		t.Setenv("LOCALAPPDATA", appData)
+		got, err := DefaultPath()
+		if err != nil || got != want {
+			t.Fatalf("default path = %q, %v; want %q", got, err, want)
+		}
 	}
 }

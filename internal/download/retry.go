@@ -64,10 +64,12 @@ func (s *locatorSet) get(ctx context.Context, id model.PayloadIdentity, now time
 	return copy[id], nil
 }
 
-func (m *Manager) fetchOne(ctx context.Context, payload model.Payload, set *locatorSet, emit model.Emit) (CachedFile, error) {
+func (m *Manager) fetchOne(ctx context.Context, payload model.Payload, set *locatorSet, emit model.Emit) (result CachedFile, resultErr error) {
 	if payload.Validate() != nil {
 		return CachedFile{}, ErrInvalidInput
 	}
+	progress := m.newProgress(payload, emit)
+	defer func() { progress.finish(resultErr) }()
 	unlock, err := m.keyLock(ctx, payload.Identity)
 	if err != nil {
 		return CachedFile{}, err
@@ -86,7 +88,7 @@ func (m *Manager) fetchOne(ctx context.Context, payload model.Payload, set *loca
 			loc, err = set.get(active, payload.Identity, m.opts.Now(), forceRefresh)
 			if err == nil {
 				forceRefresh = false
-				file, err = m.transfer(active, payload, loc, emit)
+				file, err = m.transfer(active, payload, loc, progress)
 			}
 		}
 		interrupted := active.Err() != nil
@@ -95,6 +97,7 @@ func (m *Manager) fetchOne(ctx context.Context, payload model.Payload, set *loca
 			return CachedFile{}, ctx.Err()
 		}
 		if interrupted {
+			progress.send(model.DownloadRetrying)
 			continue
 		}
 		if err == nil {
@@ -112,12 +115,14 @@ func (m *Manager) fetchOne(ctx context.Context, payload model.Payload, set *loca
 			}
 			challengeRefreshed = true
 			forceRefresh = true
+			progress.send(model.DownloadRetrying)
 			continue
 		}
 		if attempt >= m.opts.Retries {
 			return CachedFile{}, ErrTransfer
 		}
 		attempt++
+		progress.send(model.DownloadRetrying)
 		if err := waitRetry(ctx, m.opts.RetryDelay); err != nil {
 			return CachedFile{}, err
 		}

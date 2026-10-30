@@ -22,6 +22,7 @@ import (
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
+	platform "uupbuilder/internal/platform/windows"
 	"uupbuilder/internal/source"
 	"uupbuilder/internal/tui"
 )
@@ -80,7 +81,10 @@ func preflightConfig(t *testing.T, endpoint string) config.Config {
 func defaultBuild(t *testing.T, cfg config.Config) tui.BuildService {
 	t.Helper()
 	opts := Options{Config: cfg}
-	closeBuild := composeInteractiveBuild(&opts)
+	closeBuild, err := composeInteractiveBuild(&opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		if err := closeBuild(); err != nil {
 			t.Errorf("close preflight: %v", err)
@@ -276,7 +280,9 @@ func TestDefaultBuildCancellationReportsAndRetainsUnknownResource(t *testing.T) 
 	origin = srv.URL
 	cfg := preflightConfig(t, srv.URL)
 	opts := Options{Config: cfg}
-	_ = composeInteractiveBuild(&opts)
+	if _, err := composeInteractiveBuild(&opts); err != nil {
+		t.Fatal(err)
+	}
 	service := opts.Dependencies.Builder
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -290,10 +296,31 @@ func TestDefaultBuildCancellationReportsAndRetainsUnknownResource(t *testing.T) 
 		t.Fatal("no transfer")
 	}
 	entries, err := os.ReadDir(cfg.Storage.Workspace)
-	if err != nil || len(entries) != 1 {
+	if err != nil {
 		t.Fatalf("no private download owner: %v %v", entries, err)
 	}
-	retained := filepath.Join(cfg.Storage.Workspace, entries[0].Name(), "unexpected.txt")
+	var transferPath string
+	for _, entry := range entries {
+		path := filepath.Join(cfg.Storage.Workspace, entry.Name())
+		raw, err := os.ReadFile(filepath.Join(path, ".uupbuilder-owner.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var identity platform.WorkspaceIdentity
+		if err := json.Unmarshal(raw, &identity); err != nil {
+			t.Fatal(err)
+		}
+		if identity.JobID == "selected-source-transfer" {
+			if transferPath != "" {
+				t.Fatal("multiple transfer owners")
+			}
+			transferPath = path
+		}
+	}
+	if transferPath == "" {
+		t.Fatal("private download owner not found")
+	}
+	retained := filepath.Join(transferPath, "unexpected.txt")
 	if err := os.WriteFile(retained, []byte("unexamined resource"), 0600); err != nil {
 		t.Fatal(err)
 	}

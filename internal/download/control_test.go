@@ -39,7 +39,13 @@ func TestResumeWaitsForPendingPause(t *testing.T) {
 	p := payload(t, fixture, "p.bin")
 	fetchDone := make(chan error, 1)
 	go func() {
-		_, err := m.FetchOne(context.Background(), p, Locator{URL: srv.URL}, func(model.Event) { once.Do(func() { close(observing); <-release }) })
+		_, err := m.FetchOne(context.Background(), p, Locator{URL: srv.URL}, func(event model.Event) {
+			// Initial lifecycle events precede network IO. Block after bytes have
+			// reached disk so Pause must quiesce a real active request.
+			if event.CompletedBytes != nil && *event.CompletedBytes > 0 {
+				once.Do(func() { close(observing); <-release })
+			}
+		})
 		fetchDone <- err
 	}()
 	select {

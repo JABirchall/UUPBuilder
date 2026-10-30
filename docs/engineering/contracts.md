@@ -76,6 +76,8 @@ types are defined by their respective task, not by model scaffolding.
 func Run(ctx context.Context, args []string) error
 
 // D1, internal/config
+func DefaultDirectory() (string, error)
+func DefaultPath() (string, error)
 func Load(path string) (Config, error)
 func Save(path string, cfg Config) (SaveResult, error)
 func (cfg Config) Validate() error
@@ -128,9 +130,20 @@ E2 owns the typed `planner.Operation`, extended by E4/E5. `jobs.JobView` is a
 read-only state/stage/error/artifact/action snapshot.
 
 The G0 executable validates `--config PATH` or `--config=PATH`, resolves an
-absolute path (default `%LOCALAPPDATA%\UUPBuilder\config.toml`), and returns
+absolute path (default `<executable directory>\UUP\config.toml`), and returns
 initialization/cancellation errors. Unknown/positional/duplicate arguments and
 empty paths fail. It does not read/write configuration, start a UI or perform
 work yet. Relative application paths from a loaded TOML file will be resolved
 against that file's directory by D1. The bootstrap binary is not a completed
 builder.
+
+The current application shares `config.DefaultDirectory()` for its portable
+configuration and automatic cache/workspace defaults. It derives the directory
+from `os.Executable()`, independent of the working directory and AppData.
+Resolution, startup and tool Review perform no writes. Confirmed preparation
+initializes a missing automatic parent and creates fresh owned workspaces below
+it; selected native scratch follows the resolved workspace parent. Explicit
+`--config` paths and storage overrides preserve their existing meanings, and
+relative paths resolve beside the selected config. There is no silent fallback
+or automatic migration/deletion of old AppData data. The TUI's explicit Save
+may create its selected configuration directory before calling `config.Save`.

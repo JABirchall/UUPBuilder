@@ -1,8 +1,9 @@
 # Configuration
 
 UUP Builder uses TOML schema version `1`. The default configuration path is
-`%LOCALAPPDATA%\UUPBuilder\config.toml`; the executable also accepts
-`--config PATH`. The Charm Workspace connects configuration loading and saving
+`UUP\config.toml` beside the application executable, regardless of the process
+working directory or `LOCALAPPDATA`; the executable also accepts `--config PATH`.
+The Charm Workspace connects configuration loading and saving
 to its Conversion area. Edit the TOML path there, then activate Load or Save.
 Load replaces the current draft; Save checks structural validity, creates the
 selected configuration directory if needed, and reports normalization and any
@@ -154,7 +155,7 @@ schema beyond the design's abbreviated example.
 | `output.directory`, `filename`, `label`, `edition_order` | Directory, Windows-safe single filename or `auto`, label or `auto`, unique final edition order. |
 | `downloads.parallel_files`, `retries` | Positive parallel file count; nonnegative retry count. |
 | `downloads.proxy.mode`, `url` | `system`, `direct`, `explicit`; explicit mode requires an HTTP/HTTPS/SOCKS5 origin without credentials, query or fragment. Omit `url` in other modes. |
-| `storage.workspace`, `cache` | Directory or `auto`; the later storage planner resolves automatic locations. |
+| `storage.workspace`, `cache` | Directory or `auto`; automatic locations use the `UUP` directory beside the executable. |
 | `storage.keep_downloads`, `keep_intermediates` | Retention booleans. |
 
 The interactive Build ISO action checks inbox tool files and managed tool
@@ -169,6 +170,17 @@ logs to Progress. Up/down and page up/down scroll the retained log history;
 End follows the latest output. Press `c` to cancel and wait for active work and
 cleanup. Source applicability and integrity checks still run inside the confirmed
 build. Headless `--plan-iso` remains an explicit deep-planning command.
+
+Startup and Review only resolve the portable location; they never create it.
+Start build (or an explicit headless preparation command) creates a missing
+`UUP` directory when automatic storage is requested. The build's private cache,
+download workspaces and native scratch live beneath that directory. An explicit
+workspace override also controls native scratch; a cache override controls the
+download cache. Existing local NTFS requirements still apply to these workspaces.
+An unavailable or unwritable portable location returns an error with its path;
+there is no automatic fallback to AppData or the working directory. Explicit
+Save creates its chosen configuration directory as described above. Existing
+AppData files are never migrated or deleted automatically.
 
 `auto` and all explicit source-dependent choices survive decoding and request
 creation. For example, an explicit WinRE-update request survives when WinRE is
@@ -185,6 +197,10 @@ validation succeeds.
 
 Relative driver, output, workspace and cache directories resolve against the
 configuration file's directory, independent of the process working directory.
+With the default config, the default output directory `.` therefore means the
+portable `UUP` directory. With `--config`, relative output and explicit storage
+paths still follow that selected config; automatic storage remains beside the
+executable.
 Parent-directory paths such as `../output` are valid user-selected directories.
 Storage `auto`, an empty disabled driver source, output filename and label remain
 policy values. Windows device names, alternate streams, control characters,

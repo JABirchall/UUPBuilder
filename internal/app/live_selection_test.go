@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -24,12 +25,15 @@ import (
 func TestLiveLaunchBuildsImageSelection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	t.Setenv("LOCALAPPDATA", t.TempDir())
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("schema_version = 1"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	client := catalog.New(nil, "")
 	client.RequestTimeout = 15 * time.Second
 	discovery := &selectionCatalog{Client: client}
 	var startup Options
-	if err := run(ctx, nil, func(_ context.Context, opts Options) error {
+	if err := run(ctx, []string{"--config", path}, func(_ context.Context, opts Options) error {
 		startup = opts
 		return nil
 	}); err != nil {

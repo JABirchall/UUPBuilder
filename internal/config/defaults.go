@@ -1,10 +1,9 @@
 package config
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"uupbuilder/internal/model"
 )
@@ -32,12 +31,21 @@ func Defaults() Config {
 	}
 }
 
-// DefaultPath matches the executable's --config default. It does not create
-// the directory or file, and an unavailable LOCALAPPDATA is an error.
-func DefaultPath() (string, error) {
-	base := os.Getenv("LOCALAPPDATA")
-	if strings.TrimSpace(base) == "" {
-		return "", errors.New("LOCALAPPDATA is unavailable; specify --config PATH")
+// DefaultDirectory returns the portable data directory beside the executable.
+// Resolving it never creates a directory or depends on the working directory.
+func DefaultDirectory() (string, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("locate executable for portable UUP directory: %w", err)
 	}
-	return absoluteConfigPath(filepath.Join(base, "UUPBuilder", "config.toml"))
+	return absoluteConfigPath(filepath.Join(filepath.Dir(executable), "UUP"))
+}
+
+// DefaultPath matches the executable's --config default without creating it.
+func DefaultPath() (string, error) {
+	base, err := DefaultDirectory()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, "config.toml"), nil
 }

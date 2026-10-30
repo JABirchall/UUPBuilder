@@ -92,7 +92,7 @@ func stream(ctx context.Context, dst io.Writer, src io.Reader, limit int64, prog
 	}
 }
 
-func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, emit model.Emit) (CachedFile, error) {
+func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, progress *progressReporter) (CachedFile, error) {
 	id := p.Identity
 	key := id.Key()
 	f, err := m.opts.Job.OpenFile(key+".part", os.O_CREATE|os.O_RDWR, 0600)
@@ -114,6 +114,7 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 			return CachedFile{}, ErrStorage
 		}
 	}
+	progress.start(offset)
 	resp, err := m.request(ctx, loc, offset)
 	if err != nil {
 		return CachedFile{}, err
@@ -131,6 +132,7 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 	if resp.StatusCode == 416 {
 		total, err := unsatisfiedTotal(resp.Header.Get("Content-Range"))
 		if err == nil && offset == id.Size && total == id.Size && hashes.matches(id) {
+			progress.send(model.DownloadVerifying)
 			if f.Close() != nil {
 				return CachedFile{}, ErrStorage
 			}
@@ -160,6 +162,7 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 			}
 			offset = 0
 			hashes = newDigests(id.Digest.Algorithm)
+			progress.start(0)
 		}
 		if resp.ContentLength >= 0 && resp.ContentLength != id.Size {
 			return CachedFile{}, ErrIntegrity
@@ -173,7 +176,7 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 	if _, err := f.Seek(offset, io.SeekStart); err != nil {
 		return CachedFile{}, ErrStorage
 	}
-	bytes, err := stream(ctx, io.MultiWriter(f, hashes), resp.Body, id.Size-offset, func(n int64) { m.progress(emit, offset+n, id.Size) })
+	bytes, err := stream(ctx, io.MultiWriter(f, hashes), resp.Body, id.Size-offset, func(n int64) { progress.advance(offset + n) })
 	if err != nil {
 		if err == ErrIntegrity {
 			if resetErr := resetPartial(m.opts.Job, key, f); resetErr != nil {
@@ -185,6 +188,9 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 	if offset+bytes != id.Size {
 		return CachedFile{}, ErrTransfer
 	}
+	if id.Size == 0 {
+		progress.send(model.DownloadVerifying)
+	}
 	if !hashes.matches(id) {
 		if err := resetPartial(m.opts.Job, key, f); err != nil {
 			return CachedFile{}, err
@@ -195,10 +201,4 @@ func (m *Manager) transfer(ctx context.Context, p model.Payload, loc Locator, em
 		return CachedFile{}, ErrStorage
 	}
 	return m.publish(ctx, id, hashes.sha256())
-}
-
-func (m *Manager) progress(emit model.Emit, completed, total int64) {
-	if emit != nil {
-		emit(model.Event{JobID: m.opts.Job.Identity().JobID, StageID: "downloads", Kind: model.EventBytes, Message: "Downloading payload", CompletedBytes: &completed, TotalBytes: &total, Timestamp: m.opts.Now()})
-	}
 }

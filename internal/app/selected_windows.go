@@ -40,22 +40,19 @@ func newSelectedEnvironment(ctx context.Context, settings model.ResolvedSettings
 			e = nil
 		}
 	}()
-	base, _ := os.UserCacheDir()
-	cache := settings.Storage.Cache
-	if cache == "auto" {
-		cache = base
-	}
-	job := settings.Storage.Workspace
-	if job == "auto" {
-		job = base
+	job, cache, err := initializeBuildStorage(settings.Storage)
+	if err != nil {
+		return e, err
 	}
 	e.source.cache, err = platform.CreateWorkspace(cache, "selected-source-cache")
 	if err != nil {
+		err = fmt.Errorf("create selected source cache in %q: %w", cache, err)
 		return
 	}
 	e.source.cacheReady = true
 	e.source.job, err = platform.CreateWorkspace(job, "selected-source-transfer")
 	if err != nil {
+		err = fmt.Errorf("create selected source workspace in %q: %w", job, err)
 		return
 	}
 	e.source.jobReady = true
@@ -69,8 +66,9 @@ func newSelectedEnvironment(ctx context.Context, settings model.ResolvedSettings
 	if err != nil {
 		return
 	}
-	e.native, err = platform.CreateWorkspace(os.TempDir(), "selected-native")
+	e.native, err = platform.CreateWorkspace(job, "selected-native")
 	if err != nil {
+		err = fmt.Errorf("create selected native workspace in %q: %w", job, err)
 		return
 	}
 	return e, nil

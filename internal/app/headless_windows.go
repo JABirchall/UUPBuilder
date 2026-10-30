@@ -27,7 +27,10 @@ func runHeadlessBuild(ctx context.Context, args []string) (bool, error) {
 		}
 	}
 	return true, run(ctx, args[1:], func(ctx context.Context, opts Options) (resultErr error) {
-		closeBuild := composeInteractiveBuild(&opts)
+		closeBuild, err := composeInteractiveBuild(&opts)
+		if err != nil {
+			return err
+		}
 		defer func() { resultErr = errors.Join(resultErr, closeBuild()) }()
 		fmt.Fprintln(os.Stderr, "Preparing exact selected source, app metadata and managed runtime...")
 		plan, err := opts.Dependencies.Builder.Prepare(ctx, tui.BuildDraft{Config: opts.Config, Revision: 1})

@@ -63,6 +63,7 @@ type buildActionState struct {
 	tools                               []string
 	updates                             <-chan tea.Msg
 	logs                                []string
+	downloads                           []downloadProgress
 	stage, status                       string
 	offset, reviewOffset                int
 }
@@ -148,6 +149,7 @@ func (m Model) startReviewedBuild() (tea.Model, tea.Cmd) {
 	m.buildAction.cancel = cancel
 	m.buildAction.busy, m.buildAction.cancelled, m.buildAction.reviewed = true, false, false
 	m.buildAction.logs, m.buildAction.offset = nil, 0
+	m.buildAction.downloads = nil
 	m.buildAction.stage, m.buildAction.status = "prepare-source", "Running"
 	updates := make(chan tea.Msg, 128)
 	m.buildAction.updates = updates
@@ -218,6 +220,9 @@ func (m Model) acceptBuildProgress(msg buildProgressMsg) (tea.Model, tea.Cmd) {
 	if msg.event.StageID != "" {
 		m.buildAction.stage = boundedText(msg.event.StageID, 120)
 	}
+	if m.buildAction.acceptDownload(msg.event) {
+		return m, waitBuildUpdate(m.ctx, m.buildAction.updates)
+	}
 	text := msg.event.Message
 	if text == "" && msg.event.CompletedBytes != nil {
 		text = fmt.Sprintf("%d bytes", *msg.event.CompletedBytes)
@@ -278,6 +283,13 @@ func (m Model) acceptBuildResult(msg buildFinishedMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
+	settled := downloadStopped
+	if m.buildAction.status == "Failed" || msg.result.State == "failed" {
+		settled = model.DownloadFailed
+	} else if m.buildAction.status == "Cancelled" || msg.result.State == "cancelled" {
+		settled = model.DownloadCancelled
+	}
+	m.buildAction.settleDownloads(settled)
 	m.buildAction.logs = append(m.buildAction.logs, boundedText(m.notice, 4096))
 	return m, nil
 }

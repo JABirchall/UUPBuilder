@@ -7,8 +7,8 @@ import (
 	"errors"
 )
 
-func composeInteractiveBuild(opts *Options) func() error {
-	return closeBuildService(opts.Dependencies.Builder)
+func composeInteractiveBuild(opts *Options) (func() error, error) {
+	return closeBuildService(opts.Dependencies.Builder), nil
 }
 func runPrivateWorker(_ context.Context, args []string) (bool, error) {
 	if len(args) == 0 || args[0] != "--uup-worker" {

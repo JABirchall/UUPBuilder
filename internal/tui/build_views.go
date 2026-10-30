@@ -42,14 +42,24 @@ func (m Model) reviewDetails(width int) []row {
 }
 
 func (m Model) progressRows(width, height int) []row {
+	width, height = max(0, width), max(0, height)
 	rows := []row{{text: heading.Render("Build progress")}}
 	if m.buildAction.status == "" {
-		return append(rows, row{text: "Start a build from Review to see progress and logs."})
+		rows = append(rows, row{text: "Start a build from Review to see progress and logs."})
+		for i := range rows {
+			rows[i].text = fit(rows[i].text, width)
+		}
+		return rows[:min(len(rows), height)]
 	}
 	rows = append(rows, row{text: fmt.Sprintf("%s | %s", terminalText(m.buildAction.status), terminalText(m.buildAction.stage))})
 	if m.buildAction.busy {
 		rows = append(rows, row{text: accent.Render("Cancel build (c)"), msg: CancelBuildMsg{}})
 	}
+	budget := max(0, height-len(rows)-1)
+	if len(m.buildAction.logs) > 0 && budget > 3 {
+		budget--
+	}
+	rows = append(rows, m.buildAction.downloadRows(width, min(9, budget))...)
 	rows = append(rows, row{text: muted.Render("Logs · up/down or page up/down · end follows latest")})
 	count := max(0, height-len(rows))
 	end := max(0, len(m.buildAction.logs)-m.buildAction.offset)
@@ -57,5 +67,8 @@ func (m Model) progressRows(width, height int) []row {
 	for _, line := range m.buildAction.logs[start:end] {
 		rows = append(rows, row{text: fit(line, width)})
 	}
-	return rows
+	for i := range rows {
+		rows[i].text = fit(rows[i].text, width)
+	}
+	return rows[:min(len(rows), height)]
 }

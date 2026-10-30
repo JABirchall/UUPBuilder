@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"uupbuilder/internal/catalog"
+	"uupbuilder/internal/config"
 	"uupbuilder/internal/download"
 	"uupbuilder/internal/jobs"
 	"uupbuilder/internal/model"
@@ -53,16 +54,19 @@ func inspectBuildStorage(ctx context.Context, path string) (planner.Volume, erro
 	v, err := platform.InspectStorage(path)
 	return planner.Volume{Path: v.Path, ID: v.ID, FileSystem: v.Capabilities, AvailableBytes: v.AvailableBytes, MaxFileBytes: v.MaxFileBytes}, err
 }
-func composeInteractiveBuild(opts *Options) func() error {
+func composeInteractiveBuild(opts *Options) (func() error, error) {
 	if opts.Dependencies.Builder != nil {
-		return closeBuildService(opts.Dependencies.Builder)
+		return closeBuildService(opts.Dependencies.Builder), nil
 	}
-	base, _ := os.UserCacheDir()
+	base, err := config.DefaultDirectory()
+	if err != nil {
+		return nil, err
+	}
 	p := &planner.Planner{InspectStorage: inspectBuildStorage, DefaultWorkspace: base, DefaultCache: base}
 	service := &buildService{planner: p}
 	service.controller = jobs.NewController(jobs.Options{Registry: service.selectedRegistry(), InspectStorage: inspectBuildStorage, Emit: service.emitEvent})
 	opts.Dependencies.Builder = service
-	return closeBuildService(opts.Dependencies.Builder)
+	return closeBuildService(opts.Dependencies.Builder), nil
 }
 
 func (s *buildService) begin(ctx context.Context) (context.Context, func(), error) {
@@ -194,23 +198,20 @@ func (s *buildService) PrepareWithEvents(ctx context.Context, draft tui.BuildDra
 			s.mu.Unlock()
 		}
 	}()
-	workspace, cache := settings.Storage.Workspace, settings.Storage.Cache
-	if workspace == "auto" {
-		workspace = s.planner.DefaultWorkspace
-	}
-	if cache == "auto" {
-		cache = s.planner.DefaultCache
+	workspace, cache, err := initializeBuildStorage(settings.Storage)
+	if err != nil {
+		return ready, err
 	}
 	owner.cache, err = platform.CreateWorkspace(cache, "source-preflight-cache")
 	s.ownWorkspace(owner.cache)
 	if err != nil {
-		return ready, fmt.Errorf("create semantic cache: %w", err)
+		return ready, fmt.Errorf("create semantic cache in %q: %w", cache, err)
 	}
 	owner.cacheReady = true
 	owner.job, err = platform.CreateWorkspace(workspace, "source-preflight-download")
 	s.ownWorkspace(owner.job)
 	if err != nil {
-		return ready, fmt.Errorf("create semantic download workspace: %w", err)
+		return ready, fmt.Errorf("create semantic download workspace in %q: %w", workspace, err)
 	}
 	owner.jobReady = true
 	owner.transport, err = download.NewTransport(settings.Downloads.Proxy)
