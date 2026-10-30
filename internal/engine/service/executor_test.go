@@ -31,6 +31,13 @@ type fixtureBackend struct {
 	mounted                 map[string]string
 	omitPackage, wrongFinal bool
 	failMount               bool
+	replaceMountDirectory   bool
+}
+
+type fixtureMountInventory struct{}
+
+func (fixtureMountInventory) Inspect(context.Context, string) (jobstore.MountSnapshot, error) {
+	return jobstore.MountSnapshot{Complete: true}, nil
 }
 
 func readFixture(path string) (imageFixture, error) {
@@ -109,6 +116,20 @@ func (f *fixtureBackend) Cleanup(context.Context, platform.OwnedMount, bool, mod
 	return nil
 }
 func (f *fixtureBackend) Unmount(_ context.Context, m platform.OwnedMount, _ bool, _ model.Emit) error {
+	if f.replaceMountDirectory {
+		// DISM can replace the mount directory when it unmounts successfully.
+		// Keep the original alive until the replacement has a distinct file ID.
+		path := filepath.Join(m.Workspace.Path, filepath.FromSlash(m.RelativePath))
+		if err := os.Rename(path, path+"-old"); err != nil {
+			return err
+		}
+		if err := os.Mkdir(path, 0700); err != nil {
+			return err
+		}
+		if err := os.Remove(path + "-old"); err != nil {
+			return err
+		}
+	}
 	delete(f.mounted, m.RelativePath)
 	return nil
 }
@@ -124,7 +145,7 @@ func executorFixture(t *testing.T, policy model.UpdatePolicy) (ServiceRequest, *
 	t.Helper()
 	ctx := context.Background()
 	parent := t.TempDir()
-	store, e := jobstore.Create(parent, "service-test", nil)
+	store, e := jobstore.Create(parent, "service-test", fixtureMountInventory{})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -194,6 +215,18 @@ func TestFinalEditionInventoryMatchesPlan(t *testing.T) {
 	}
 	if result.WIMPath == "" || len(result.Outputs) == 0 {
 		t.Fatal("no concrete final image artifact")
+	}
+}
+
+func TestServicingCommitsAfterUnmountReplacesMountDirectory(t *testing.T) {
+	req, backend := executorFixture(t, model.UpdatesIntegrate)
+	backend.replaceMountDirectory = true
+	result, err := (&Executor{Backend: backend}).Execute(context.Background(), req, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := req.Transaction.Commit(context.Background(), result.Outputs); err != nil {
+		t.Fatalf("verified serviced image could not be checkpointed after successful unmount: %v", err)
 	}
 }
 

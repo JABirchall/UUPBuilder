@@ -189,7 +189,7 @@ func (tx *Transaction) Commit(ctx context.Context, outputs []OutputIdentity) (re
 		return err
 	}
 	if len(recovery.Preserved) > 0 {
-		return errors.New("unresolved resources prevent checkpoint promotion")
+		return fmt.Errorf("unresolved resources prevent checkpoint promotion: %s: %s", recovery.Preserved[0].Path, recovery.Preserved[0].Reason)
 	}
 	for _, p := range tx.intent.Predecessors {
 		found := false
@@ -253,7 +253,7 @@ func (tx *Transaction) Commit(ctx context.Context, outputs []OutputIdentity) (re
 		return err
 	}
 	if len(final.Preserved) > 0 {
-		return errors.New("resources changed during checkpoint promotion")
+		return fmt.Errorf("resources changed during checkpoint promotion: %s: %s", final.Preserved[0].Path, final.Preserved[0].Reason)
 	}
 	for _, p := range tx.intent.Predecessors {
 		found := false

@@ -20,7 +20,9 @@ func (e *Executor) serviceOne(ctx context.Context, req ServiceRequest, path, mou
 		if !committed {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
 			defer cancel()
-			err = errors.Join(err, e.Backend.Unmount(cleanup, mount, false, emit))
+			err = errors.Join(err, req.Transaction.Unmount(cleanup, mount, func() error {
+				return e.Backend.Unmount(cleanup, mount, false, emit)
+			}))
 		}
 	}()
 	if err = e.Backend.Mount(ctx, path, mount, emit); err != nil {
@@ -76,7 +78,9 @@ func (e *Executor) serviceOne(ctx context.Context, req ServiceRequest, path, mou
 	if err = verifyIntegratedPackages(out.Packages, req.Plan.Updates, edition); err != nil {
 		return out, err
 	}
-	if err = e.Backend.Unmount(ctx, mount, true, emit); err != nil {
+	if err = req.Transaction.Unmount(ctx, mount, func() error {
+		return e.Backend.Unmount(ctx, mount, true, emit)
+	}); err != nil {
 		return out, err
 	}
 	committed = true

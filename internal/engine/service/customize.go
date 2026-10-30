@@ -288,7 +288,9 @@ func (e *CustomizationExecutor) customizeOne(ctx context.Context, req Customizat
 		if !committed {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
 			defer cancel()
-			err = errors.Join(err, e.Backend.Unmount(cleanup, mount, false, emit))
+			err = errors.Join(err, req.Transaction.Unmount(cleanup, mount, func() error {
+				return e.Backend.Unmount(cleanup, mount, false, emit)
+			}))
 		}
 	}()
 	if err = e.Backend.Mount(ctx, path, mount, emit); err != nil {
@@ -396,7 +398,9 @@ func (e *CustomizationExecutor) customizeOne(ctx context.Context, req Customizat
 	}
 	out.Edition = inspection.Edition
 	out.Packages = inspection.Packages
-	if err = e.Backend.Unmount(ctx, mount, true, emit); err != nil {
+	if err = req.Transaction.Unmount(ctx, mount, func() error {
+		return e.Backend.Unmount(ctx, mount, true, emit)
+	}); err != nil {
 		return out, err
 	}
 	committed = true

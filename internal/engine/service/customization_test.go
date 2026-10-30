@@ -143,7 +143,7 @@ func customizationRequestFixture(t *testing.T, configure ...func(*metadata.Inven
 	if e != nil {
 		t.Fatal(e)
 	}
-	store, e := jobstore.Create(t.TempDir(), "customize-test", nil)
+	store, e := jobstore.Create(t.TempDir(), "customize-test", fixtureMountInventory{})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -174,6 +174,18 @@ func customizationRequestFixture(t *testing.T, configure ...func(*metadata.Inven
 	}
 	req.Payloads = []UpdateInput{{Resource: ref.Resource, Path: payloadPath}}
 	return req, &customizationFixture{fixtureBackend: &fixtureBackend{mounted: map[string]string{}}}
+}
+
+func TestCustomizationCommitsAfterUnmountReplacesMountDirectory(t *testing.T) {
+	req, backend := customizationRequestFixture(t)
+	backend.replaceMountDirectory = true
+	result, err := (&CustomizationExecutor{Backend: backend}).Execute(context.Background(), req, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := req.Transaction.Commit(context.Background(), result.Outputs); err != nil {
+		t.Fatalf("verified customized image could not be checkpointed after successful unmount: %v", err)
+	}
 }
 
 func TestCustomizationFeaturesAndDriversReachSeparateOSAndWinPETargets(t *testing.T) {

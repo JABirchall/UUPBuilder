@@ -39,6 +39,38 @@ func (s *Store) release() error {
 	return errors.Join(err, s.lock.Close())
 }
 
+// Unmount records the exact empty directory left by a successful provider call.
+// A changed identity is accepted only across this active, validated operation;
+// normal recovery and checkpoint inspection still reject substitutions.
+func (tx *Transaction) Unmount(ctx context.Context, mount platform.OwnedMount, action func() error) error {
+	s := tx.store
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.check(ctx, tx.intent.JobID); err != nil {
+		return err
+	}
+	if err := tx.usable(); err != nil {
+		return err
+	}
+	idx := s.stageIndex(tx.id)
+	found := -1
+	for i, claim := range s.state.Stages[idx].Mounts {
+		if claim == mount {
+			found = i
+		}
+	}
+	if found < 0 {
+		return errors.New("unmount requires this transaction's durable mount claim")
+	}
+	updated, err := s.w.Unmount(mount, action)
+	if err != nil {
+		return fmt.Errorf("preserved mount %s after unmount: %w", mount.RelativePath, err)
+	}
+	next := clone(s.state)
+	next.Stages[idx].Mounts[found] = updated
+	return s.writeJournal(next)
+}
+
 // ClaimMount records the directory intent and then the exact W1 ownership
 // capability before returning it. It never mounts, unmounts or adopts a path.
 func (tx *Transaction) ClaimMount(relative string) (platform.OwnedMount, error) {
@@ -258,7 +290,7 @@ func (s *Store) Discard(ctx context.Context, jobID string) error {
 		return err
 	}
 	if len(r.Preserved) > 0 {
-		return errors.New("unresolved resources preserved; discard requires inspection")
+		return fmt.Errorf("unresolved resources preserved; discard requires inspection: %s: %s", r.Preserved[0].Path, r.Preserved[0].Reason)
 	}
 	next := clone(s.state)
 	next.Discarded = true
