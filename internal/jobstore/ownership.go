@@ -267,6 +267,9 @@ func (s *Store) Discard(ctx context.Context, jobID string) error {
 	}
 	if s.active != nil {
 		s.active.done = true
+		if err := s.active.closePredecessors(); err != nil {
+			return err
+		}
 		s.active = nil
 	}
 	files, dirs := s.knownPaths()

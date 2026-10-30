@@ -123,6 +123,8 @@ type Transaction struct {
 	id, scratch string
 	intent      MutationIntent
 	done        bool
+	readContext context.Context
+	readers     map[*PredecessorReader]struct{}
 }
 
 const journalPath = "journal.json"
@@ -188,6 +190,9 @@ func (s *Store) Close() error {
 		return s.closeErr
 	}
 	s.closed = true
+	if s.active != nil {
+		s.closeErr = errors.Join(s.closeErr, s.active.closePredecessors())
+	}
 	for _, c := range s.directories {
 		if !c.released {
 			s.closeErr = errors.Join(s.closeErr, fmt.Errorf("%w: unreleased directory claim %s", platform.ErrTreePreserved, c.record.Path))
@@ -367,7 +372,7 @@ func (s *Store) Begin(ctx context.Context, intent MutationIntent) (*Transaction,
 	if err := s.interrupt("mutation-after-mkdir"); err != nil {
 		return nil, err
 	}
-	tx := &Transaction{store: s, id: id, scratch: scratch, intent: in}
+	tx := &Transaction{store: s, id: id, scratch: scratch, intent: in, readContext: ctx}
 	s.active = tx
 	return tx, nil
 }

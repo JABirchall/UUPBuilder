@@ -170,7 +170,7 @@ func (s *Store) stageIndex(id string) int {
 // Commit validates real predecessors and output bytes before atomically
 // publishing the new checkpoint record. Any failure ends mutation permission;
 // a subsequent attempt begins with new scratch, preserving all older outputs.
-func (tx *Transaction) Commit(ctx context.Context, outputs []OutputIdentity) error {
+func (tx *Transaction) Commit(ctx context.Context, outputs []OutputIdentity) (resultErr error) {
 	s := tx.store
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -180,7 +180,7 @@ func (tx *Transaction) Commit(ctx context.Context, outputs []OutputIdentity) err
 	if err := tx.usable(); err != nil {
 		return err
 	}
-	defer func() { tx.done = true; s.active = nil }()
+	defer func() { tx.done = true; s.active = nil; resultErr = errors.Join(resultErr, tx.closePredecessors()) }()
 	if len(outputs) == 0 || len(outputs) > len(tx.intent.OwnedPaths) {
 		return errors.New("bounded nonempty outputs required")
 	}
