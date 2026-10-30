@@ -45,8 +45,20 @@ type TargetDeviceFamily struct{ Name, MinVersion, MaxVersionTested string }
 type ApplicationIdentity struct{ ID, Executable, EntryPoint string }
 type AppInventory struct {
 	Packages         []AppPackage
+	Bundles          []AppBundle
 	RequiredFamilies []AppFamily
 	LicenseDocuments []AppLicense
+	SelectionRules   []AppSelectionRule
+	DefaultIDs       []string
+}
+
+// AppSelectionRule links a source request ID to an inspected manifest family.
+// Catalog display entries alone cannot establish this mapping or license policy.
+type AppSelectionRule struct {
+	ID                                            string
+	Family                                        AppFamily
+	Default, Required, LicenseFree, StubSupported bool
+	Evidence                                      Evidence
 }
 
 // AppLicense is an observation of declared licensing metadata, not signature,
@@ -55,6 +67,7 @@ type AppLicense struct {
 	PackageFamilyName, BindingType, Usage, Category, Type, LicenseID, ContentID string
 	Resource                                                                    ResourceReference
 	Evidence                                                                    Evidence
+	Original                                                                    []byte
 }
 type LicenseEvidence struct {
 	Family   AppFamily

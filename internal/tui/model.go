@@ -15,8 +15,8 @@ import (
 
 // DraftSnapshot is independent of the model and caller's configuration. Config
 // retains requested policies; ImageReady means only catalogue choices have
-// been checked, never preflight/build readiness. AppsApplicable remains false
-// until a later metadata/editor owner validates real app applicability.
+// been checked, never preflight/build readiness. AppsApplicable requires a
+// semantic customization plan matching the current source and draft revision.
 // Source.BuildLabel is empty until its exact catalogue record is retrieved;
 // this is browsing state, not a frozen manifest/source-validation guarantee.
 type DraftSnapshot struct {
@@ -88,10 +88,13 @@ func (m Model) Snapshot() DraftSnapshot {
 		source.BuildLabel = m.source.Title
 	}
 	appsNotice := ""
-	if m.appsUnchecked {
+	if m.appsUnchecked || m.apps.validated != nil && !m.validatedApps() {
 		appsNotice = appsUncheckedNotice
 	}
-	return DraftSnapshot{Revision: m.revision, ConfigPath: m.configActions.path, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.image.ready(m.cfg.Image), Notice: m.notice, AppsNotice: appsNotice}
+	if m.validatedApps() {
+		appsNotice = "Source manifests, dependency/resource/license closure and requested policies validated for this draft; native customization still requires execution."
+	}
+	return DraftSnapshot{Revision: m.revision, ConfigPath: m.configActions.path, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.image.ready(m.cfg.Image), AppsApplicable: m.validatedApps(), Notice: m.notice, AppsNotice: appsNotice}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

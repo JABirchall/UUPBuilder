@@ -32,7 +32,7 @@ func (b preparedBuild) Execute(context.Context, planner.ReadyPlan) (BuildResult,
 	*b.calls++
 	return BuildResult{JobID: "job-a", State: "failed", Error: "master-iso handler unavailable"}, nil
 }
-func preparedModel(t *testing.T, intent planner.JobIntent) (Model, *int) {
+func preparedModel(t *testing.T, intent planner.JobIntent, appEvidence ...bool) (Model, *int) {
 	t.Helper()
 	cfg := config.Defaults()
 	cfg.Image.UpdateID = "revision"
@@ -47,7 +47,15 @@ func preparedModel(t *testing.T, intent planner.JobIntent) (Model, *int) {
 	p := planner.Planner{InspectStorage: func(_ context.Context, path string) (planner.Volume, error) {
 		return planner.Volume{Path: path, ID: path, AvailableBytes: 1 << 40, MaxFileBytes: 1 << 40, FileSystem: model.FileSystemCapabilities{Name: "NTFS", Local: true, ACLs: true, AlternateStreams: true, HardLinks: true}}, nil
 	}, SelectTools: func(r tools.Requirement) (tools.Selection, error) { return tools.Selection{Requirement: r}, nil }}
-	plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: metadata.Inventory{Source: manifest.Source, Manifest: manifest, Images: []metadata.Image{{Index: 1, Edition: selection.Editions[0], Build: "10.0.28000.1", Architecture: selection.Architecture}}, Classification: metadata.ClassificationSemanticInventory}, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhaseOfflineProvisioning}, Host: model.Host{WindowsBuild: 26100, NativeArchitecture: "amd64", ProcessArchitecture: "amd64"}, DraftRevision: 1, Intent: intent})
+	inv := metadata.Inventory{Source: manifest.Source, Manifest: manifest, Images: []metadata.Image{{Index: 1, Edition: selection.Editions[0], Build: "10.0.28000.1", Architecture: selection.Architecture}}, Classification: metadata.ClassificationSemanticInventory}
+	if len(appEvidence) > 0 && appEvidence[0] {
+		ref := metadata.DocumentReference{Resource: metadata.ResourceReference{Payload: manifest.Payloads[0].Identity}, SHA256: strings.Repeat("a", 64)}
+		ev := metadata.Evidence{Source: manifest.Source, Document: ref, Selector: "/Package/Identity"}
+		family := metadata.AppFamily{Name: "Example", Publisher: "CN=Publisher"}
+		inv.Documents = []metadata.Document{{Reference: ref}}
+		inv.Apps = metadata.AppInventory{Packages: []metadata.AppPackage{{Identity: metadata.AppIdentity{Name: family.Name, Publisher: family.Publisher, Version: "1.0.0.0", Architecture: "neutral"}, Family: family, Phase: metadata.PhaseOfflineProvisioning, Evidence: ev}}, SelectionRules: []metadata.AppSelectionRule{{ID: "Source.Feature", Family: family, Default: true, LicenseFree: true, Evidence: ev}}}
+	}
+	plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: inv, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhaseOfflineProvisioning}, Host: model.Host{WindowsBuild: 26100, NativeArchitecture: "amd64", ProcessArchitecture: "amd64"}, DraftRevision: 1, Intent: intent})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +67,29 @@ func preparedModel(t *testing.T, intent planner.JobIntent) (Model, *int) {
 	m.image.editionsChecked = true
 	m.image.editions = []catalog.Edition{{ID: "professional"}}
 	return m, calls
+}
+
+func TestAppsApplicableRequiresMatchingValidatedSourceAndDraft(t *testing.T) {
+	m, _ := preparedModel(t, planner.BuildMedia, true)
+	if m.Snapshot().AppsApplicable {
+		t.Fatal("unprepared draft is applicable")
+	}
+	m, prepare := step(m, BuildMsg{})
+	m, execute := step(m, prepare())
+	if execute == nil || !m.Snapshot().AppsApplicable {
+		t.Fatalf("matching semantic plan not bound: %s", m.notice)
+	}
+	m.setAppStub(model.AppStub)
+	if m.Snapshot().AppsApplicable || m.Snapshot().AppsNotice == "" {
+		t.Fatal("app edit retained stale applicability")
+	}
+	m, _ = preparedModel(t, planner.BuildMedia, true)
+	m, prepare = step(m, BuildMsg{})
+	m, _ = step(m, prepare())
+	m.cfg.Image.Language = "de-de"
+	if m.Snapshot().AppsApplicable {
+		t.Fatal("source change retained applicability")
+	}
 }
 func TestCancelledPreflightCannotExecuteLatePlan(t *testing.T) {
 	m, calls := preparedModel(t, planner.BuildMedia)

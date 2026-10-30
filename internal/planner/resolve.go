@@ -77,6 +77,14 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 			return ReadyPlan{}, fmt.Errorf("%w: %v", ErrBlocked, err)
 		}
 		f.Servicing = &service
+		customization, err := BuildCustomizationPlan(res.Inventory, req.Settings, serviceSettings.Output.EditionOrder)
+		if err != nil {
+			return ReadyPlan{}, fmt.Errorf("%w: %v", ErrBlocked, err)
+		}
+		f.Customization = &customization
+		if customization.Apps.Deferred {
+			f.AppPhase = string(metadata.PhasePostAssembly)
+		}
 	}
 	if p != nil {
 		if f.Effective.Storage.Workspace == "auto" {

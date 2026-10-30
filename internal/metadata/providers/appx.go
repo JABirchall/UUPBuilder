@@ -13,9 +13,9 @@ import (
 
 type Appx struct{}
 
-// Appx observes a single package manifest. Bundle expansion and blockmap/signature
-// validation are separate missing operations; XML observations cannot authorize
-// provisioning or establish licenses, package selection or installability.
+// Appx observes package or bundle declarations. External bundle packages are
+// inspected separately against their own verified payload identities. Native
+// provisioning remains responsible for validating signatures and installability.
 func (Appx) Inspect(ctx context.Context, r metadata.LocalResource, limits metadata.Limits) (metadata.ProviderResult, error) {
 	var out metadata.ProviderResult
 	limit, err := documentLimit(limits)
@@ -36,6 +36,7 @@ func (Appx) Inspect(ctx context.Context, r metadata.LocalResource, limits metada
 	}
 	seen := map[string]bool{}
 	var manifest *zip.File
+	format := metadata.FormatAppxXML
 	for _, entry := range z.File {
 		if err := ctx.Err(); err != nil {
 			return out, err
@@ -48,9 +49,16 @@ func (Appx) Inspect(ctx context.Context, r metadata.LocalResource, limits metada
 		}
 		seen[key] = true
 		if key == "appxmetadata/appxbundlemanifest.xml" {
-			return out, ErrUnsupported
+			if manifest != nil {
+				return out, metadata.ErrMalformedMetadata
+			}
+			manifest = entry
+			format = metadata.FormatAppxBundleXML
 		}
 		if key == "appxmanifest.xml" {
+			if manifest != nil {
+				return out, metadata.ErrMalformedMetadata
+			}
 			if !entry.Mode().IsRegular() {
 				return out, metadata.ErrMalformedMetadata
 			}
@@ -78,7 +86,7 @@ func (Appx) Inspect(ctx context.Context, r metadata.LocalResource, limits metada
 	if int64(len(body)) > limit {
 		return out, metadata.ErrLimit
 	}
-	out.Documents = []metadata.MetadataDocument{{Resource: metadata.ResourceReference{Payload: r.Identity, Member: manifest.Name}, Format: metadata.FormatAppxXML, Original: body, Provenance: "uupbuilder:appx-zip-manifest-v1"}}
+	out.Documents = []metadata.MetadataDocument{{Resource: metadata.ResourceReference{Payload: r.Identity, Member: manifest.Name}, Format: format, Original: body, Provenance: "uupbuilder:appx-zip-manifest-v2"}}
 	return out, nil
 }
 

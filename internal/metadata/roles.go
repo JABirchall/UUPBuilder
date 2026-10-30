@@ -46,6 +46,24 @@ func validReference(ref ResourceReference, known map[model.PayloadIdentity]bool)
 	return known[ref.Payload] && validMember(ref.Member)
 }
 func (inv *Inventory) applyEvidence(result ProviderResult, known map[model.PayloadIdentity]bool) error {
+	for _, rule := range result.AppSelections {
+		if rule.ID == "" || rule.Family.Name == "" || rule.Family.Publisher == "" || inv.validateEvidence(rule.Evidence) != nil {
+			return ErrInvalidEvidence
+		}
+		found := false
+		for _, app := range inv.Apps.Packages {
+			found = found || app.Family == rule.Family
+		}
+		if !found {
+			return ErrInvalidEvidence
+		}
+		for _, old := range inv.Apps.SelectionRules {
+			if old.ID == rule.ID {
+				return ErrConflictingMetadata
+			}
+		}
+		inv.Apps.SelectionRules = append(inv.Apps.SelectionRules, rule)
+	}
 	if err := inv.applyUpdates(result.Updates, known); err != nil {
 		return err
 	}

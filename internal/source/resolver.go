@@ -205,10 +205,23 @@ func (r *Resolver) Resolve(ctx context.Context, selection model.Selection, setti
 	if err != nil {
 		return res, res.failure(ctx, "combined metadata inspection", err)
 	}
+	for _, comp := range res.Inventory.Compositions {
+		appRules := false
+		for _, feature := range comp.Features {
+			appRules = appRules || feature.Type == "MSIX" || feature.Type == "MSIXBundle" || feature.Type == "MSIXFramework"
+		}
+		if appRules && len(res.Inventory.Apps.Packages) > 0 {
+			res.Inventory, err = metadata.BindAppPolicies(ctx, res.Inventory, comp.Evidence.Document)
+			if err != nil {
+				return res, res.failure(ctx, "app source policy", err)
+			}
+		}
+	}
 	if res.AppPhase != metadata.PhasePostAssembly {
 		res.AppPhase = inventoryAppPhase(res.Inventory.Apps)
 	}
-	if len(settings.Apps.Include) > 0 || settings.Apps.Preset != "" {
+	res.Classification = res.Inventory.Classification
+	if len(res.Inventory.Apps.SelectionRules) == 0 && (len(settings.Apps.Include) > 0 || settings.Apps.Preset != "") {
 		res.gap("app-selection-rules-unresolved", "Requested app families/preset are retained. Package family selection and edition defaults require verified source rules; filenames and Appx display names cannot establish those rules.")
 	}
 	res.inventoryGaps()

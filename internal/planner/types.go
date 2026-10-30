@@ -100,6 +100,7 @@ type frozen struct {
 	AppPhase        string
 	Operations      []Operation
 	Servicing       *ServicePlan
+	Customization   *CustomizationPlan
 	Tools           []tools.Requirement
 	Applicability   []model.SettingApplicability
 	DraftRevision   uint64

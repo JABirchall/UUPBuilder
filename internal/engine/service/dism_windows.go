@@ -184,7 +184,7 @@ func (d *DISM) args(operation ...string) []string {
 	return append(args, operation...)
 }
 func mountPath(m platform.OwnedMount) (string, error) {
-	if m.OperationID != "service-image" || m.Workspace.JobID != m.JobID {
+	if (m.OperationID != "service-image" && m.OperationID != "customize-image") || m.Workspace.JobID != m.JobID {
 		return "", ErrVerification
 	}
 	w, err := platform.OpenWorkspace(m.Workspace)

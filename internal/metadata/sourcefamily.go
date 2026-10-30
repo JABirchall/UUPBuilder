@@ -60,32 +60,7 @@ func (inv *Inventory) finish() error {
 	if len(inv.EditionBases) == 0 {
 		inv.gap("edition-bases-unresolved", "no source-bound derived edition base rules inspected", nil)
 	}
-	if len(inv.Apps.Packages) == 0 {
-		inv.gap("app-inventory-unresolved", "no app package metadata examined; absence of apps is not established", nil)
-	} else {
-		inv.gap("app-selection-rules-unresolved", "edition-specific app defaults/requirements are not established by package identities alone", nil)
-	}
-	for i := range inv.Apps.Packages {
-		app := &inv.Apps.Packages[i]
-		if app.Phase == PhaseUnknown {
-			inv.gap("app-phase-unresolved", app.Family.Name, &app.Evidence.Document)
-		}
-		if len(app.Licenses) == 0 {
-			inv.gap("app-license-unresolved", app.Family.Name+": license requirement/linkage is not established", &app.Evidence.Document)
-		}
-		for _, dependency := range app.Dependencies {
-			resolved := false
-			for _, candidate := range inv.Apps.Packages {
-				if candidate.Framework && candidate.Family == dependency.Family && versionAtLeast(candidate.Identity.Version, dependency.MinVersion) && appArchitectureCompatible(inv.Source.Architecture, app.Identity.Architecture, candidate.Identity.Architecture) {
-					resolved = true
-					break
-				}
-			}
-			if !resolved && !dependency.Optional {
-				inv.gap("app-dependency-unresolved", app.Family.Name+" -> "+dependency.Family.Name, &app.Evidence.Document)
-			}
-		}
-	}
+	inv.appGaps()
 	inv.Classification = ClassificationMetadataIncomplete
 	for _, gap := range inv.Gaps {
 		if gap.Code == "unsupported-schema" || gap.Code == "unsupported-format" {
@@ -103,4 +78,37 @@ func (inv *Inventory) finish() error {
 		inv.Classification = ClassificationSourceUnavailable
 	}
 	return nil
+}
+
+func (inv *Inventory) appGaps() {
+	if len(inv.Apps.Packages) == 0 {
+		inv.gap("app-inventory-unresolved", "no app package metadata examined; absence of apps is not established", nil)
+	} else if len(inv.Apps.SelectionRules) == 0 {
+		inv.gap("app-selection-rules-unresolved", "edition-specific app defaults/requirements are not established by package identities alone", nil)
+	}
+	for i := range inv.Apps.Packages {
+		app := &inv.Apps.Packages[i]
+		if app.Phase == PhaseUnknown {
+			inv.gap("app-phase-unresolved", app.Family.Name, &app.Evidence.Document)
+		}
+		licenseFree := false
+		for _, r := range inv.Apps.SelectionRules {
+			licenseFree = licenseFree || r.Family == app.Family && r.LicenseFree
+		}
+		if len(app.Licenses) == 0 && !licenseFree {
+			inv.gap("app-license-unresolved", app.Family.Name+": license requirement/linkage is not established", &app.Evidence.Document)
+		}
+		for _, dependency := range app.Dependencies {
+			resolved := false
+			for _, candidate := range inv.Apps.Packages {
+				if candidate.Framework && candidate.Family == dependency.Family && versionAtLeast(candidate.Identity.Version, dependency.MinVersion) && appArchitectureCompatible(inv.Source.Architecture, app.Identity.Architecture, candidate.Identity.Architecture) {
+					resolved = true
+					break
+				}
+			}
+			if !resolved && !dependency.Optional {
+				inv.gap("app-dependency-unresolved", app.Family.Name+" -> "+dependency.Family.Name, &app.Evidence.Document)
+			}
+		}
+	}
 }

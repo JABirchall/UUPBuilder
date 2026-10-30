@@ -98,6 +98,14 @@ func TestAppxReadsManifestWithoutClaimingLicenseOrPhase(t *testing.T) {
 	}
 }
 
+func TestAppxReadsBundleManifestAsDeclarations(t *testing.T) {
+	r := resource(t, zipBody(t, []string{"AppxMetadata/AppxBundleManifest.xml"}))
+	got, err := (Appx{}).Inspect(context.Background(), r, metadata.Limits{})
+	if err != nil || len(got.Documents) != 1 || got.Documents[0].Format != metadata.FormatAppxBundleXML {
+		t.Fatalf("bundle manifest not retained: %+v %v", got, err)
+	}
+}
+
 func TestProvidersRespectCancellationAndDocumentLimits(t *testing.T) {
 	r := resource(t, zipBody(t, []string{"AppxManifest.xml"}))
 	ctx, cancel := context.WithCancel(context.Background())

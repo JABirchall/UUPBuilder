@@ -113,6 +113,11 @@ func (m Model) acceptBuildPlan(msg buildPreparedMsg) (tea.Model, tea.Cmd) {
 		return fail("Build blocked: frozen plan does not match the current draft identity.")
 	}
 	m.buildAction.planning = false
+	if customization := msg.plan.CustomizationPlan(); customization != nil && !customization.Apps.Deferred {
+		validated := msg.plan
+		m.apps.validated = &validated
+		m.appsUnchecked = false
+	}
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.buildAction.cancel()
 	m.buildAction.cancel = cancel

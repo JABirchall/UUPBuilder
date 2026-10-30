@@ -23,8 +23,9 @@ import (
 // This backend models image contents for executor control-flow tests. It is not
 // native servicing evidence. Real DISM is tested separately without elevation.
 type imageFixture struct {
-	Images   []ImageIdentity
-	Packages []PackageObservation
+	Images        []ImageIdentity
+	Packages      []PackageObservation
+	Customization CustomizationObservation
 }
 type fixtureBackend struct {
 	mounted                 map[string]string

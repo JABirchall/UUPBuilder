@@ -60,6 +60,10 @@ func graph(f frozen) []Operation {
 			op.Rules = append(op.Rules, Identity{Name: f.Servicing.Generation.ID, Version: "1", Digest: hash(f.Servicing.Generation)})
 			op.OwnedPaths = f.Servicing.OutputPaths()
 		}
+		if kind == CustomizeImage && f.Customization != nil {
+			op.Inputs = append(op.Inputs, InputIdentity{Name: "customization-plan", Digest: f.Customization.Digest})
+			op.OwnedPaths = f.Customization.OutputPaths()
+		}
 		if len(ops) > 0 {
 			op.DependsOn = []string{ops[len(ops)-1].ID}
 		}

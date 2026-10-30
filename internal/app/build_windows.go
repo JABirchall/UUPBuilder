@@ -128,6 +128,12 @@ func operationRegistry() *worker.Registry {
 	if err := registry.Register(planner.ServiceImage, worker.ServicingHandler(nil, nil, nil)); err != nil {
 		panic(err)
 	}
+	if err := registry.Register(planner.InspectApps, worker.AppInspectionHandler(nil)); err != nil {
+		panic(err)
+	}
+	if err := registry.Register(planner.CustomizeImage, worker.CustomizationHandler(nil, nil, nil)); err != nil {
+		panic(err)
+	}
 	return registry
 }
 func runPrivateWorker(ctx context.Context, args []string) (bool, error) {

@@ -42,6 +42,7 @@ const (
 	FormatCBSXML          Format = "cbs-xml"
 	FormatWIMXML          Format = "wim-xml"
 	FormatAppxXML         Format = "appx-xml"
+	FormatAppxBundleXML   Format = "appx-bundle-xml"
 	FormatStoreLicenseXML Format = "store-license-xml"
 )
 
@@ -118,6 +119,7 @@ type ProviderResult struct {
 	Layouts         []LayoutEvidence
 	Licenses        []LicenseEvidence
 	AppPhases       []AppPhaseEvidence
+	AppSelections   []AppSelectionRule
 	EditionBases    []EditionBase
 	PayloadBindings []PayloadBinding
 }
@@ -250,7 +252,7 @@ func Inspect(ctx context.Context, req InspectRequest) (Inventory, error) {
 		if err := ctx.Err(); err != nil {
 			return inv, err
 		}
-		for _, count := range []int{len(result.Updates), len(result.Roles), len(result.Absences), len(result.Layouts), len(result.Licenses), len(result.AppPhases), len(result.EditionBases), len(result.PayloadBindings)} {
+		for _, count := range []int{len(result.Updates), len(result.Roles), len(result.Absences), len(result.Layouts), len(result.Licenses), len(result.AppPhases), len(result.AppSelections), len(result.EditionBases), len(result.PayloadBindings)} {
 			if count > limits.MaxXMLTokens-facts {
 				return inv, ErrLimit
 			}
@@ -579,6 +581,8 @@ func (inv *Inventory) parseDocument(ctx context.Context, doc Document, data []by
 		return inv.parseCBS(root, doc.Reference)
 	case FormatAppxXML:
 		return inv.parseAppx(root, doc.Reference)
+	case FormatAppxBundleXML:
+		return inv.parseAppBundle(root, doc.Reference)
 	case FormatStoreLicenseXML:
 		return inv.parseStoreLicense(root, doc.Reference)
 	}
@@ -586,7 +590,7 @@ func (inv *Inventory) parseDocument(ctx context.Context, doc Document, data []by
 }
 
 func supportedFormat(format Format) bool {
-	return format == FormatWIMXML || format == FormatCompositionXML || format == FormatCBSXML || format == FormatAppxXML || format == FormatStoreLicenseXML
+	return format == FormatWIMXML || format == FormatCompositionXML || format == FormatCBSXML || format == FormatAppxXML || format == FormatAppxBundleXML || format == FormatStoreLicenseXML
 }
 
 func (inv *Inventory) gap(code, detail string, doc *DocumentReference) {

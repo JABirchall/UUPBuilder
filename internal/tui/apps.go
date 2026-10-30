@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -12,10 +13,12 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/model"
+	"uupbuilder/internal/planner"
 	"uupbuilder/internal/source"
 )
 
 type appsState struct {
+	validated     *planner.ReadyPlan
 	generation    uint64
 	selection     model.Selection
 	endpoint      string
@@ -25,6 +28,16 @@ type appsState struct {
 	search        textinput.Model
 	focus, cursor int // mode, stub preference, family list, All offered preset
 }
+
+func (m Model) validatedApps() bool {
+	if m.apps.validated == nil {
+		return false
+	}
+	p := *m.apps.validated
+	c := p.CustomizationPlan()
+	return c != nil && !c.Apps.Deferred && p.DraftRevision() == m.revision && sameAppSelection(p.Selection(), m.cfg.Image) && reflect.DeepEqual(c.Apps.Requested, m.cfg.Apps) && c.Source == p.Manifest().Source
+}
+
 type appsResultMsg struct {
 	generation uint64
 	selection  model.Selection
@@ -59,6 +72,7 @@ func (m *Model) invalidateApps() {
 	m.apps.cancel = nil
 	m.apps.selection = model.Selection{}
 	m.apps.snapshot = source.AppCatalogSnapshot{}
+	m.apps.validated = nil
 	m.apps.status = requestStatus{}
 	m.apps.cursor = 0
 	m.appsUnchecked = true
@@ -137,6 +151,7 @@ func (m Model) appChoices() []appChoice {
 	return rows
 }
 func (m *Model) appEdited() {
+	m.appsUnchecked = true
 	m.revision++
 	m.conversion.applicability = nil
 	m.notice = "App requests changed; manifest, licensing and provisioning applicability remain pending."
@@ -239,6 +254,9 @@ func (m Model) appsRows(width, height int) []row {
 		default:
 			status = "Source app metadata has not been examined; r retry."
 		}
+	}
+	if m.validatedApps() {
+		status = "Source manifests, app closure and requested policies validated for this draft."
 	}
 	if height < 5 && m.apps.search.Focused() {
 		search := controlRows("Search (/)", inputView(m.apps.search, max(1, width-16)), width, true, true, appSearchMsg{})

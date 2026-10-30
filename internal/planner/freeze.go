@@ -95,6 +95,14 @@ func (p ReadyPlan) ServicePlan() *ServicePlan {
 	}
 	return copyOf(p.data.Servicing)
 }
+
+func (p ReadyPlan) CustomizationPlan() *CustomizationPlan {
+	if p.data == nil || p.data.Customization == nil {
+		return nil
+	}
+	owned := copyOf(*p.data.Customization)
+	return &owned
+}
 func (p ReadyPlan) Tools() []tools.Requirement {
 	if p.data == nil {
 		return nil
@@ -156,10 +164,17 @@ func (p ReadyPlan) Validate() error {
 		return ErrInvalidPlan
 	}
 	if f.Intent == BuildMedia {
+		if f.Customization == nil || f.Customization.Validate() != nil || f.Customization.Source != f.Manifest.Source || f.Customization.InventoryDigest != f.InventoryDigest || !f.Customization.MatchesSettings(f.Requested) || f.Customization.Apps.Deferred && f.AppPhase != "post-assembly" {
+			return ErrInvalidPlan
+		}
+		order, err := finalEditionOrder(f.Selection, f.Requested)
+		if err != nil || hash(order) != hash(f.Customization.Editions) {
+			return ErrInvalidPlan
+		}
 		if f.Servicing == nil || f.Servicing.Validate() != nil || f.Servicing.validateSettings(f.Selection, f.Requested) != nil || f.Servicing.Source != f.Manifest.Source || f.Servicing.InventoryDigest != f.InventoryDigest {
 			return ErrInvalidPlan
 		}
-	} else if f.Servicing != nil {
+	} else if f.Servicing != nil || f.Customization != nil {
 		return ErrInvalidPlan
 	}
 	if f.Manifest.Source.UpdateID != f.Selection.UpdateID || f.Manifest.Source.Architecture != f.Selection.Architecture || f.Manifest.Source.Language != f.Selection.Language {
