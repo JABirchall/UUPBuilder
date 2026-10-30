@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"uupbuilder/internal/jobstore"
+	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
 	platform "uupbuilder/internal/platform/windows"
 	"uupbuilder/internal/worker"
@@ -56,9 +57,8 @@ func (c *Controller) Start(ctx context.Context, plan planner.ReadyPlan) (JobView
 	if err != nil {
 		return JobView{}, err
 	}
-	// U10 must install the actual publication-verification completion boundary.
-	// An artifact descriptor or no-op handlers cannot establish a produced ISO.
-	if plan.Intent() == planner.BuildMedia {
+	// Only the fixed publication handler may enable the build completion path.
+	if plan.Intent() == planner.BuildMedia && !registry.SupportsPublication() {
 		return JobView{}, ErrPublicationUnavailable
 	}
 	if err := plan.RecheckStorage(ctx, c.options.InspectStorage); err != nil {
@@ -95,11 +95,22 @@ func (c *Controller) Start(ctx context.Context, plan planner.ReadyPlan) (JobView
 }
 func (c *Controller) execute(ctx context.Context, active *activeJob, plan planner.ReadyPlan, d platform.WorkerDescriptor, self platform.PeerIdentity, store *jobstore.Store, session *worker.Session) {
 	var runErr error
+	var artifacts []model.Artifact
+	var lastKind planner.OperationKind
 	for _, op := range plan.Operations() {
+		lastKind = op.Kind
 		c.mu.Lock()
 		c.last.Stage = op.ID
 		c.mu.Unlock()
-		_, runErr = session.Dispatch(ctx, self, worker.RequestFor(d, plan.Intent(), op.ID))
+		var result worker.Result
+		result, runErr = session.Dispatch(ctx, self, worker.RequestFor(d, plan.Intent(), op.ID))
+		if runErr == nil && op.Kind == planner.PublishISO {
+			var artifact model.Artifact
+			artifact, runErr = verifiedCompletion(ctx, plan, result)
+			if runErr == nil {
+				artifacts = []model.Artifact{artifact}
+			}
+		}
 		if runErr != nil {
 			break
 		}
@@ -108,8 +119,15 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 	if cancelled && runErr == nil {
 		runErr = ctx.Err()
 	}
+	if runErr == nil && plan.Intent() == planner.BuildMedia && len(artifacts) != 1 {
+		runErr = ErrPublicationUnavailable
+	}
 	if runErr != nil {
-		runErr = errors.Join(runErr, cleanupActive(store, active.id))
+		if lastKind == planner.PublishISO {
+			runErr = fmt.Errorf("%w; local ISO and active workspace retained at %s", runErr, store.Identity().Path)
+		} else {
+			runErr = errors.Join(runErr, cleanupActive(store, active.id))
+		}
 	}
 	if closeErr := store.Close(); closeErr != nil {
 		runErr = errors.Join(runErr, fmt.Errorf("%w: %w", errCleanup, closeErr))
@@ -120,6 +138,7 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 	c.last.Actions = nil
 	if runErr == nil {
 		c.last.State = Succeeded
+		c.last.Artifacts = artifacts
 	} else {
 		c.last.State = Failed
 		c.last.Error = runErr.Error()
@@ -133,4 +152,11 @@ func (c *Controller) execute(ctx context.Context, active *activeJob, plan planne
 	}
 	c.active = nil
 	close(active.done)
+}
+
+func verifiedCompletion(ctx context.Context, plan planner.ReadyPlan, result worker.Result) (model.Artifact, error) {
+	if result.Publication == nil {
+		return model.Artifact{}, ErrPublicationUnavailable
+	}
+	return result.Publication.Artifact(ctx, plan.Digest(), plan.Manifest().Source)
 }

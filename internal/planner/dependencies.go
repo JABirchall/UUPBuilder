@@ -64,8 +64,21 @@ func graph(f frozen) []Operation {
 			op.Inputs = append(op.Inputs, InputIdentity{Name: "customization-plan", Digest: f.Customization.Digest})
 			op.OwnedPaths = f.Customization.OutputPaths()
 		}
+		switch kind {
+		case AssembleImage:
+			op.OwnedPaths = []string{"result.json", "base.wim", "boot.wim", "setup-media.tar"}
+		case ExportImage:
+			op.OwnedPaths = []string{"result.json", "exported-images.tar"}
+		case MasterISO:
+			op.OwnedPaths = []string{"result.json", "image.iso"}
+		case PublishISO:
+			op.OwnedPaths = []string{"result.json", "image.sha256", "report.json"}
+		}
 		if len(ops) > 0 {
 			op.DependsOn = []string{ops[len(ops)-1].ID}
+		}
+		if kind == MasterISO {
+			op.DependsOn = append(op.DependsOn, string(AssembleImage), string(CustomizeImage))
 		}
 		if f.AppPhase == "post-assembly" && kind != DownloadPayloads && kind != AssembleImage && kind != InspectApps && !contains(op.DependsOn, string(InspectApps)) {
 			op.DependsOn = append(op.DependsOn, string(InspectApps))

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"uupbuilder/internal/engine/output"
 	"uupbuilder/internal/jobstore"
 	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
@@ -32,13 +33,15 @@ type Stage struct {
 	Predecessors []jobstore.Checkpoint
 }
 type Result struct {
-	Outputs    []jobstore.OutputIdentity
-	AppBarrier *AppBarrierEvidence
-	Artifacts  []model.Artifact
+	Outputs     []jobstore.OutputIdentity
+	AppBarrier  *AppBarrierEvidence
+	Artifacts   []model.Artifact
+	Publication *output.PublishedArtifact
 }
 type Handler struct {
 	RequiresElevation bool
 	Run               func(context.Context, Stage) (Result, error)
+	publishes         bool
 }
 type Registry struct {
 	mu       sync.Mutex
@@ -47,6 +50,15 @@ type Registry struct {
 }
 
 func NewRegistry() *Registry { return &Registry{handlers: map[planner.OperationKind]Handler{}} }
+
+func (r *Registry) SupportsPublication() bool {
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.handlers[planner.PublishISO].publishes
+}
 func (r *Registry) Register(kind planner.OperationKind, h Handler) error {
 	if r == nil || h.Run == nil {
 		return ErrMissingHandler

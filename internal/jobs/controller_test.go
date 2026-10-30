@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"uupbuilder/internal/config"
+	"uupbuilder/internal/engine/output"
 	"uupbuilder/internal/jobstore"
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
@@ -193,6 +194,15 @@ func TestUnverifiedArtifactDescriptorCannotCompleteISO(t *testing.T) {
 	after, _ := os.ReadDir(settings.Storage.Workspace)
 	if len(before) != len(after) {
 		t.Fatal("unverified publication created workspace")
+	}
+}
+
+func TestCompletionRejectsDescriptorsAndEmptyPublicationCapability(t *testing.T) {
+	plan := jobPlan(t)
+	for _, result := range []worker.Result{{Artifacts: []model.Artifact{{Kind: model.OutputISO, Path: "fake.iso"}}}, {Publication: &output.PublishedArtifact{}}} {
+		if _, err := verifiedCompletion(context.Background(), plan, result); err == nil {
+			t.Fatal("unverified destination completed")
+		}
 	}
 }
 
