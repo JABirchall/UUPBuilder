@@ -300,7 +300,7 @@ func (m PayloadManifest) validateInputs() error {
 		if err := query.Validate(); err != nil {
 			return err
 		}
-		if query.UpdateID != m.Source.UpdateID || query.Language != m.Source.Language {
+		if !query.MatchesSource(m.Source) {
 			return errors.New("manifest.query: source revision and language must match the manifest")
 		}
 		for _, projected := range query.Projection {
@@ -336,6 +336,12 @@ func (m PayloadManifest) validateInputs() error {
 		seen[key] = true
 	}
 	return nil
+}
+
+// MatchesSource retains the neutral APP query used by UUP Dump while binding
+// the job to its selected OS language. Other cross-language queries are invalid.
+func (q SourceQuery) MatchesSource(s SourceIdentity) bool {
+	return q.UpdateID == s.UpdateID && (q.Language == s.Language || q.Language == "neutral" && (q.Edition == "APP" || q.Edition == "APP_MOMENT"))
 }
 
 func (m PayloadManifest) contentDigest() string {

@@ -27,6 +27,11 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 		return ReadyPlan{}, fmt.Errorf("%w: job intent required", ErrInvalidPlan)
 	}
 	res := req.Resolution
+	appsResolved := false
+	if req.Intent == BuildMedia {
+		apps, e := PlanApps(res.Inventory, req.Settings.Apps)
+		appsResolved = e == nil && !apps.Deferred
+	}
 	if !reflect.DeepEqual(req.Selection, res.Selection) || !reflect.DeepEqual(req.Settings, res.Settings) {
 		return ReadyPlan{}, ErrIdentityChanged
 	}
@@ -36,7 +41,7 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 	}
 	if req.Intent == BuildMedia {
 		for _, d := range res.Diagnostics {
-			if d.Severity == model.SeverityError && !(res.AppPhase == metadata.PhasePostAssembly && deferredDiagnostic(d.Code)) {
+			if d.Severity == model.SeverityError && !(appsResolved && d.Code == "metadata-app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredDiagnostic(d.Code)) {
 				return ReadyPlan{}, fmt.Errorf("%w: %s: %s", ErrBlocked, d.Code, d.Message)
 			}
 		}
@@ -52,14 +57,14 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 			return ReadyPlan{}, ErrIdentityChanged
 		}
 		for _, gap := range res.Inventory.Gaps {
-			if !(res.AppPhase == metadata.PhasePostAssembly && deferredGap(gap.Code)) {
+			if !(appsResolved && gap.Code == "app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredGap(gap.Code)) {
 				return ReadyPlan{}, fmt.Errorf("%w: metadata-%s: %s", ErrBlocked, gap.Code, gap.Detail)
 			}
 		}
 		if res.Classification == metadata.ClassificationUpdateOnly || res.Classification == metadata.ClassificationSourceUnavailable {
 			return ReadyPlan{}, fmt.Errorf("%w: %s cannot provide ISO source material", ErrBlocked, res.Classification)
 		}
-		if res.Classification != metadata.ClassificationSemanticInventory && res.AppPhase != metadata.PhasePostAssembly {
+		if res.Classification != metadata.ClassificationSemanticInventory && !(appsResolved && len(res.Inventory.Gaps) > 0 && res.Classification == metadata.ClassificationMetadataIncomplete) && res.AppPhase != metadata.PhasePostAssembly {
 			return ReadyPlan{}, fmt.Errorf("%w: semantic discovery incomplete (%s)", ErrBlocked, res.Classification)
 		}
 		if res.AppPhase != metadata.PhasePostAssembly && res.AppPhase != metadata.PhaseOfflineProvisioning {

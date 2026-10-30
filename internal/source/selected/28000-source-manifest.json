@@ -1,0 +1,1436 @@
+{
+  "source": {
+    "update_id": "8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+    "build_label": "28000.3365",
+    "architecture": "amd64",
+    "language": "en-gb"
+  },
+  "payloads": [
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "55eb250595fc2b56c4a10069cb1b238c4bf163fd4c5d79309a6beb73d6dd66a3"
+        },
+        "size": 3261940,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "8f550c54-da87-45d3-89e3-0c03a6f16ae8.AggregatedMetadata.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "8f550c54-da87-45d3-89e3-0c03a6f16ae8.AggregatedMetadata.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "977b0a28f7e029fda73577a5263f76b8ca31dd979c94ea52d802f1799821766c"
+        },
+        "size": 11533163,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "DesktopDeployment.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "DesktopDeployment.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "43587b49ad0402924340c616021c23c369720668b22be54a59371cb14eb4dd4d"
+        },
+        "size": 202724886,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Edge.wim"
+        },
+        "encryption": {}
+      },
+      "destination": "Edge.wim"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a69ef9264160364a32349f65a3961c40014f56a180437a6fc5e1477d5184e104"
+        },
+        "size": 28894766,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "HyperV-OptionalFeature-VirtualMachinePlatform-Client-Disabled-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "HyperV-OptionalFeature-VirtualMachinePlatform-Client-Disabled-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "d8cd834592327cda24340bdba55ed19adb73b27f0940e4472e02bc5a24e87e0b"
+        },
+        "size": 227596776,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Edge-WebView-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Edge-WebView-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "e55d4970a61014fa0179083a20233126f36600d65e508cc545c6f6e16ea9e8c9"
+        },
+        "size": 3981175,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "e752d24678e8aa688b146d2d11238378a7ab7e9723009cdc584a8b4a968a73e3"
+        },
+        "size": 568874,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-OneCore-DirectX-Database-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-OneCore-DirectX-Database-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "975c0f6bb7f80fe599fb4b285350959d0a68ca3eed7518fa3f671b509fef7264"
+        },
+        "size": 188666840,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Win4-Feature.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Win4-Feature.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "80d4342cee8ae1d290a8ba1d2d24382d8bb00147af876a4a8649aacf559e3331"
+        },
+        "size": 49233646,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Win4-WOW64-Feature.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Win4-WOW64-Feature.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "d63f72e2d3901c4be3bd664b0f50aa47caeae59257f1be52a2ef804902684916"
+        },
+        "size": 1098356609,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Client-Desktop-Required-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Client-Desktop-Required-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "68cb54ce4cf699135dc88aa4dd3b96533f7c90f837b19c04bac3df643c3cb275"
+        },
+        "size": 181240452,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Client-Desktop-Required-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Client-Desktop-Required-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "4396aea49c52ecea79d8b74899006cc40cc22179e2e170da6a7762f8281ac1a8"
+        },
+        "size": 275884492,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Client-Features-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Client-Features-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "0a6574d71a25072beb61a40bc3b321fe791aecb1df1e372db111069152a724cf"
+        },
+        "size": 86620969,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Client-Features-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Client-Features-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "13afe5cc730795e9b8d34187e505a71e5a9af8978650e621982ba41e771cc5f0"
+        },
+        "size": 19735265,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Client-LanguagePack-Package-amd64-en-GB.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Client-LanguagePack-Package-amd64-en-GB.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "87bd23a7d965d98192a66c2b6ae831139b7d3cc8a07e4510daf98613b78c178e"
+        },
+        "size": 20977,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-ClientRootSecurity-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-ClientRootSecurity-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "264f47120d69f9f3036604e187fd8eba5e94625c01b1de4ed25d48f16b9704e0"
+        },
+        "size": 5546711,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-DirectoryServices-ADAM-Client-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-DirectoryServices-ADAM-Client-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "421e6b05ce8853615dc94f883adb28f93bfbd1a259d67e2c0ac92644cd6462c1"
+        },
+        "size": 506906,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-DirectoryServices-ADAM-Client-FOD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-DirectoryServices-ADAM-Client-FOD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "be6fbea0b5bfc95135f169d565b151788c3c488c741d8bb7ce7682dbfe08567a"
+        },
+        "size": 191868060,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EditionPack-Professional-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EditionPack-Professional-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "273f11be74cf731b48084a92ce2bd7f5b686cec9d787e1521397e969ab9da92d"
+        },
+        "size": 26000652,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EditionPack-Professional-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EditionPack-Professional-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "77ba262fdf48c365d001e7b35de2309e1c40fd964485d59e6d20621c09eca047"
+        },
+        "size": 115087520,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EditionSpecific-Professional-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EditionSpecific-Professional-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "f531448205b3fb05cdfef88d1b7386e06c51178415cec00ca8f24c2c20c5c0dd"
+        },
+        "size": 65598,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EditionSpecific-Professional-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EditionSpecific-Professional-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "654b71ea26af5530509d106d383349ffcd8c5136826f4c54d4e0b93c0e9124f8"
+        },
+        "size": 943229,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EnterpriseClientSync-Host-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EnterpriseClientSync-Host-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "dbb822b7e21b9898934e025043defb7a50a0d4d4ddec9c99ad99e63638ed2dd6"
+        },
+        "size": 50783,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-EnterpriseClientSync-Host-FOD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-EnterpriseClientSync-Host-FOD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "58b33d21ff82a8ec6ab104d5e9a4acb8d4c574314d24b6c72886e4227c15292c"
+        },
+        "size": 287856,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "39d34e58e3afd456b5fbd104ae1ca14c03d680635d614c0f42a4f5688b2dae21"
+        },
+        "size": 239057,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "1c1360286c27e2542c1eb0128a035fa900f8f5f9ef8c9dbafe7e68041e9d58b9"
+        },
+        "size": 250827,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "e20002958c8cb0ab61612a7d207f1447a9c0348b4a3610e1abf99971c1ee067a"
+        },
+        "size": 70495,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "4db576c40204702902c0b7805226f8054d51eb14fb323738ddeabcb4311afa93"
+        },
+        "size": 577686,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-FoDMetadata-Package.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-FoDMetadata-Package.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "b7c557e6f57a4825acd54f1b8691936156a5bfa11c9fa37f7fe2d4d7653a205e"
+        },
+        "size": 25132,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Foundation-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Foundation-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "9dc97ae1f17e463f8c7e41c8a0b2467e01fce6a937a5b8abafe85a92e347a83b"
+        },
+        "size": 60054615,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Hello-Face-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Hello-Face-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "78f962230e24e82a79bfa4aec00d718669c82c94208930e736a411dd7a467525"
+        },
+        "size": 308527,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-InternetExplorer-Optional-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-InternetExplorer-Optional-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "6d573cafb8718bdb1000c6e30ea56a65828c3a8218516eb57742214884711e80"
+        },
+        "size": 5635851,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Kernel-LA57-FoD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Kernel-LA57-FoD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "2909761e368b2cda4a70e08046dd43f8e866a85060dff60c075575901f433f80"
+        },
+        "size": 17784958,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-LanguageFeatures-Basic-en-gb-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-LanguageFeatures-Basic-en-gb-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "7e5b8c7a315c8ec2aca5282e6aa3c0930cbed3b8d551273362d652d51f4a695a"
+        },
+        "size": 18528563,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-LanguageFeatures-Handwriting-en-gb-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-LanguageFeatures-Handwriting-en-gb-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "08d9950a68852f158fdc8866e9c76d6d57b550c70504cd118b85fd95d22ab470"
+        },
+        "size": 159296,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-LanguageFeatures-OCR-en-gb-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-LanguageFeatures-OCR-en-gb-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "5306832933dbe498350a7f26b6019ff2e511d181b7e8485d30103bec7d11ad00"
+        },
+        "size": 61909430,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-LanguageFeatures-Speech-en-gb-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-LanguageFeatures-Speech-en-gb-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "7b7b312dab0475b092837be16d627419e7e5bdc36014370872421ef147b699f8"
+        },
+        "size": 27043823,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-LanguageFeatures-TextToSpeech-en-gb-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-LanguageFeatures-TextToSpeech-en-gb-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a3d4b152043b08a5fbb27b24a0524387e37fcd9edcb1143d4b3ad101e318a33c"
+        },
+        "size": 9756477,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-MediaPlayer-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-MediaPlayer-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "0a12cfd7be7f5975b97c21b5e837ea0c12b4983ed96ef05e6e05ddb46b33825f"
+        },
+        "size": 4639583,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-MediaPlayer-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-MediaPlayer-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "d8b2cba57c722a259edcef75a3511ed04879f05b8a42c5151932f791ff80252f"
+        },
+        "size": 85990471,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Not-Supported-On-LTSB-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Not-Supported-On-LTSB-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "d8ba09e0043155e64f428f276a2fd58db3df64dd22fa40944dc51ab21b0395d5"
+        },
+        "size": 25760,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Not-Supported-On-LTSB-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Not-Supported-On-LTSB-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a12817f1f25fa97cd6edeb7be251d1a50d52896da9e217078caa1404088837e9"
+        },
+        "size": 212193,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Notepad-System-FoD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Notepad-System-FoD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "890ff441d6fd51df458b8a877b724779cbc78b8b958bb2f0b975b86c6b6d2639"
+        },
+        "size": 197832,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Notepad-System-FoD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Notepad-System-FoD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "3240604ed88169cf9d35356181ef1eb1a88f390a6407f379a20dd7eda1c0c7f4"
+        },
+        "size": 1116860,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-PowerShell-ISE-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-PowerShell-ISE-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "c1963eabd8eff5c9892e5c3a7127038651fb11e8b4d3d58dc2dfe22db92fe448"
+        },
+        "size": 115385,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-PowerShell-ISE-FOD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-PowerShell-ISE-FOD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "2f7596396d9fbeba468228c1adb6c4ff99b124e7d3f57cb94f3d8e546aa961d3"
+        },
+        "size": 406814,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Printing-PMCPPC-FoD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Printing-PMCPPC-FoD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "5ab644dfb872e807df6a13be0d31bcf1055af9833a09dc768981dd069e9d1849"
+        },
+        "size": 174240,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-ProjFS-OptionalFeature-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-ProjFS-OptionalFeature-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "1203001e6ad927ffcfbcb079796b4ce3f9d73ce0822fb5a301634047f95a61a8"
+        },
+        "size": 25031869,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-RegulatedPackages-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-RegulatedPackages-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "3444671b0e1eecd7e73878a1a517e01ee449151a5b69002e3372eb03bb0f9438"
+        },
+        "size": 20638166,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-RegulatedPackages-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-RegulatedPackages-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "aecd4342f831b4de67c6effbc27d038602c9755e0dffb9d02dd3e2cabbb5f080"
+        },
+        "size": 10407368,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Required-ShellExperiences-Desktop-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Required-ShellExperiences-Desktop-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a03655b4916365fe0d7e8c60140189c59d4f0fd354df87b2cd9a4084acab2b7b"
+        },
+        "size": 1700490,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Required-ShellExperiences-Desktop-WOW64-Package.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Required-ShellExperiences-Desktop-WOW64-Package.esd"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "4c28199b50899a257599c422ff58de89bc73cb4acb79d3ab486a83029a604448"
+        },
+        "size": 70865920,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-SenseClient-Fod-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-SenseClient-Fod-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "1b1f4d711e7931f6a2c878d6b692b901d7d89f527308bb0769d72a222fc5dd98"
+        },
+        "size": 35025,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-SimpleTCP-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-SimpleTCP-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "356e707cc818c07a532fb2390d678c8ea7698b452a788b94ecbdbb01e9684126"
+        },
+        "size": 108870,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-SmbDirect-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-SmbDirect-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "b50fc41aed6472e7e51899fd7fb052daeba8a22f6ef67e61c80ad19d15ae7196"
+        },
+        "size": 236803,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-StepsRecorder-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-StepsRecorder-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "87326dd97f1dce95d65b164408dafaa9d72c88b4bd75edebae10ea5b5e8e35ba"
+        },
+        "size": 157454,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-StepsRecorder-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-StepsRecorder-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "40430d099be683c3d2e88090387ff232bd987071748d8d11824fff1c25b8a038"
+        },
+        "size": 40113,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-TFTP-Client-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-TFTP-Client-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "014388f550a80c40a37d4408ff7e4ce5d1b9d9d26a041c92886401e0c8278a0b"
+        },
+        "size": 5884373,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-TabletPCMath-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-TabletPCMath-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "6cee14d35835346e5dd2a443904dcc70d12812072ee1b9a3c5d0e73fb9c4b953"
+        },
+        "size": 92237,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Telnet-Client-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Telnet-Client-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "b140ab4dab9cd368fafff38aa343619fafcfe30c5f0b83d3c370c099f4259559"
+        },
+        "size": 967776,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "1931fa04ef2d50174f19fc8c6f685b2157710c94b9220d0f5d571825007d05a1"
+        },
+        "size": 243153,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "542ad33f18b4c97f0215495856d2039f46229621fb0f62f3bfc336a6a82752f6"
+        },
+        "size": 300074,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-VBSCRIPT-FoD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-VBSCRIPT-FoD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "6df1b0e1ce1512d08dc979cd6844e4ad7f8b2620ef419a60492e086065b416fa"
+        },
+        "size": 260599,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-VBSCRIPT-FoD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-VBSCRIPT-FoD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a979f5601b85fcdb508f7ccc23655025808e2403bea52237c32c97438a1a1820"
+        },
+        "size": 26228,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "bfe9280adcfac49c3593306c1ae802db6eae1714fd378e6b63eec8e514259258"
+        },
+        "size": 1044039,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "d2c86943ada3dac15aa24dc9b77f6090bc21162ddd237452593dc522677277d9"
+        },
+        "size": 2077596,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "479afab88db6e62b3e9e4219f67e554a793c7a73cc7172ef825f11f81e3de13c"
+        },
+        "size": 1210985,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "1df93dd5f6683473cfceee358b19ba4216aa845d10cbae8e95d81e94a42e6ba7"
+        },
+        "size": 1808867,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "0238c80cd4ce3990ff3ffab5065be32f04a27f2f9afb25d048198851ed594e96"
+        },
+        "size": 2279243,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "7c1b1fe7eb3fe6e375b1a4bc100aa83035fbb9c1446e48c1a6931efb58f0c50c"
+        },
+        "size": 2286605,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "a39a817ed8f74a6a2f3551213e1a09220a99311e797f5860d73531469fbe7732"
+        },
+        "size": 1855394,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "31a2c3af0a26487f887de4c3ce4d86ca2d5a7c0a566452c3d5a4b93e6005f067"
+        },
+        "size": 2002052,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "425722bf62397a04293e700787f68bd2c0c4f4a2600196faacff892ed84db311"
+        },
+        "size": 2344466,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "817f9a6d337f9cd5fac41579bb7938dd35b8bf656dfd7413e73262bbf6d9916b"
+        },
+        "size": 3203067,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "b569de7509770443a137db266626eb28f27eedd0e4282718364985a1fe9fd484"
+        },
+        "size": 2563924,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "94a25964c09713d25206c7e560c94598bb5ad1e485e8b4336ce7af994c91cdca"
+        },
+        "size": 2694318,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "109b201f6849e4948baf32d08ee4ee1190f8952c8c75800fa2f57e9a954f232c"
+        },
+        "size": 2915822,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "8db3361171f7bae3fb6a24c2f54443e95e9a66da8126fb2688f7e1b1400575bf"
+        },
+        "size": 3464738,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "2a02f961e53dab42351499378f731bdd5ff09cb7086fd4dd4b3dbc773c07f473"
+        },
+        "size": 622542,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "4cb9a6e451a95467c7935f8fa225e27ca28712131469f4ee02ce708c0b13faed"
+        },
+        "size": 1031638,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "74cf4258489032675ced60386a89231d72a0ad9394b538de1e8d16be2743bbcd"
+        },
+        "size": 1043798,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "583a66b43430e0dc0eafaaeba8a937e73a98990c35c8b22a08025c9750871d8c"
+        },
+        "size": 1705243,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "158f7fda099c88bffbec280c0bc659a374270fa96bd30ad866e0d4933d7482a8"
+        },
+        "size": 1149387,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "124e4c7c1e42ca766fa853d9ff8a4621a86d66850ee530b185864ff30bf79800"
+        },
+        "size": 521867,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "47792543df71e8d9bbe7dfb5aa7abee82cf24d5081e568cfa043dcad78135c06"
+        },
+        "size": 2636909,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "727e7c605912d47b25c6f301b87fc78ccbb898b05e30aed9a34546ed0b41b8bd"
+        },
+        "size": 2084217,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "3460fd232d32a04ecd2f08bfa0c41572137873d08f9850306ef7d1ceb468ff44"
+        },
+        "size": 1212048,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "474c1f9c9c134bd3be785173555723407a6cbae5a60e9a7a455aad0db339deed"
+        },
+        "size": 121444,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-WinOcr-FOD-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-WinOcr-FOD-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "24e907c9a76a060e62483981e1d5d129e4e550aa1f925e6eed89f625d1803516"
+        },
+        "size": 109831,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Microsoft-Windows-WinOcr-FOD-Package-wow64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Microsoft-Windows-WinOcr-FOD-Package-wow64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "6cf3bed8950aca7f0c1c1f066cc4f3281a2872b0dabe3db36afc46dcdba15f74"
+        },
+        "size": 2022180,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "OpenSSH-Client-Package-amd64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "OpenSSH-Client-Package-amd64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "03ff0b0c4689da5b3c394a23a9c9f25c68e4c76aa0e7cd0bf7050dbfbd2f905a"
+        },
+        "size": 234018508,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Windows11.0-KB5127652-x64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Windows11.0-KB5127652-x64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "85c1acd0ebb35a60f090333fc1ccbf1e4b6c6271839d7f203ce8baff446ff3b6"
+        },
+        "size": 4353046426,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Windows11.0-KB5127653-x64.msu"
+        },
+        "encryption": {}
+      },
+      "destination": "Windows11.0-KB5127653-x64.msu"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "c9ae81a03105a10f35c97ef1881bd7cdfdcafadd78871bd8242388b8994ca743"
+        },
+        "size": 46753893,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Windows11.0-KB5127691-x64-NDP481.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Windows11.0-KB5127691-x64-NDP481.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "163f2ca13ee27185b8579f3852e94466f61a08d0528a5168cd8c8224b5278139"
+        },
+        "size": 7443480,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "Windows11.0-KB5129651-x64.cab"
+        },
+        "encryption": {}
+      },
+      "destination": "Windows11.0-KB5129651-x64.cab"
+    },
+    {
+      "identity": {
+        "digest": {
+          "algorithm": "sha256",
+          "value": "667d6741a883bb2c6b0860668784da62936a11f08090f2bee98ae561fad2c2c6"
+        },
+        "size": 491293777,
+        "provenance": {
+          "source": "uupdump:get.php:8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+          "name": "professional_en-gb.esd"
+        },
+        "encryption": {}
+      },
+      "destination": "professional_en-gb.esd"
+    }
+  ],
+  "digest": "59a4209f4493d6b2fb6a49c3ded47d81ceff6a4dae759513487706216c49c3ed"
+}

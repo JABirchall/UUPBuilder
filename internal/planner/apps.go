@@ -16,7 +16,7 @@ type AppProvision struct {
 	Dependencies []metadata.ResourceReference
 	Resources    []metadata.ResourceReference
 	License      *metadata.ResourceReference
-	LicenseXML   []byte
+	LicenseXML   []byte `json:",omitempty"`
 	SkipLicense  bool
 	Stub         model.AppStubPolicy
 }

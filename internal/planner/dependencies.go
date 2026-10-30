@@ -9,6 +9,13 @@ func (p *Planner) dependencies(req Request) ([]tools.Requirement, error) {
 	if req.Intent == DownloadOnly {
 		return nil, nil
 	}
+	if p != nil && p.ManagedSelected {
+		r, err := tools.SelectedRequirement(req.Host, req.Resolution.Manifest.Source, req.Resolution.Manifest.Digest)
+		if err != nil {
+			return nil, err
+		}
+		return []tools.Requirement{r}, nil
+	}
 	manifest, err := tools.DefaultManifest()
 	if err != nil {
 		return nil, err
@@ -51,8 +58,12 @@ func graph(f frozen) []Operation {
 	for _, kind := range kinds {
 		op := Operation{ID: string(kind), Kind: kind, SourceDigest: f.Manifest.Digest, Rules: []Identity{{Name: "u05-graph-v1", Version: "1", Digest: hash("u05-graph-v1")}, {Name: "source-inventory", Version: "1", Digest: f.InventoryDigest}}, Inputs: []InputIdentity{{Name: "manifest", Digest: f.Manifest.Digest}}, OwnedPaths: []string{"result.json"}}
 		if kind == DownloadPayloads {
-			for _, payload := range f.Manifest.Payloads {
-				op.OwnedPaths = append(op.OwnedPaths, "payloads/"+payload.Identity.Key()+".data")
+			if f.Intent == BuildMedia {
+				op.OwnedPaths = append(op.OwnedPaths, "payloads.tar")
+			} else {
+				for _, payload := range f.Manifest.Payloads {
+					op.OwnedPaths = append(op.OwnedPaths, "payloads/"+payload.Identity.Key()+".data")
+				}
 			}
 		}
 		if kind == ServiceImage && f.Servicing != nil {
@@ -79,6 +90,16 @@ func graph(f frozen) []Operation {
 		}
 		if kind == MasterISO {
 			op.DependsOn = append(op.DependsOn, string(AssembleImage), string(CustomizeImage))
+		}
+		if kind == ServiceImage {
+			for _, dependency := range []OperationKind{AssembleImage, DownloadPayloads} {
+				if !contains(op.DependsOn, string(dependency)) {
+					op.DependsOn = append(op.DependsOn, string(dependency))
+				}
+			}
+		}
+		if kind == CustomizeImage {
+			op.DependsOn = append(op.DependsOn, string(DownloadPayloads))
 		}
 		if f.AppPhase == "post-assembly" && kind != DownloadPayloads && kind != AssembleImage && kind != InspectApps && !contains(op.DependsOn, string(InspectApps)) {
 			op.DependsOn = append(op.DependsOn, string(InspectApps))

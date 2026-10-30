@@ -18,6 +18,32 @@ import (
 func sourceIdentity() model.SourceIdentity {
 	return model.SourceIdentity{UpdateID: "12345678-1234-1234-1234-123456789abc_rev.7", BuildLabel: "10.0.1.2", Architecture: "arm64", Language: "en-us"}
 }
+
+func TestUnionPreservesNeutralAppQueryProvenance(t *testing.T) {
+	base := sourceSet(sourcePayload("base.esd", "a"))
+	apps := sourceSet(sourcePayload("app.msix", "b"))
+	apps.Source.Language = "neutral"
+	q := query("APP")
+	q.Language = "neutral"
+	q.Projection = apps.Payloads
+	m, _, err := Union(sourceIdentity(), []catalog.FileSet{base, apps}, query("PROFESSIONAL"), q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Source.Language != "en-us" || m.Queries[1].Language != "neutral" || m.Validate() != nil {
+		t.Fatal("lost original source/query language")
+	}
+	apps.Source.BuildLabel = "other"
+	if _, _, err = Union(sourceIdentity(), []catalog.FileSet{base, apps}, query("PROFESSIONAL"), q); err == nil {
+		t.Fatal("cross-build app union accepted")
+	}
+	apps.Source = base.Source
+	apps.Source.Language = "neutral"
+	q.Edition = "PROFESSIONAL"
+	if _, _, err = Union(sourceIdentity(), []catalog.FileSet{base, apps}, query("PROFESSIONAL"), q); err == nil {
+		t.Fatal("neutral OS query accepted")
+	}
+}
 func sourcePayload(name, digit string) model.Payload {
 	return model.Payload{Identity: model.PayloadIdentity{Digest: model.Digest{Algorithm: model.DigestSHA256, Value: strings.Repeat(digit, 64)}, Size: 16, Provenance: model.PackageProvenance{Source: "synthetic-original-package", Name: name}}, Destination: name}
 }

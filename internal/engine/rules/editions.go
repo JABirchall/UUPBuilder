@@ -9,6 +9,7 @@ import (
 type EditionPlan struct {
 	Edition, Base string
 	Derive        bool
+	Origin        string
 }
 
 // Derivation clones its declared base then invokes native Set-Edition. Merely
@@ -73,11 +74,13 @@ func Editions(inv metadata.Inventory, order, derived []string) ([]EditionPlan, [
 				requested = requested || strings.EqualFold(value, edition)
 			}
 			base := available[strings.ToLower(bases[key])]
+			origin := "source-edition-base"
 			if !requested || base == "" {
 				return nil, nil, fmt.Errorf("unsupported explicit edition %s: no inspected direct base", edition)
 			}
 			plan.Base = base
 			plan.Derive = true
+			plan.Origin = origin
 		}
 		plans = append(plans, plan)
 		baseKey := strings.ToLower(plan.Base)

@@ -66,7 +66,8 @@ type Planner struct {
 	DefaultCache     string
 	// SelectTools is the producer's read-only capability gate. Nil uses the
 	// embedded trusted manifest, whose current candidates remain blocked.
-	SelectTools func(tools.Requirement) (tools.Selection, error)
+	SelectTools     func(tools.Requirement) (tools.Selection, error)
+	ManagedSelected bool
 }
 type Volume struct {
 	Path           string

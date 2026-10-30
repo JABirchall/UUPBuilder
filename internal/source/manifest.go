@@ -15,7 +15,7 @@ func Union(source model.SourceIdentity, sets []catalog.FileSet, queries ...model
 		return model.PayloadManifest{}, nil, ErrInvalidInput
 	}
 	for _, q := range queries {
-		if q.Validate() != nil || q.UpdateID != source.UpdateID || q.Language != source.Language {
+		if q.Validate() != nil || !q.MatchesSource(source) {
 			return model.PayloadManifest{}, nil, ErrInvalidInput
 		}
 		if len(q.Projection) > 0 && len(queries) != len(sets) {
@@ -27,7 +27,11 @@ func Union(source model.SourceIdentity, sets []catalog.FileSet, queries ...model
 	var payloads []model.Payload
 	locators := make(model.Locators)
 	for index, set := range sets {
-		if set.Source != source {
+		setSource := set.Source
+		if setSource != source && index < len(queries) && queries[index].Language == "neutral" && queries[index].MatchesSource(source) && setSource.Language == "neutral" {
+			setSource.Language = source.Language
+		}
+		if setSource != source {
 			return model.PayloadManifest{}, nil, ErrInputIdentityChanged
 		}
 		// Validate the complete producer response before applying any projection.
