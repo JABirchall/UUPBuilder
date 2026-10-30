@@ -89,6 +89,12 @@ func (p ReadyPlan) Operations() []Operation {
 	}
 	return copyOf(p.data.Operations)
 }
+func (p ReadyPlan) ServicePlan() *ServicePlan {
+	if p.data == nil || p.data.Servicing == nil {
+		return nil
+	}
+	return copyOf(p.data.Servicing)
+}
 func (p ReadyPlan) Tools() []tools.Requirement {
 	if p.data == nil {
 		return nil
@@ -147,6 +153,13 @@ func (p ReadyPlan) Validate() error {
 		return ErrInvalidPlan
 	}
 	if f.Intent == BuildMedia && f.AppPhase != "offline-provisioning" && f.AppPhase != "post-assembly" {
+		return ErrInvalidPlan
+	}
+	if f.Intent == BuildMedia {
+		if f.Servicing == nil || f.Servicing.Validate() != nil || f.Servicing.validateSettings(f.Selection, f.Requested) != nil || f.Servicing.Source != f.Manifest.Source || f.Servicing.InventoryDigest != f.InventoryDigest {
+			return ErrInvalidPlan
+		}
+	} else if f.Servicing != nil {
 		return ErrInvalidPlan
 	}
 	if f.Manifest.Source.UpdateID != f.Selection.UpdateID || f.Manifest.Source.Architecture != f.Selection.Architecture || f.Manifest.Source.Language != f.Selection.Language {

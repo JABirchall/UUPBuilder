@@ -174,7 +174,7 @@ func TestUnverifiedArtifactDescriptorCannotCompleteISO(t *testing.T) {
 	}
 	p := planner.Planner{InspectStorage: storage, SelectTools: func(r tools.Requirement) (tools.Selection, error) { return tools.Selection{Requirement: r}, nil }}
 	selection, settings, manifest := download.Selection(), download.RequestedSettings(), download.Manifest()
-	plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: metadata.Inventory{Source: manifest.Source, Manifest: manifest, Classification: metadata.ClassificationSemanticInventory}, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhaseOfflineProvisioning}, Host: host, Intent: planner.BuildMedia})
+	plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: metadata.Inventory{Source: manifest.Source, Manifest: manifest, Images: []metadata.Image{{Index: 1, Edition: selection.Editions[0], Build: "10.0.28000.1", Architecture: selection.Architecture}}, Classification: metadata.ClassificationSemanticInventory}, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhaseOfflineProvisioning}, Host: host, Intent: planner.BuildMedia})
 	if err != nil {
 		t.Fatal(err)
 	}

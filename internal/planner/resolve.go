@@ -67,6 +67,17 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 		}
 	}
 	f := frozen{Version: 1, Selection: req.Selection, Requested: req.Settings, Effective: req.Settings, Manifest: res.Manifest, Host: req.Host, InventoryDigest: hash(res.Inventory), AppPhase: string(res.AppPhase), DraftRevision: req.DraftRevision, Intent: req.Intent, Applicability: applicability}
+	if req.Intent == BuildMedia {
+		serviceSettings := copyOf(req.Settings)
+		if serviceSettings.Output.EditionOrder, err = finalEditionOrder(req.Selection, req.Settings); err != nil {
+			return ReadyPlan{}, err
+		}
+		service, err := BuildServicePlan(res.Inventory, serviceSettings)
+		if err != nil {
+			return ReadyPlan{}, fmt.Errorf("%w: %v", ErrBlocked, err)
+		}
+		f.Servicing = &service
+	}
 	if p != nil {
 		if f.Effective.Storage.Workspace == "auto" {
 			f.Effective.Storage.Workspace = p.DefaultWorkspace

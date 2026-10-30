@@ -121,7 +121,15 @@ func (s *buildService) Close(ctx context.Context) error {
 
 // All stage registrations are composed here for both the normal application
 // and private worker. U06-U10 provide real producers; absence stays a blocker.
-func operationRegistry() *worker.Registry { return worker.NewRegistry() }
+func operationRegistry() *worker.Registry {
+	registry := worker.NewRegistry()
+	// U08's native handler is fixed here. Until U07 supplies inspected mutable
+	// images and a verified runtime provider, invocation reports that exact gap.
+	if err := registry.Register(planner.ServiceImage, worker.ServicingHandler(nil, nil, nil)); err != nil {
+		panic(err)
+	}
+	return registry
+}
 func runPrivateWorker(ctx context.Context, args []string) (bool, error) {
 	if len(args) == 0 || args[0] != "--uup-worker" {
 		return false, nil

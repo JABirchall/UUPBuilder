@@ -36,6 +36,7 @@ func fixture(t *testing.T) (*Planner, Request) {
 	}
 	host := model.Host{WindowsBuild: 26100, NativeArchitecture: "amd64", ProcessArchitecture: "amd64", FileSystem: model.FileSystemCapabilities{Name: "FAT32"}}
 	res := source.Resolution{Selection: sel, Settings: settings, Manifest: manifest, Classification: metadata.ClassificationSemanticInventory, Inventory: metadata.Inventory{Source: src, Manifest: manifest, Classification: metadata.ClassificationSemanticInventory}, AppPhase: metadata.PhaseOfflineProvisioning}
+	res.Inventory.Images = []metadata.Image{{Index: 1, Edition: "professional", Build: "10.0.28000.1", Architecture: sel.Architecture, Languages: []string{sel.Language}}}
 	p := &Planner{InspectStorage: func(_ context.Context, path string) (Volume, error) {
 		return Volume{Path: path, ID: path, AvailableBytes: math.MaxInt64, MaxFileBytes: math.MaxInt64, FileSystem: model.FileSystemCapabilities{Name: "NTFS", Local: true, ACLs: true, AlternateStreams: true, HardLinks: true, ReparsePoints: true}}, nil
 	}}

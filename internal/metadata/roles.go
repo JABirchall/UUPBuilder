@@ -46,6 +46,9 @@ func validReference(ref ResourceReference, known map[model.PayloadIdentity]bool)
 	return known[ref.Payload] && validMember(ref.Member)
 }
 func (inv *Inventory) applyEvidence(result ProviderResult, known map[model.PayloadIdentity]bool) error {
+	if err := inv.applyUpdates(result.Updates, known); err != nil {
+		return err
+	}
 	for _, binding := range result.PayloadBindings {
 		if err := inv.bindPayload(binding, known); err != nil {
 			return err

@@ -1,0 +1,18 @@
+{
+  "_provenance": "Authored factual projection of acquired source AggregatedMetadata.cab / DesktopTargetCompDB_Professional_en-gb.xml; source update 8f550c54-da87-45d3-89e3-0c03a6f16ae8. This is not an upstream schema or changed-image evidence.",
+  "Source": {
+    "update_id": "8f550c54-da87-45d3-89e3-0c03a6f16ae8",
+    "build_label": "Windows 11 26H1 28000.3365",
+    "architecture": "amd64",
+    "language": "en-gb"
+  },
+  "Compositions": [
+    {
+      "Type": "Build",
+      "OSVersion": "10.0.28000.1",
+      "BuildInfo": "br_release.28000.1.251103-1709",
+      "Architecture": "amd64",
+      "Tags": [{"Name": "Edition", "Value": "Professional"}, {"Name": "Language", "Value": "en-gb"}]
+    }
+  ]
+}

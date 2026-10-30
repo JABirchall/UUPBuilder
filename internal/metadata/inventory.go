@@ -111,6 +111,7 @@ type Inspection struct {
 	Provider ReadOnlyProvider
 }
 type ProviderResult struct {
+	Updates         []Update
 	Documents       []MetadataDocument
 	Roles           []RoleEvidence
 	Absences        []AbsenceEvidence
@@ -140,6 +141,7 @@ type InspectRequest struct {
 	Limits      Limits
 }
 type Inventory struct {
+	Updates        []Update
 	Source         model.SourceIdentity
 	Manifest       model.PayloadManifest
 	Documents      []Document
@@ -248,7 +250,7 @@ func Inspect(ctx context.Context, req InspectRequest) (Inventory, error) {
 		if err := ctx.Err(); err != nil {
 			return inv, err
 		}
-		for _, count := range []int{len(result.Roles), len(result.Absences), len(result.Layouts), len(result.Licenses), len(result.AppPhases), len(result.EditionBases), len(result.PayloadBindings)} {
+		for _, count := range []int{len(result.Updates), len(result.Roles), len(result.Absences), len(result.Layouts), len(result.Licenses), len(result.AppPhases), len(result.EditionBases), len(result.PayloadBindings)} {
 			if count > limits.MaxXMLTokens-facts {
 				return inv, ErrLimit
 			}

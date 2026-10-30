@@ -55,6 +55,11 @@ func graph(f frozen) []Operation {
 				op.OwnedPaths = append(op.OwnedPaths, "payloads/"+payload.Identity.Key()+".data")
 			}
 		}
+		if kind == ServiceImage && f.Servicing != nil {
+			op.Inputs = append(op.Inputs, InputIdentity{Name: "service-plan", Digest: f.Servicing.Digest})
+			op.Rules = append(op.Rules, Identity{Name: f.Servicing.Generation.ID, Version: "1", Digest: hash(f.Servicing.Generation)})
+			op.OwnedPaths = f.Servicing.OutputPaths()
+		}
 		if len(ops) > 0 {
 			op.DependsOn = []string{ops[len(ops)-1].ID}
 		}

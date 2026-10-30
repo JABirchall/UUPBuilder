@@ -99,6 +99,7 @@ type frozen struct {
 	InventoryDigest string
 	AppPhase        string
 	Operations      []Operation
+	Servicing       *ServicePlan
 	Tools           []tools.Requirement
 	Applicability   []model.SettingApplicability
 	DraftRevision   uint64

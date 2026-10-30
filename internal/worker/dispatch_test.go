@@ -186,7 +186,7 @@ func TestDeferredBarrierBindsActualAssemblySourceDraftAndPlan(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: metadata.Inventory{Source: manifest.Source, Manifest: manifest, Classification: metadata.ClassificationSemanticInventory}, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhasePostAssembly}, Host: host, DraftRevision: 11, Intent: planner.BuildMedia})
+			plan, err := p.Resolve(context.Background(), planner.Request{Selection: selection, Settings: settings, Resolution: source.Resolution{Selection: selection, Settings: settings, Manifest: manifest, Inventory: metadata.Inventory{Source: manifest.Source, Manifest: manifest, Images: []metadata.Image{{Index: 1, Edition: selection.Editions[0], Build: "10.0.28000.1", Architecture: selection.Architecture}}, Classification: metadata.ClassificationSemanticInventory}, Classification: metadata.ClassificationSemanticInventory, AppPhase: metadata.PhasePostAssembly}, Host: host, DraftRevision: 11, Intent: planner.BuildMedia})
 			if err != nil {
 				t.Fatal(err)
 			}
