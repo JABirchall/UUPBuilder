@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"runtime"
@@ -186,5 +187,191 @@ func TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse(t *testing.T) {
 				t.Fatal(e)
 			}
 		})
+	}
+}
+
+type opaqueCallbackRecord struct {
+	MessageID   uint32
+	Count       uint64
+	ReturnValue uint32
+}
+
+func metadataExcludeRecord(t *testing.T, v applyCallbackEvidence) opaqueCallbackRecord {
+	t.Helper()
+	b, e := json.Marshal(v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var exported struct{ OpaqueMetadataExclude opaqueCallbackRecord }
+	if e = json.Unmarshal(b, &exported); e != nil {
+		t.Fatal(e)
+	}
+	return exported.OpaqueMetadataExclude
+}
+
+// Invalid words must never be treated as addresses or exclusion decisions.
+// Following them with real valid callback payloads exposes a spurious failure
+// latch that merely returning SUCCESS from the opaque message would hide.
+func TestFixedApplyCallbackOpaqueMetadataExcludeContinuesWithoutParameterUse(t *testing.T) {
+	h := &applyCallbackHub{}
+	s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, words := range [][2]uintptr{{1, ^uintptr(0)}, {0, 2}} {
+		if ret := h.deliver(s.token, 0x9495, words[0], words[1]); ret != 0 {
+			t.Fatal("opaque notification did not return SUCCESS", ret)
+		}
+	}
+	first, second := uint32(7), uint32(11)
+	info := windows.Win32finddata{FileAttributes: 32, Reserved0: 17}
+	path, _ := windows.UTF16FromString(`C:\owned\known`)
+	var pin runtime.Pinner
+	pin.Pin(&first)
+	pin.Pin(&second)
+	pin.Pin(&info)
+	pin.Pin(&path[0])
+	defer pin.Unpin()
+	if ret := h.deliver(s.token, 0x9495, uintptr(unsafe.Pointer(&first)), uintptr(unsafe.Pointer(&second))); ret != 0 || first != 7 || second != 11 {
+		t.Fatal("opaque notification changed caller values", ret, first, second)
+	}
+	if ret := callbackPath(t, h, s.token, 0x9479, `C:\owned\known`); ret != 0 {
+		t.Fatal("PROCESS aborted after opaque notification", ret)
+	}
+	if ret := h.deliver(s.token, 0x9483, uintptr(unsafe.Pointer(&path[0])), uintptr(unsafe.Pointer(&info))); ret != 0 {
+		t.Fatal("FILEINFO response changed", ret)
+	}
+	v := s.snapshot()
+	if v.Failure != nil || v.AbortDelivered || v.Returned || v.LastFile.Path != `C:\owned\known` || v.LastFile.Data.Reserved0 != 17 {
+		t.Fatal("opaque notification changed later validation or minted completion", v.FailureText, v.AbortDelivered, v.Returned, v.LastFile.Path)
+	}
+	if got := metadataExcludeRecord(t, v); got != (opaqueCallbackRecord{MessageID: 0x9495, Count: 3, ReturnValue: 0}) {
+		t.Fatalf("opaque dispatch evidence %+v", got)
+	}
+	if e = h.retire(s, true); e != nil {
+		t.Fatal(e)
+	}
+	runtime.KeepAlive(first)
+	runtime.KeepAlive(second)
+	runtime.KeepAlive(info)
+	runtime.KeepAlive(path)
+}
+
+func TestFixedApplyCallbackOpaqueMetadataExcludeKeepsFailureAndCancellation(t *testing.T) {
+	for _, kind := range []string{"outside-path", "cancel", "error", "info", "warning", "object-id", "lower-neighbor", "upper-neighbor"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			h := &applyCallbackHub{}
+			s, e := h.begin(ctx, `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			if kind == "cancel" {
+				cancel()
+			} else if kind == "outside-path" {
+				callbackPath(t, h, s.token, 0x9479, `C:\owned\foreign`)
+			} else if kind == "lower-neighbor" || kind == "upper-neighbor" {
+				msg := uint32(0x9494)
+				if kind == "upper-neighbor" {
+					msg = 0x9496
+				}
+				h.deliver(s.token, msg, 1, ^uintptr(0))
+			} else {
+				msg := map[string]uint32{"error": 0x947f, "info": 0x9484, "warning": 0x9485, "object-id": 0x9487}[kind]
+				path, _ := windows.UTF16FromString(`C:\owned\known`)
+				var pin runtime.Pinner
+				pin.Pin(&path[0])
+				h.deliver(s.token, msg, uintptr(unsafe.Pointer(&path[0])), 5)
+				pin.Unpin()
+				runtime.KeepAlive(path)
+			}
+			before := s.snapshot()
+			if kind != "cancel" && before.Failure == nil {
+				t.Fatal("existing failure was not latched")
+			}
+			if ret := h.deliver(s.token, 0x9495, 1, ^uintptr(0)); ret != 0 {
+				t.Fatal(ret)
+			}
+			after := s.snapshot()
+			if after.Failure != before.Failure || after.FailureText != before.FailureText || kind == "cancel" && !after.CancellationRequested {
+				t.Fatal("opaque notification cleared failure/cancel")
+			}
+			if got := metadataExcludeRecord(t, after); got.Count != 0 {
+				t.Fatalf("failed/cancelled dispatch counted as healthy opaque handling: %+v", got)
+			}
+			if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0xffffffff {
+				t.Fatal("documented abort point bypassed", ret)
+			}
+			if !s.snapshot().AbortDelivered {
+				t.Fatal("abort evidence lost")
+			}
+			if e = h.retire(s, true); e != nil {
+				t.Fatal(e)
+			}
+		})
+	}
+}
+
+func TestFixedApplyCallbackOpaqueMetadataExcludeEvidenceStopsAtCapAndGeneration(t *testing.T) {
+	h := &applyCallbackHub{}
+	s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true}, applyCallbackLimits{MaxDeliveries: 2})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for j := 0; j < 2; j++ {
+		if ret := h.deliver(s.token, 0x9495, 1, ^uintptr(0)); ret != 0 {
+			t.Fatal(ret)
+		}
+	}
+	for j := 0; j < 64; j++ {
+		h.deliver(s.token, 0x9495, 1, ^uintptr(0))
+	}
+	v := s.snapshot()
+	if !errors.Is(v.Failure, ErrLimit) || v.Deliveries != 2 {
+		t.Fatal("opaque callback bypassed delivery bound", v.Deliveries, v.FailureText)
+	}
+	if got := metadataExcludeRecord(t, v); got != (opaqueCallbackRecord{MessageID: 0x9495, Count: 2, ReturnValue: 0}) {
+		t.Fatalf("opaque evidence grew after exhaustion %+v", got)
+	}
+	b, e := json.Marshal(v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var exported map[string]json.RawMessage
+	if e = json.Unmarshal(b, &exported); e != nil {
+		t.Fatal(e)
+	}
+	var record map[string]json.RawMessage
+	if e = json.Unmarshal(exported["OpaqueMetadataExclude"], &record); e != nil || len(record) != 3 || len(exported["OpaqueMetadataExclude"]) > 80 {
+		t.Fatalf("opaque evidence not fixed ID/count/return: %s %v", exported["OpaqueMetadataExclude"], e)
+	}
+	if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0xffffffff {
+		t.Fatal("cap did not abort", ret)
+	}
+	if e = h.retire(s, true); e != nil {
+		t.Fatal(e)
+	}
+	before := s.snapshot()
+	if ret := h.deliver(s.token, 0x9495, 1, ^uintptr(0)); ret != 0 {
+		t.Fatal(ret)
+	}
+	if after := s.snapshot(); after.Deliveries != before.Deliveries || metadataExcludeRecord(t, after) != metadataExcludeRecord(t, before) {
+		t.Fatal("late delivery touched retired evidence")
+	}
+	next, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true}, applyCallbackLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	h.deliver(s.token, 0x9495, 1, ^uintptr(0))
+	if next.snapshot().Deliveries != 0 || metadataExcludeRecord(t, next.snapshot()).Count != 0 {
+		t.Fatal("stale generation touched next session")
+	}
+	if e = h.retire(next, false); e == nil {
+		t.Fatal("unproved unregister accepted")
+	}
+	h.deliver(next.token, 0x9495, 1, ^uintptr(0))
+	if next.snapshot().Deliveries != 0 || metadataExcludeRecord(t, next.snapshot()).Count != 0 {
+		t.Fatal("frozen delivery changed evidence")
 	}
 }

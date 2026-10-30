@@ -19,22 +19,31 @@ import (
 // Official 19041 wimgapi.h (SHA256 8aafd624...35cd7a) supplies
 // WM_APP+0x1476 and the following sequential enum/return values.
 const (
-	applyMsgProgress   = uint32(0x9478)
-	applyMsgProcess    = uint32(0x9479)
-	applyMsgStep       = uint32(0x947d)
-	applyMsgError      = uint32(0x947f)
-	applyMsgFileInfo   = uint32(0x9483)
-	applyMsgInfo       = uint32(0x9484)
-	applyMsgWarning    = uint32(0x9485)
-	applyMsgObjectID   = uint32(0x9487)
-	applyMsgQueryAbort = uint32(0x948e)
-	applyAbort         = uintptr(0xffffffff)
+	applyMsgProgress        = uint32(0x9478)
+	applyMsgProcess         = uint32(0x9479)
+	applyMsgStep            = uint32(0x947d)
+	applyMsgError           = uint32(0x947f)
+	applyMsgFileInfo        = uint32(0x9483)
+	applyMsgInfo            = uint32(0x9484)
+	applyMsgWarning         = uint32(0x9485)
+	applyMsgObjectID        = uint32(0x9487)
+	applyMsgQueryAbort      = uint32(0x948e)
+	applyMsgMetadataExclude = uint32(0x9495)
+	applyAbort              = uintptr(0xffffffff)
 )
 
 type applyCallbackLimits struct{ MaxDeliveries uint64 }
 type applyFileMessage struct {
 	Path string
 	Data windows.Win32finddata
+}
+
+// Fixed-size evidence of healthy, admitted opaque dispatch only. It contains
+// no parameters/addresses and establishes no exclusion or metadata semantics.
+type applyOpaqueCallbackEvidence struct {
+	MessageID   uint32
+	Count       uint64
+	ReturnValue uint32
 }
 type applyCallbackEvidence struct {
 	Deliveries                                      uint64
@@ -43,6 +52,7 @@ type applyCallbackEvidence struct {
 	CancellationRequested, AbortDelivered, Returned bool
 	Failure                                         error `json:"-"`
 	FailureText                                     string
+	OpaqueMetadataExclude                           applyOpaqueCallbackEvidence
 }
 
 // There is exactly one production trampoline, allocated once. UserData is a
@@ -174,6 +184,14 @@ func (h *applyCallbackHub) deliver(token uintptr, msg uint32, w, l uintptr) uint
 		return 0
 	}
 	switch msg {
+	case applyMsgMetadataExclude:
+		// Explicit one-ID controller policy: generic SUCCESS continues default
+		// subscriber dispatch. Neither word is accessed, copied or changed;
+		// payload/default-exclusion semantics remain unproved. Existing failure,
+		// cancellation and delivery-cap checks above still take precedence.
+		s.v.OpaqueMetadataExclude.MessageID = applyMsgMetadataExclude
+		s.v.OpaqueMetadataExclude.Count++
+		s.v.OpaqueMetadataExclude.ReturnValue = 0
 	case applyMsgProgress:
 		if w > 100 || l > 0xffffffff {
 			s.fail(ErrIntegrity)
