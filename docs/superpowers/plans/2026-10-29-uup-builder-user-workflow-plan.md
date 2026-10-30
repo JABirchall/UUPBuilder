@@ -255,6 +255,18 @@ Edge include/exclude are explicitly unavailable; the saved default is retained.
 - [ ] Publish without overwriting unrelated output. Retain the verified local ISO if destination publication fails. Write SHA-256 and a redacted source/settings/tool/check report without credentials or signed locators. Report excluded recovery/boot tests as excluded, never passed.
 - [ ] Run `go test ./internal/engine/output ./internal/jobs ./internal/app -count=1` and the complete real U02–U10 journey on the first accepted source, starting from the runnable executable. Demonstrate the actual ISO, checksum, report and chosen output location. This is the first end-to-end milestone, not final source-family completion.
 
+**U10 output implementation evidence (2026-10-30):** Commits `4ad5248` and
+`62a2303` add native UDF mastering, source BIOS/EFI content verification,
+WIM/ESD/SWM export, private verified-publication capabilities and the controller
+completion boundary. Full tests and Windows 386/amd64/arm64 builds passed;
+Luna high approved this output slice. Actual component checks verified all
+1,058 source media files and a 4,353,046,426-byte file inside a real UDF ISO.
+These private component ISOs are not the configured Windows deliverable.
+Selected-source producer composition and elevated servicing/customization remain
+the next U10 slice. A real unserviced Professional/amd64/en-GB/28000.1 base WIM
+was separately exported from the exact configured inputs and independently
+inspected; source matching DISM files are acquired without machine installation.
+No full U10 or native configured-ISO acceptance is claimed yet.
 ## U11 — Make every required source generation work through the same journey
 
 **Files:** Extend `internal/engine/source`, generation-specific `internal/engine/{rules,service}`, discovery/provider capability manifests, tests, sanitized `testdata/source-families` descriptors and existing census/compatibility records. Add `docs/feasibility/source-family-contracts.md` for actual algorithms and fixtures, not a second task schedule.
