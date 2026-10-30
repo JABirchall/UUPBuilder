@@ -75,7 +75,7 @@ func (m Model) beginBuild() (tea.Model, tea.Cmd) {
 	if m.buildAction.busy {
 		return m.cancelBuild()
 	}
-	if !m.image.ready(m.cfg.Image) {
+	if !m.imageReady() {
 		m.notice = "Build blocked: validate image choices in Builds and Image first."
 		return m, nil
 	}

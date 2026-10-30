@@ -24,7 +24,7 @@ func (m Model) reviewDetails(width int) []row {
 	cfg := m.buildAction.draft.Config
 	details := []string{
 		"Source: " + cfg.Image.UpdateID,
-		fmt.Sprintf("Target: %s / %s / %s", cfg.Image.Architecture, cfg.Image.Language, strings.Join(cfg.Image.Editions, ", ")),
+		fmt.Sprintf("Target: %s / %s / %s", cfg.Image.Architecture, cfg.Image.Language, strings.Join(requestedEditions(cfg), ", ")),
 		fmt.Sprintf("Apps: %s | include: %s | stubs: %s | Edge: %s", cfg.Apps.Mode, strings.Join(cfg.Apps.Include, ", "), cfg.Apps.StubPolicy, cfg.Apps.Edge),
 		fmt.Sprintf("Updates: %s | cleanup: %t | reset base: %s", cfg.Conversion.Updates, cfg.Conversion.Cleanup, cfg.Conversion.ResetBase),
 		fmt.Sprintf("ISO: %s | install.%s", cfg.Output.Directory, cfg.Output.ImageFormat),
@@ -34,7 +34,7 @@ func (m Model) reviewDetails(width int) []row {
 	details = append(details, m.buildAction.tools...)
 	var rows []row
 	for _, text := range details {
-		for _, line := range wrapped(terminalText(text), width, 2) {
+		for _, line := range wrapped(terminalText(text), width, 0) {
 			rows = append(rows, row{text: line})
 		}
 	}

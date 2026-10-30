@@ -13,7 +13,7 @@ const allOfferedPreset = "all-offered"
 // Examined offers are tied to the exact current source observation. They are
 // requests only: this gate does not validate installable app applicability.
 func (m Model) appOffersExamined() bool {
-	return m.image.ready(m.cfg.Image) && !m.apps.status.loading && m.apps.status.err == nil &&
+	return m.imageReady() && !m.apps.status.loading && m.apps.status.err == nil &&
 		!m.apps.status.checkedAt.IsZero() && m.apps.endpoint == m.cfg.Catalog.Endpoint &&
 		m.apps.snapshot.State == source.AppCatalogAvailable &&
 		sameAppSelection(m.apps.selection, m.cfg.Image) && sameAppSelection(m.apps.snapshot.Selection, m.cfg.Image)

@@ -12,6 +12,10 @@
 │ │ Editions (space to toggle) │
 │ 06 Progress │ > [x] Pro (professional) │
 │ │ [ ] Home (core) │
+│ │ [ ] Pro for Workstations · from Pro (ProfessionalWorkstation) │
+│ │ [ ] Pro Education · from Pro (ProfessionalEducation) │
+│ │ [ ] Education · from Pro (Education) │
+│ │ [ ] Enterprise · from Pro (Enterprise) │
 │ │ Continue to Apps → (enter from editions) │
 │ │ Source: Windows example · 26100.1 │
 │ unsaved draft │ ID: 11111111-1111-1111-1111-111111111111_rev.2 │

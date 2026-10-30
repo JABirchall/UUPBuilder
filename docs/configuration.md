@@ -48,6 +48,20 @@ Unknown upstream architectures, edition identifiers, app families and presets
 remain available for later applicability checks. The host architecture does not
 filter target choices.
 
+The Image screen offers additional editions after selecting their downloadable
+base. Pro enables ProfessionalWorkstation, ProfessionalEducation, Education,
+Enterprise, ServerRdsh, IoTEnterprise and IoTEnterpriseK. Pro N enables
+ProfessionalWorkstationN, ProfessionalEducationN, EducationN and EnterpriseN.
+These choices are labelled with their base and saved in
+`conversion.editions.derived`; downloadable choices stay in `image.editions`.
+Directly advertised editions appear once and use their catalog download.
+Removing a base retains selected derivatives as unavailable requests that must
+be removed or have their base reselected before continuing. Build preparation
+verifies each requested conversion against the selected source's inspected
+edition mappings before native Set-Edition runs.
+Other manually configured derived identifiers remain requests for source
+validation; these eleven selection offers do not restrict that existing path.
+
 This is the default document. The output directory `"."`, app mode `"default"`
 and preservation of required temporary edition bases are builder-chosen
 defaults. The accepted design's empty output-directory example was illustrative;

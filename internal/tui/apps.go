@@ -78,7 +78,7 @@ func (m *Model) invalidateApps() {
 	m.appsUnchecked = true
 }
 func (m *Model) beginApps(force bool) tea.Cmd {
-	if !m.image.ready(m.cfg.Image) {
+	if !m.imageReady() {
 		return nil
 	}
 	if !force && sameAppSelection(m.apps.selection, m.cfg.Image) && m.apps.endpoint == m.cfg.Catalog.Endpoint && (m.apps.status.loading || !m.apps.status.checkedAt.IsZero()) {
@@ -235,7 +235,7 @@ func (m Model) updateAppInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) appsRows(width, height int) []row {
 	rows := []row{{text: heading.Render("Choose included apps")}}
 	status := "Choose a validated language and edition to examine source app metadata."
-	if m.image.ready(m.cfg.Image) {
+	if m.imageReady() {
 		switch {
 		case m.apps.status.loading:
 			status = "Loading app metadata; link requests may wait or retry..."

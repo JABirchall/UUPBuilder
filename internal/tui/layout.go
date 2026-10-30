@@ -53,9 +53,11 @@ func fit(value string, width int) string {
 	value = ansi.Truncate(value, width, strings.Repeat(".", min(3, width)))
 	return value + strings.Repeat(" ", max(0, width-ansi.StringWidth(value)))
 }
+
+// A zero maxLines preserves the complete text for scrollable views.
 func wrapped(value string, width, maxLines int) []string {
 	lines := strings.Split(ansi.Hardwrap(ansi.Wrap(value, max(1, width), ""), max(1, width), true), "\n")
-	if len(lines) > maxLines {
+	if maxLines > 0 && len(lines) > maxLines {
 		lines = lines[:maxLines]
 		lines[len(lines)-1] = ansi.Truncate(lines[len(lines)-1], max(1, width-3), "") + "..."
 	}
@@ -262,7 +264,7 @@ func (m Model) summaryRows(width int, dense bool) []row {
 	if language == "" {
 		language = "choose"
 	}
-	editions := terminalText(strings.Join(m.cfg.Image.Editions, ", "))
+	editions := terminalText(strings.Join(requestedEditions(m.cfg), ", "))
 	if editions == "" {
 		editions = "choose"
 	}
@@ -520,7 +522,7 @@ func (m Model) imageRows(width, height int) []row {
 	for i := start; i < min(len(choices), start+count); i++ {
 		choice := choices[i]
 		check := "[ ]"
-		if slices.Contains(m.cfg.Image.Editions, choice.ID) {
+		if m.editionSelected(choice.ID) {
 			check = "[x]"
 		}
 		prefix := "  "
@@ -529,12 +531,12 @@ func (m Model) imageRows(width, height int) []row {
 			prefix = "> "
 		}
 		unavailable := ""
-		if !m.image.hasEdition(choice.ID) {
+		if !m.editionAvailable(choice.ID) {
 			unavailable = " ! unavailable"
 		}
 		rows = append(rows, row{text: selectedLine(prefix+check+" "+terminalText(choice.Name)+" ("+terminalText(choice.ID)+")"+unavailable, width, selected), msg: editionClickMsg{index: i, edition: choice.ID}})
 	}
-	if m.image.ready(m.cfg.Image) {
+	if m.imageReady() {
 		rows = append(rows, row{text: accent.Render("Continue to Apps → (enter from editions)"), msg: NavigateMsg{Area: Apps}})
 	} else {
 		rows = append(rows, row{text: muted.Render("Choose a language and at least one available edition.")})

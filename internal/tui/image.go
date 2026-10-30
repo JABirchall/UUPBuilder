@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"slices"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -123,15 +124,15 @@ func (m *Model) acceptEditions(msg editionsResultMsg) {
 	m.image.editions = slices.Clone(msg.editions)
 	m.image.editionsChecked = true
 	m.image.editionCursor = min(m.image.editionCursor, max(0, len(m.editionChoices())-1))
-	for _, id := range m.cfg.Image.Editions {
-		if !m.image.hasEdition(id) {
+	for _, id := range requestedEditions(m.cfg) {
+		if !m.editionAvailable(id) {
 			m.notice = "A requested edition is unavailable. Remove its marked selection or choose another source; app applicability is unchecked."
 			break
 		}
 	}
 }
 func (s imageState) hasEdition(id string) bool {
-	return slices.ContainsFunc(s.editions, func(e catalog.Edition) bool { return e.ID == id })
+	return slices.ContainsFunc(s.editions, func(e catalog.Edition) bool { return strings.EqualFold(e.ID, id) })
 }
 func (s imageState) ready(selection model.Selection) bool {
 	if !s.sourceChecked || !s.languageChecked || !s.editionsChecked || s.languageStatus.loading || s.editionStatus.loading || !usable(s.languageStatus.err) || !usable(s.editionStatus.err) || selection.Validate() != nil {
@@ -143,30 +144,4 @@ func (s imageState) ready(selection model.Selection) bool {
 		}
 	}
 	return true
-}
-func (m Model) editionChoices() []catalog.Edition {
-	choices := slices.Clone(m.image.editions)
-	for _, id := range m.cfg.Image.Editions {
-		if !m.image.hasEdition(id) {
-			choices = append(choices, catalog.Edition{ID: id, Name: "Unavailable request"})
-		}
-	}
-	return choices
-}
-func (m *Model) toggleEdition(id string) {
-	if !m.image.languageChecked || m.image.editionStatus.loading {
-		return
-	}
-	index := slices.Index(m.cfg.Image.Editions, id)
-	if index >= 0 {
-		m.cfg.Image.Editions = slices.Delete(m.cfg.Image.Editions, index, index+1)
-	} else {
-		if !m.image.hasEdition(id) {
-			return
-		}
-		m.cfg.Image.Editions = append(m.cfg.Image.Editions, id)
-	}
-	m.revision++
-	m.notice = "Edition selection changed; app applicability must be checked again."
-	m.invalidateApps()
 }

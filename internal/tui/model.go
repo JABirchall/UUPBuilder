@@ -96,7 +96,7 @@ func (m Model) Snapshot() DraftSnapshot {
 	if m.validatedApps() {
 		appsNotice = "Source manifests, dependency/resource/license closure and requested policies validated for this draft; native customization still requires execution."
 	}
-	return DraftSnapshot{Revision: m.revision, ConfigPath: m.configActions.path, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.image.ready(m.cfg.Image), AppsApplicable: m.validatedApps(), Notice: m.notice, AppsNotice: appsNotice}
+	return DraftSnapshot{Revision: m.revision, ConfigPath: m.configActions.path, Config: cloneConfig(m.cfg), Source: source, HasCatalogRecord: m.source != nil, ImageReady: m.imageReady(), AppsApplicable: m.validatedApps(), Notice: m.notice, AppsNotice: appsNotice}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

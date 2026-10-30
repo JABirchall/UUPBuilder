@@ -302,7 +302,7 @@ func (m Model) activate() (tea.Model, tea.Cmd) {
 				return m.Update(SelectLanguageMsg{Language: m.image.languages[m.image.languageCursor].ID})
 			}
 		case 2:
-			if m.image.ready(m.cfg.Image) {
+			if m.imageReady() {
 				m.navigate(Apps)
 				return m, m.beginApps(false)
 			} else {
