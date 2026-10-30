@@ -1,9 +1,0 @@
-Exact output recovered from the tool transcript for the initial assembly command
-whose restore-red.log was subsequently reused for the behavioral RED:
-go test ./internal/platform/windows -run '^TestFixedPrivilegeRestore' -count=1 -v
-Exit 1.
-
-FAIL	uupbuilder/internal/platform/windows [build failed]
-# uupbuilder/internal/platform/windows [uupbuilder/internal/platform/windows.test]
-internal\platform\windows\preservation_adjust_windows.go:22:10: undefined: openPreservationToken
-FAIL

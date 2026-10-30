@@ -1,4 +1,0 @@
-FAIL	uupbuilder/internal/platform/windows [build failed]
-# uupbuilder/internal/platform/windows [uupbuilder/internal/platform/windows.test]
-internal\platform\windows\preservation_adjust_windows_test.go:20:16: undefined: fixedPrivilegeAdjustment
-FAIL

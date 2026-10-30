@@ -1,4 +1,0 @@
-=== RUN   TestSourceNativeObservationBindsSealedExpectationsAndLiveClaim
---- PASS: TestSourceNativeObservationBindsSealedExpectationsAndLiveClaim (0.75s)
-PASS
-ok  	uupbuilder/internal/engine	0.771s

@@ -1,6 +1,0 @@
-=== RUN   TestFixedApplyCallbackCopiesBoundsAndDocumentedAbortPoints
---- PASS: TestFixedApplyCallbackCopiesBoundsAndDocumentedAbortPoints (0.00s)
-=== RUN   TestFixedApplyCallbackConcurrentDrainAndQuarantine
---- PASS: TestFixedApplyCallbackConcurrentDrainAndQuarantine (0.01s)
-PASS
-ok  	uupbuilder/internal/engine	0.027s

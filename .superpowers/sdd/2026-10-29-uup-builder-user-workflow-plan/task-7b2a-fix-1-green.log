@@ -1,8 +1,0 @@
-=== RUN   TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity
-=== RUN   TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity/distinct_native_identities
-=== RUN   TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity/accidental_native_equivalence
---- PASS: TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity (0.32s)
-    --- PASS: TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity/distinct_native_identities (0.00s)
-    --- PASS: TestPreservationComparisonHighBitSourceGroupAndSingletonHaveDisjointIdentity/accidental_native_equivalence (0.00s)
-PASS
-ok  	uupbuilder/internal/engine	0.332s

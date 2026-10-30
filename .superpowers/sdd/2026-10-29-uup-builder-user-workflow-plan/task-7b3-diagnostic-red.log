@@ -1,6 +1,0 @@
-=== RUN   TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal
-    preservation_cab_expectations_windows_test.go:52: live CAB-resolved original rejected bind source expectations: phase=stream-resource entry=3 stream=0 offset=512: unbound WIM reconstruction input
---- FAIL: TestSourceExpectationsResolveCABOnlyStreamsWithoutRewritingOriginal (0.43s)
-FAIL
-FAIL	uupbuilder/internal/engine	0.452s
-FAIL

@@ -1,5 +1,0 @@
-FAIL	uupbuilder/internal/engine [build failed]
-# uupbuilder/internal/engine [uupbuilder/internal/engine.test]
-internal\engine\fixed_apply_windows_test.go:444:14: undefined: fixedTrialPreparedOwner
-internal\engine\fixed_apply_windows_test.go:478:12: undefined: fixedTrialPreparedOwner
-FAIL

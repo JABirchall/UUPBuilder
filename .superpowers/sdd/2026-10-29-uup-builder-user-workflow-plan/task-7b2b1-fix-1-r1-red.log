@@ -1,7 +1,0 @@
-=== RUN   TestNativeReadOnlyObservationPreflightRequiresPlannedMetadataScratch
-    native_observation_windows_test.go:513: impossible fixed metadata profile accepted: limit=163840 retained=18444 error=<nil>
-    native_observation_windows_test.go:513: impossible fixed metadata profile accepted: limit=1009675 retained=18444 error=<nil>
---- FAIL: TestNativeReadOnlyObservationPreflightRequiresPlannedMetadataScratch (0.06s)
-FAIL
-FAIL	uupbuilder/internal/platform/windows	0.073s
-FAIL

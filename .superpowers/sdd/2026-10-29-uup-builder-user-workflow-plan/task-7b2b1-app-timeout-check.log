@@ -1,6 +1,0 @@
-=== RUN   TestInteractiveExitReportsPreservedBuildResources
-=== RUN   TestInteractiveExitReportsPreservedBuildResources/active-at-quit
---- PASS: TestInteractiveExitReportsPreservedBuildResources (0.14s)
-    --- PASS: TestInteractiveExitReportsPreservedBuildResources/active-at-quit (0.14s)
-PASS
-ok  	uupbuilder/internal/app	0.166s

@@ -1,4 +1,0 @@
-=== RUN   TestNativeReadOnlyObservationRootStreamCloseExhaustionKeepsOnlyTerminalCause
---- PASS: TestNativeReadOnlyObservationRootStreamCloseExhaustionKeepsOnlyTerminalCause (0.39s)
-PASS
-ok  	uupbuilder/internal/platform/windows	0.408s
