@@ -20,7 +20,7 @@ import (
 	platform "uupbuilder/internal/platform/windows"
 )
 
-const fixedPreparationPlan = `C:\Users\owner\.codex\worktrees\uup-workflow-task7\win11_builder\.superpowers\sdd\2026-10-29-uup-builder-user-workflow-plan`
+const fixedPreparationOutputParent = `N:\win11_builder\output`
 const fixedPreparationSource = `C:\Users\owner\.codex\worktrees\uup-user-workflow\win11_builder\.superpowers\sdd\2026-10-29-uup-builder-user-workflow-plan`
 
 // Compilation supplies the audited source HEAD. This descriptive field cannot
@@ -176,17 +176,17 @@ func TestConfiguredFixedSelectedSourcePrepare(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	volume, e := platform.InspectStorage(fixedPreparationPlan)
+	volume, e := platform.InspectStorage(fixedPreparationOutputParent)
 	if e != nil {
 		t.Fatal(e)
 	}
 	if !volume.Capabilities.Local || !strings.EqualFold(volume.Capabilities.Name, "NTFS") {
-		t.Fatal("local NTFS plan parent required")
+		t.Fatal("local NTFS output parent required")
 	}
 	if e = footprint.Check(volume); e != nil {
 		t.Fatal("combined preflight refused before private scope/producer mutation", e)
 	}
-	w, e := platform.CreateWorkspace(fixedPreparationPlan, "fixed-selected-preparation")
+	w, e := platform.CreateWorkspace(fixedPreparationOutputParent, "fixed-selected-preparation")
 	if w != nil {
 		t.Logf("PRIVATE freshly owned preparation scope %s; retained, no recursive cleanup", w.Path())
 	}

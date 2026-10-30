@@ -45,7 +45,7 @@ func (s fixedApprovedScope) validate() error {
 	if e != nil || s.Version != 1 || len(s.SourceHead) != 40 || s.SourceRoot != fixedPreparationSource || s.LocatorSHA256 != fixedSelectedLocatorSHA256 || s.SourceBytes != 2288011348 || s.Policy != fixedApplyPolicyDigest() || s.Flags != 0x182 || s.Image != 1 || s.PrivilegeProfile != platform.ImagePreservationPrivilegeProfile || s.Footprint != f || s.TokenUser == "" || s.Deadline.IsZero() {
 		return ErrInput
 	}
-	if !strings.EqualFold(filepath.Clean(strings.TrimPrefix(filepath.Dir(s.Parent.Workspace.Path), `\\?\`)), filepath.Clean(fixedPreparationPlan)) || s.Parent.Workspace.JobID != "fixed-selected-preparation" || filepath.Base(s.Parent.Workspace.Path) != "uupbuilder-"+s.Parent.Workspace.Token || len(s.Parent.Workspace.Token) != 32 || s.Parent.Root.FileIndex == 0 || s.Parent.Owner.FileIndex == 0 || s.Parent.Parent.FileIndex == 0 || s.Parent.VolumeID == "" || s.Executable.File.FileIndex == 0 || s.Executable.Size <= 0 || len(s.Executable.SHA256) != 64 {
+	if !strings.EqualFold(filepath.Clean(strings.TrimPrefix(filepath.Dir(s.Parent.Workspace.Path), `\\?\`)), filepath.Clean(fixedPreparationOutputParent)) || s.Parent.Workspace.JobID != "fixed-selected-preparation" || filepath.Base(s.Parent.Workspace.Path) != "uupbuilder-"+s.Parent.Workspace.Token || len(s.Parent.Workspace.Token) != 32 || s.Parent.Root.FileIndex == 0 || s.Parent.Owner.FileIndex == 0 || s.Parent.Parent.FileIndex == 0 || s.Parent.VolumeID == "" || s.Executable.File.FileIndex == 0 || s.Executable.Size <= 0 || len(s.Executable.SHA256) != 64 {
 		return ErrInput
 	}
 	return nil
