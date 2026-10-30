@@ -213,6 +213,17 @@ remain open. The default application still reports its semantic-role blocker.
 - [ ] Implement selected-generation servicing-stack/cumulative/checkpoint/MSU/enablement ordering, expansion and retention policies, per-edition/shared-base strategy, edition derivation and cleanup/reset-base applicability. Unsupported explicit choices fail instead of being ignored. Register required operations before the plan is frozen.
 - [ ] Run `go test ./internal/planner ./internal/engine/service ./internal/engine/rules -count=1`, then independently inspect actual changed-image packages and edition identities. A successful helper missing a required package fails the stage. Extend other generations in U11.
 
+**U08 implementation evidence (2026-10-30):** Commit `c1fcb0a` adds frozen typed
+servicing plans, build-28000 update/edition rules, a concrete offline DISM
+backend and a worker servicing bridge. Focused tests, the full Go suite and
+Windows 386/amd64/arm64 builds passed; Luna high approved the implementation
+slice. Actual configured-source acquisition verified 95 payloads
+(8,329,466,842 bytes), and read-only XML identifies Professional at ESD index 3,
+amd64/en-GB, base 10.0.28000.1. Actual servicing remains pending assembled-image
+inputs, exact update metadata and a compatible elevated runtime; system DISM
+returned 740. Full U08 acceptance is not claimed. The continuation proceeds
+with directly required customization/output implementation while retaining
+these concrete prerequisites; no recovery, regression or audit campaign.
 ## U09 — Apply the selected apps, features, drivers and Edge policy
 
 **Files:** Add focused app/feature/driver/Edge planner, service and rule files with tests; bind real semantic results into existing `internal/tui/apps.go`. No WinRE service/rule files.
@@ -261,7 +272,7 @@ remain open. The default application still reports its semantic-role blocker.
 
 ## Tracking and execution rules
 
-- **U01–U05 are complete with task reviews clean. U06 and U07 have reviewed partial implementations and actual source-byte evidence, but their full semantic/provider/native/assembly acceptance remains incomplete.** The current continuation starts at U07 as explicitly requested, carrying unfinished U06 prerequisites rather than claiming them complete. U08–U12 remain pending. Native image mutation, privilege/elevation and excluded recovery/boot work are not authorized by the ordinary Go archive/data continuation.
+- **U01–U05 are complete with task reviews clean. U06 and U07 have reviewed partial implementations and actual source-byte evidence, but their full semantic/provider/native/assembly acceptance remains incomplete.** The current continuation starts at U08 as explicitly requested, carrying unfinished U06/U07 prerequisites rather than claiming them complete. U08 has a reviewed implementation slice; actual U08 acceptance and U09–U12 remain pending. Current user scope prioritizes a configured ISO and excludes recoveries, regressions, audits and extremely tight requirements. No elevation, host servicing or excluded recovery/boot execution has been performed.
 - Work top to bottom. A task may prepare a narrowly required downstream interface, but must not start unrelated provider research or a second subsystem schedule. Put newly found work under its owning workflow task, with its concrete acceptance condition.
 - For substantive code changes, run the named new behavior checks before implementation and establish the expected failure; then implement and rerun the owning task's verification. Existing passing checks alone do not establish the new behavior. Finish each independently testable change with a focused reviewable commit.
 - Check a task off only when its deliverable is demonstrated. Add a short evidence line with changed files/commit, executed tests, actual user-visible result and any remaining gap. Do not import old unchecked boxes or count old component observations as current completion.
