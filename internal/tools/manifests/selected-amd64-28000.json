@@ -1,8 +1,4 @@
 {
-  "SourceDISM": [
-    {"Relative":"EdgeProvider.dll","Size":230816,"SHA256":"3b38d4cc77de1befabbcaf0ccf45964a022f760dd2caa58fb81df67da8155f54","Version":"10.0.28000.1"},
-    {"Relative":"en-US/EdgeProvider.dll.mui","Size":6144,"SHA256":"28a83cf9a98d77cacb06578b4af33b0d4001b87abe64ca218ea2d3e36b736334","Version":"10.0.28000.1"}
-  ],
   "Cabinets": [
     {
       "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",

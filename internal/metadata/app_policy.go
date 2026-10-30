@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 )
@@ -55,8 +56,33 @@ func BindAppPolicies(ctx context.Context, inv Inventory, sourceDoc DocumentRefer
 	if e != nil {
 		return Inventory{}, e
 	}
-	if observation.Architecture != inv.Source.Architecture || !strings.HasPrefix(observation.BaselineOSVersion, "10.0.28000.") {
-		return fail("rules unavailable for this source generation")
+	if observation.Architecture != inv.Source.Architecture {
+		return fail("app metadata architecture differs from selected source")
+	}
+	baseline, err := appBaseline(observation.BaselineOSVersion)
+	if err != nil {
+		return fail(err.Error())
+	}
+	// A catalogue label can name an enablement/update build. Bind the app
+	// declarations to inspected OS baseline metadata instead of that label or a
+	// particular product release. Revisions may differ within the same baseline.
+	for _, image := range inv.Images {
+		if image.Edition == "" || image.InstallationType == "WindowsPE" || image.Build == "" {
+			continue
+		}
+		observed, err := appBaseline(image.Build)
+		if err != nil || baseline != observed {
+			return fail("app baseline differs from inspected OS image")
+		}
+	}
+	for _, composition := range inv.Compositions {
+		if composition.OSVersion == "" {
+			continue
+		}
+		observed, err := appBaseline(composition.OSVersion)
+		if err != nil || baseline != observed {
+			return fail("app baseline differs from inspected source composition")
+		}
 	}
 	limits, _ := inspectionLimits(Limits{})
 	root, e := parseXML(ctx, raw, limits)
@@ -92,6 +118,13 @@ func BindAppPolicies(ctx context.Context, inv Inventory, sourceDoc DocumentRefer
 			return fail("unsupported app feature type " + feature.Type)
 		}
 		evidence := inv.evidence(sourceDoc, feature.Selector)
+		declaredPackages := map[string]bool{}
+		for _, pack := range feature.Packages {
+			declaredPackages[strings.ToLower(pack.ID)] = true
+		}
+		for _, media := range feature.Media {
+			declaredPackages[strings.ToLower(media.PackageID)] = true
+		}
 		rule := AppSelectionRule{ID: feature.FeatureID, Family: family, Default: installed, Evidence: evidence}
 		for _, intent := range feature.InitialIntents {
 			rule.StubSupported = rule.StubSupported || intent == "PREFERSTUB"
@@ -105,13 +138,10 @@ func BindAppPolicies(ctx context.Context, inv Inventory, sourceDoc DocumentRefer
 			app.Licenses = slices.Clone(app.Licenses)
 			// Link the complete source package identity, including bundle version, to
 			// its declaration. Resource manifests are linked through their bundle.
-			declared := app.ResourcePackage
-			for _, media := range feature.Media {
-				declared = declared || strings.EqualFold(media.PackageID, AppFullName(app.Identity))
-				for _, bundle := range inv.Apps.Bundles {
-					if bundle.Identity.Name == family.Name && bundle.Identity.Publisher == family.Publisher {
-						declared = declared || strings.EqualFold(media.PackageID, AppFullName(bundle.Identity))
-					}
+			declared := app.ResourcePackage || declaredPackages[strings.ToLower(AppFullName(app.Identity))]
+			for _, bundle := range inv.Apps.Bundles {
+				if bundle.Identity.Name == family.Name && bundle.Identity.Publisher == family.Publisher {
+					declared = declared || declaredPackages[strings.ToLower(AppFullName(bundle.Identity))]
 				}
 			}
 			if !declared {
@@ -191,4 +221,25 @@ func BindAppPolicies(ctx context.Context, inv Inventory, sourceDoc DocumentRefer
 		inv.Classification = ClassificationSemanticInventory
 	}
 	return inv, ctx.Err()
+}
+
+func appBaseline(version string) ([3]uint64, error) {
+	var baseline [3]uint64
+	parts := strings.Split(version, ".")
+	if len(parts) != 4 {
+		return baseline, fmt.Errorf("invalid app baseline version %q", version)
+	}
+	for i, part := range parts {
+		if part == "" || strings.Trim(part, "0123456789") != "" {
+			return baseline, fmt.Errorf("invalid app baseline version %q", version)
+		}
+		value, err := strconv.ParseUint(part, 10, 32)
+		if err != nil {
+			return baseline, fmt.Errorf("invalid app baseline version %q", version)
+		}
+		if i < len(baseline) {
+			baseline[i] = value
+		}
+	}
+	return baseline, nil
 }

@@ -33,6 +33,7 @@ type AppCatalogEntry struct {
 	Document                  metadata.DocumentReference
 	Editions                  []AppEditionReference
 	Dependencies              []metadata.AppFeatureDependency
+	Packages                  []metadata.CompositionPackageReference
 	Media                     []metadata.AppMediaHint
 	InitialIntents            []string
 	Licenses                  []metadata.AppLicenseObservation
@@ -77,6 +78,7 @@ func (s AppCatalogSnapshot) Clone() AppCatalogSnapshot {
 		e := &s.Entries[i]
 		e.Editions = slices.Clone(e.Editions)
 		e.Dependencies = slices.Clone(e.Dependencies)
+		e.Packages = slices.Clone(e.Packages)
 		e.Media = slices.Clone(e.Media)
 		e.InitialIntents = slices.Clone(e.InitialIntents)
 		e.Licenses = slices.Clone(e.Licenses)

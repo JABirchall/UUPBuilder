@@ -14,16 +14,28 @@ type UpdatePlan struct {
 }
 
 // Every declared checkpoint must be present. Independent work is ordered SSU,
-// checkpoint, LCU, enablement. Dependencies come from inspected facts, not KBs.
+// checkpoint, LCU, ordinary updates, enablement. Dependencies come from inspected
+// facts, not KBs.
 // https://learn.microsoft.com/windows/deployment/update/catalog-checkpoint-cumulative-updates
 func OrderUpdates(inv metadata.Inventory, settings model.ResolvedSettings, generation Generation) ([]UpdatePlan, error) {
 	c := settings.Conversion
+	for _, update := range inv.Updates {
+		if update.Target != "" && update.Target != metadata.RoleOS && update.Target != metadata.RoleWinRE {
+			return nil, fmt.Errorf("unsupported update target %q", update.Target)
+		}
+	}
 	if c.Updates == model.UpdatesOmit {
 		return nil, nil
 	}
 	known := map[string]UpdatePlan{}
-	rank := map[metadata.UpdateKind]int{metadata.UpdateServicingStack: 0, metadata.UpdateCheckpoint: 1, metadata.UpdateCumulative: 2, metadata.UpdateEnablement: 3}
+	rank := map[metadata.UpdateKind]int{metadata.UpdateServicingStack: 0, metadata.UpdateCheckpoint: 1, metadata.UpdateCumulative: 2, metadata.UpdateRegular: 3, metadata.UpdateEnablement: 4}
 	for _, update := range inv.Updates {
+		if update.Target == metadata.RoleWinRE {
+			if !c.IncludeWinRE && c.WinREUpdates == model.InclusionOmit {
+				continue
+			}
+			return nil, fmt.Errorf("WinRE update servicing is excluded from this workflow")
+		}
 		if update.Kind == metadata.UpdateEnablement && c.EnablementPackages == model.InclusionOmit {
 			continue
 		}
@@ -126,6 +138,9 @@ func OrderUpdates(inv metadata.Inventory, settings model.ResolvedSettings, gener
 }
 
 func Applies(update UpdatePlan, edition string) bool {
+	if update.Target != "" && update.Target != metadata.RoleOS {
+		return false
+	}
 	if len(update.Editions) == 0 {
 		return true
 	}

@@ -26,6 +26,17 @@ func TestObserveAppCompDBRetainsRawRequestsAndHints(t *testing.T) {
 	}
 }
 
+func TestObserveAppCompDBRetainsPackageMembershipWithoutMediaHints(t *testing.T) {
+	raw := `<CompDB xmlns="http://schemas.microsoft.com/embedded/2004/10/ImageUpdate" SchemaVersion="1.2" Type="Build" Product="Desktop" BuildID="arbitrary-build" BuildArch="amd64" OSVersion="10.0.26100.1"><Features><Feature FeatureID="Example.App_pub" Type="MSIX"><Packages><Package ID="actual-package" PackageType="Base"/></Packages></Feature></Features></CompDB>`
+	observation, err := ObserveAppCompDB(context.Background(), []byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(observation.Features) != 1 || len(observation.Features[0].Packages) != 1 || observation.Features[0].Packages[0].ID != "actual-package" || len(observation.Features[0].Media) != 0 {
+		t.Fatalf("lost direct package membership or invented media state: %+v", observation.Features)
+	}
+}
+
 func TestObserveAppCompDBRejectsUnsafeXMLAndWrongSchemas(t *testing.T) {
 	for _, data := range []string{`<!DOCTYPE x [<!ENTITY e SYSTEM "file:///x">]>` + appCompDBFixture, strings.Replace(appCompDBFixture, "SchemaVersion=\"1.2\"", "SchemaVersion=\"9\"", 1), strings.Replace(appCompDBFixture, "http://schemas.microsoft.com/embedded/2004/10/ImageUpdate", "foreign", 1), strings.Replace(appCompDBFixture, "</Features>", `<Feature FeatureID="Example.App_pub" Type="MSIX"/></Features>`, 1)} {
 		if _, err := ObserveAppCompDB(context.Background(), []byte(data)); err == nil {

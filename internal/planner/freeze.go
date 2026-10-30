@@ -171,7 +171,7 @@ func (p ReadyPlan) Validate() error {
 		if err != nil || hash(order) != hash(f.Customization.Editions) {
 			return ErrInvalidPlan
 		}
-		if f.Servicing == nil || f.Servicing.Validate() != nil || f.Servicing.validateSettings(f.Selection, f.Requested) != nil || f.Servicing.Source != f.Manifest.Source || f.Servicing.InventoryDigest != f.InventoryDigest {
+		if f.Servicing == nil || f.Servicing.Validate() != nil || f.Servicing.validateSettings(f.Selection, f.Requested) != nil || f.Servicing.Source != f.Manifest.Source || f.Servicing.InventoryDigest != f.InventoryDigest || f.Servicing.ValidateSourceManifest(f.Manifest) != nil {
 			return ErrInvalidPlan
 		}
 	} else if f.Servicing != nil || f.Customization != nil {

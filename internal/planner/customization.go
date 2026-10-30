@@ -124,7 +124,7 @@ func (p CustomizationPlan) Validate() error {
 	if p.Digest != p.digest() {
 		return ErrIdentityChanged
 	}
-	if p.Source.Validate() != nil || p.Manifest.Validate() != nil || p.Manifest.Source != p.Source || p.Apps.Source != p.Source || p.Apps.ManifestDigest != p.Manifest.Digest || len(p.Editions) == 0 || p.Generation.Build != 28000 {
+	if p.Source.Validate() != nil || p.Manifest.Validate() != nil || p.Manifest.Source != p.Source || p.Apps.Source != p.Source || p.Apps.ManifestDigest != p.Manifest.Digest || len(p.Editions) == 0 || p.Generation.Validate() != nil {
 		return ErrInvalidPlan
 	}
 	if p.Apps.InventoryDigest != p.InventoryDigest || hash(p.Apps.Requested) != hash(p.Apps.Effective) || p.Apps.Deferred && (len(p.Apps.Provision) > 0 || len(p.Apps.Remove) > 0) {

@@ -17,6 +17,7 @@ type AppLicenseObservation struct {
 type AppFeatureObservation struct {
 	FeatureID, Type, FMID, Group, Selector string
 	Dependencies                           []AppFeatureDependency
+	Packages                               []CompositionPackageReference
 	InitialIntents                         []string
 	Media                                  []AppMediaHint
 	Licenses                               []AppLicenseObservation
@@ -100,6 +101,10 @@ func ObserveAppCompDB(ctx context.Context, original []byte) (AppCompDBObservatio
 			f.InitialIntents = append(f.InitialIntents, intent.attr("Value"))
 		}
 		for _, p := range node.child("Packages").children("Package") {
+			if p.attr("ID") == "" {
+				return out, ErrMalformedMetadata
+			}
+			f.Packages = append(f.Packages, CompositionPackageReference{ID: p.attr("ID"), Type: p.attr("PackageType"), UpdateType: p.attr("UpdateType")})
 			for _, m := range p.children("Media") {
 				f.Media = append(f.Media, AppMediaHint{PackageID: p.attr("ID"), Type: m.attr("Type"), State: m.attr("State")})
 			}

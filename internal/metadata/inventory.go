@@ -143,6 +143,7 @@ type InspectRequest struct {
 	Limits      Limits
 }
 type Inventory struct {
+	SourceEdge     *ResourceReference `json:",omitempty"`
 	Updates        []Update
 	Source         model.SourceIdentity
 	Manifest       model.PayloadManifest

@@ -82,10 +82,15 @@ func SelectedAppPayloads(ctx context.Context, s AppCatalogSnapshot, documents []
 			return nil, fmt.Errorf("requested app has no source feature: %s", key)
 		}
 		for _, dep := range entry.Dependencies {
-			queue = append(queue, strings.ToLower(dep.FeatureID))
+			if dep.Type == "Required" {
+				queue = append(queue, strings.ToLower(dep.FeatureID))
+			}
 		}
 		for _, media := range entry.Media {
 			packages[media.PackageID] = true
+		}
+		for _, pack := range entry.Packages {
+			packages[pack.ID] = true
 		}
 	}
 	// Parse the package/path table with the existing bounded composition parser.

@@ -17,6 +17,15 @@ boot files remain part of normal ISO contents; this does not claim boot or
 Setup execution testing. Saving a structurally valid draft does not establish
 source applicability, helper availability or executable conversion support.
 
+Build preparation uses the selected source's inspected image metadata and
+contents. Update IDs, release numbers, languages, image indices and reference
+counts do not select a fixed product recipe. Managed helper distributions retain
+their integrity pins. The current canonical adapter discovers a media/WinPE/OS
+image container and verifies its actual Setup files, edition mappings, app
+manifests and servicing packages. Other layouts or unresolved package
+applicability report the specific missing adapter or provider; they are not
+silently replaced with a different Windows build.
+
 Every document must contain `schema_version = 1`. Omitted settings receive the
 defaults below. Explicit `false`, `0`, empty strings and empty arrays remain
 explicit; invalid values return diagnostics instead of being reset. Unknown

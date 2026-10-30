@@ -407,7 +407,7 @@ func (p *CheckpointPipeline) ServiceInputs(ctx context.Context, stage Stage) (Se
 		if p.Runtime == nil {
 			return out, service.ErrProviderUnavailable
 		}
-		if err = p.Runtime.AcquireSourceEdge(ctx, path); err != nil {
+		if err = p.Runtime.AcquireSourceEdge(ctx, tools.SourceImage{Path: path, Size: file.Size, SHA256: file.SHA256, Architecture: stage.Plan.Manifest().Source.Architecture}); err != nil {
 			return out, err
 		}
 		refs = append(refs, *edge)

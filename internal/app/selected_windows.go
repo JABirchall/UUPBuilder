@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/download"
 	"uupbuilder/internal/engine/output"
 	"uupbuilder/internal/engine/service"
+	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
 	platform "uupbuilder/internal/platform/windows"
@@ -32,7 +32,7 @@ type selectedEnvironment struct {
 }
 
 func newSelectedEnvironment(ctx context.Context, settings model.ResolvedSettings, endpoint string) (e *selectedEnvironment, err error) {
-	e = &selectedEnvironment{source: &sourcePreparation{inspect: inspectBuildStorage, retainDownloads: settings.Storage.KeepDownloads}}
+	e = &selectedEnvironment{source: &sourcePreparation{inspect: inspectBuildStorage}}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, e.Close())
@@ -88,7 +88,7 @@ func (e *selectedEnvironment) acquireRuntime(ctx context.Context) error {
 		return err
 	}
 	digest, version := runtime.DISMIdentity()
-	e.pipeline = &worker.CheckpointPipeline{Workspace: e.native, Runtime: runtime, Native: &output.Native{Workspace: e.native, WIMLib: runtime.WIMLib(), AdditionalTools: []output.ToolIdentity{{Name: "DISM", Version: version, SHA256: digest}, {Name: "DISM EdgeProvider (selected source)", Version: "10.0.28000.1", SHA256: "3b38d4cc77de1befabbcaf0ccf45964a022f760dd2caa58fb81df67da8155f54"}}}}
+	e.pipeline = &worker.CheckpointPipeline{Workspace: e.native, Runtime: runtime, Native: &output.Native{Workspace: e.native, WIMLib: runtime.WIMLib(), AdditionalTools: []output.ToolIdentity{{Name: "DISM", Version: version, SHA256: digest}}}}
 	return nil
 }
 func (e *selectedEnvironment) Close() error {
@@ -164,25 +164,48 @@ func (s *buildService) prepareSelected(ctx context.Context, draft tui.BuildDraft
 	if err != nil {
 		return planner.ReadyPlan{}, err
 	}
+	if s.planner.InspectStorage != nil {
+		env.source.inspect = s.planner.InspectStorage
+	}
 	s.ownWorkspace(env.source.cache)
 	s.ownWorkspace(env.source.job)
 	s.ownWorkspace(env.native)
-	resolution, err := source.ResolveSelected(ctx, env.catalog, source.NewAppCatalog(draft.Config.Catalog.Endpoint), env.source, selection, settings, nil)
+	resolution, err := source.ResolveMedia(ctx, env.catalog, source.NewAppCatalog(draft.Config.Catalog.Endpoint), env.source, selection, settings, nil, func(ctx context.Context, inv *metadata.Inventory, files download.Materialized) error {
+		// Retention applies once the complete source closure has been verified.
+		// Invalid metadata-only probes release their fresh workspaces normally.
+		env.source.retainDownloads = settings.Storage.KeepDownloads
+		if err := env.acquireRuntime(ctx); err != nil {
+			return err
+		}
+		return (&source.NativeInspector{WIMLib: env.runtime.WIMLib(), Workspace: env.native}).Complete(ctx, inv, files)
+	})
 	if err != nil {
-		return planner.ReadyPlan{}, errors.Join(err, env.Close())
-	}
-	if err = env.acquireRuntime(ctx); err != nil {
-		return planner.ReadyPlan{}, errors.Join(err, env.Close())
+		return planner.ReadyPlan{}, errors.Join(err, s.closeSelectedPreparation(env))
 	}
 	p := *s.planner
 	p.ManagedSelected = true
 	plan, err := p.Resolve(ctx, planner.Request{Selection: selection, Settings: settings, Resolution: resolution, Host: host, DraftRevision: draft.Revision, Intent: planner.BuildMedia})
 	if err != nil {
-		return plan, errors.Join(err, env.Close())
+		return plan, errors.Join(err, s.closeSelectedPreparation(env))
+	}
+	if err = env.acquireRuntime(ctx); err != nil {
+		return planner.ReadyPlan{}, errors.Join(err, s.closeSelectedPreparation(env))
 	}
 	env.planDigest = plan.Digest()
 	s.selected = env
 	return plan, nil
+}
+
+func (s *buildService) closeSelectedPreparation(env *selectedEnvironment) error {
+	owner := env.source
+	err := env.Close()
+	if err != nil {
+		s.mu.Lock()
+		s.cleanupErr = errors.Join(s.cleanupErr, err)
+		s.preserved = append(s.preserved, owner)
+		s.mu.Unlock()
+	}
+	return err
 }
 func (s *buildService) selectedRegistry() *worker.Registry {
 	registry := worker.NewRegistry()
@@ -255,5 +278,5 @@ func (p selectedPublication) PublicationInputs(ctx context.Context, stage worker
 }
 
 func selectedRequest(selection model.Selection) bool {
-	return selection.UpdateID == source.SelectedUpdateID && selection.Architecture == "amd64" && selection.Language == "en-gb" && len(selection.Editions) == 1 && strings.EqualFold(selection.Editions[0], "Professional")
+	return selection.Validate() == nil
 }

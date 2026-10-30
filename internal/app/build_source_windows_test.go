@@ -170,7 +170,7 @@ func TestDefaultBuildInspectsVerifiedSemanticBytes(t *testing.T) {
 			if !errors.Is(err, tc.want) || plan.Validate() == nil {
 				t.Fatalf("default semantic boundary: plan=%s err=%v; want %v", plan.Digest(), err, tc.want)
 			}
-			if tc.want == planner.ErrBlocked && !strings.Contains(err.Error(), "metadata-role-unresolved") {
+			if tc.want == planner.ErrBlocked && !strings.Contains(err.Error(), "metadata-role-unresolved") && !strings.Contains(err.Error(), "media-layout-unresolved") {
 				t.Fatalf("verified metadata did not reach independent missing-media-role gate: %v", err)
 			}
 			if gets.Load() == 0 {
@@ -386,7 +386,7 @@ func TestDefaultBuildDefersLargeAppBodiesWhenMediaMetadataIsBlocked(t *testing.T
 	cfg.Apps.Include = []string{"Requested.Family_123"}
 	service := defaultBuild(t, cfg)
 	_, err := service.Prepare(context.Background(), tui.BuildDraft{Config: cfg})
-	if !errors.Is(err, planner.ErrBlocked) || !strings.Contains(err.Error(), "metadata-role-unresolved") || appBodies.Load() != 0 {
+	if !errors.Is(err, planner.ErrBlocked) || !(strings.Contains(err.Error(), "metadata-role-unresolved") || strings.Contains(err.Error(), "media-layout-unresolved")) || appBodies.Load() != 0 {
 		t.Fatalf("blocked media fetched apps or lost semantic evidence: %v app-bodies=%d", err, appBodies.Load())
 	}
 	if len(cfg.Apps.Include) != 1 || cfg.Apps.Include[0] != "Requested.Family_123" {

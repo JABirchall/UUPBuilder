@@ -10,6 +10,7 @@ import (
 
 type ServicePlan struct {
 	Source                                    model.SourceIdentity
+	Manifest                                  model.PayloadManifest
 	InventoryDigest                           string
 	Generation                                rules.Generation
 	Policy                                    model.UpdatePolicy
@@ -30,22 +31,13 @@ func BuildServicePlan(inv metadata.Inventory, settings model.ResolvedSettings) (
 	if err != nil {
 		return ServicePlan{}, err
 	}
-	plan := ServicePlan{Source: inv.Source, InventoryDigest: hash(inv), Generation: generation, Policy: settings.Conversion.Updates, Cleanup: settings.Conversion.Cleanup, PreserveRequiredBases: settings.Conversion.Editions.PreserveRequiredBases}
+	plan := ServicePlan{Source: inv.Source, Manifest: inv.Manifest, InventoryDigest: hash(inv), Generation: generation, Policy: settings.Conversion.Updates, Cleanup: settings.Conversion.Cleanup, PreserveRequiredBases: settings.Conversion.Editions.PreserveRequiredBases}
 	if inv.Manifest.Validate() != nil || inv.Manifest.Source != inv.Source {
 		return ServicePlan{}, fmt.Errorf("servicing source/manifest identity mismatch")
 	}
-	// This exact source ships EdgeContent separately from its Professional WIM.
-	// EdgeDefault preserves that offered layer through the source's DISM provider.
-	if inv.Source.UpdateID == "8f550c54-da87-45d3-89e3-0c03a6f16ae8" && settings.Apps.Edge == model.EdgeDefault {
-		for _, payload := range inv.Manifest.Payloads {
-			if payload.Identity.Digest.Algorithm == model.DigestSHA256 && payload.Identity.Digest.Value == "43587b49ad0402924340c616021c23c369720668b22be54a59371cb14eb4dd4d" && payload.Identity.Size == 202724886 {
-				ref := metadata.ResourceReference{Payload: payload.Identity}
-				plan.SourceEdge = &ref
-			}
-		}
-		if plan.SourceEdge == nil {
-			return ServicePlan{}, fmt.Errorf("selected source EdgeContent payload is missing")
-		}
+	if settings.Apps.Edge == model.EdgeDefault && inv.SourceEdge != nil {
+		ref := *inv.SourceEdge
+		plan.SourceEdge = &ref
 	}
 	if plan.Updates, err = rules.OrderUpdates(inv, settings, generation); err != nil {
 		return ServicePlan{}, err
@@ -95,11 +87,20 @@ func (p ServicePlan) Validate() error {
 	if p.Digest != p.digest() {
 		return ErrIdentityChanged
 	}
-	if p.SourceEdge != nil && (p.Source.UpdateID != "8f550c54-da87-45d3-89e3-0c03a6f16ae8" || p.SourceEdge.Payload.Digest.Algorithm != model.DigestSHA256 || p.SourceEdge.Payload.Digest.Value != "43587b49ad0402924340c616021c23c369720668b22be54a59371cb14eb4dd4d" || p.SourceEdge.Payload.Size != 202724886) {
+	if p.SourceEdge != nil && (p.SourceEdge.Payload.Validate() != nil || p.SourceEdge.Member != "") {
 		return ErrInvalidPlan
 	}
-	if p.Source.Validate() != nil || p.Generation.ID != "windows-client-28000-v1" || p.Generation.Build != 28000 || len(p.Editions) == 0 || len(p.Bases) == 0 {
+	if p.Source.Validate() != nil || p.Manifest.Validate() != nil || p.Manifest.Source != p.Source || p.Generation.Validate() != nil || len(p.Editions) == 0 || len(p.Bases) == 0 {
 		return ErrInvalidPlan
+	}
+	if p.SourceEdge != nil {
+		member := false
+		for _, payload := range p.Manifest.Payloads {
+			member = member || payload.Identity == p.SourceEdge.Payload
+		}
+		if !member {
+			return ErrInvalidPlan
+		}
 	}
 	if p.Policy != model.UpdatesIntegrate && p.Policy != model.UpdatesExternal && p.Policy != model.UpdatesOmit {
 		return ErrInvalidPlan
@@ -119,6 +120,9 @@ func (p ServicePlan) Validate() error {
 		seen[key] = true
 	}
 	for _, update := range p.Updates {
+		if update.Target != "" && update.Target != metadata.RoleOS {
+			return ErrInvalidPlan
+		}
 		if update.Integrate != (p.Policy == model.UpdatesIntegrate) || p.Policy == model.UpdatesExternal && !update.Retain {
 			return ErrInvalidPlan
 		}
@@ -127,7 +131,7 @@ func (p ServicePlan) Validate() error {
 }
 
 func (p ServicePlan) validateSettings(selection model.Selection, settings model.ResolvedSettings) error {
-	if (p.SourceEdge != nil) != (p.Source.UpdateID == "8f550c54-da87-45d3-89e3-0c03a6f16ae8" && settings.Apps.Edge == model.EdgeDefault) {
+	if p.SourceEdge != nil && settings.Apps.Edge != model.EdgeDefault {
 		return ErrInvalidPlan
 	}
 	if p.Policy != settings.Conversion.Updates || p.Cleanup != settings.Conversion.Cleanup || p.ResetBase != (settings.Conversion.ResetBase == model.ResetBaseOn) || p.PreserveRequiredBases != settings.Conversion.Editions.PreserveRequiredBases {
@@ -167,4 +171,13 @@ func (p ServicePlan) OutputPaths() []string {
 		}
 	}
 	return paths
+}
+
+// ValidateSourceManifest binds the plan's membership proof to its ready plan's
+// frozen source, including all payload identities and the query provenance.
+func (p ServicePlan) ValidateSourceManifest(manifest model.PayloadManifest) error {
+	if p.Manifest.Validate() != nil || manifest.Validate() != nil || p.Manifest.Digest != manifest.Digest || p.Source != manifest.Source {
+		return ErrInvalidPlan
+	}
+	return nil
 }

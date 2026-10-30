@@ -93,6 +93,46 @@ func TestCheckpointUpdatesRequirePredecessors(t *testing.T) {
 	}
 }
 
+func TestExcludedWinREUpdatesRemainObservedWithoutServicingOperations(t *testing.T) {
+	for _, policy := range []model.UpdatePolicy{model.UpdatesIntegrate, model.UpdatesExternal} {
+		inv, settings := serviceFixture(t)
+		settings.Conversion.IncludeWinRE = false
+		settings.Conversion.WinREUpdates = model.InclusionOmit
+		settings.Conversion.Updates = policy
+		recovery := inv.Updates[0]
+		recovery.ID = "recovery-only"
+		recovery.Kind = metadata.UpdateRegular
+		recovery.Target = metadata.RoleWinRE
+		recovery.Packages = []metadata.PackageIdentity{{Name: "Package_for_SafeOSDU", Version: "1.0.0.0", Architecture: "amd64", PublicKeyToken: "publisher"}}
+		recovery.Predecessors = []string{"unexamined-recovery-package"}
+		inv.Updates = append(inv.Updates, recovery)
+		before := hash(inv)
+		plan, err := BuildServicePlan(inv, settings)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if hash(inv) != before || len(inv.Updates) != 4 {
+			t.Fatal("excluded recovery source evidence mutated")
+		}
+		for _, update := range plan.Updates {
+			if update.Target == metadata.RoleWinRE || update.ID == recovery.ID {
+				t.Fatal("excluded recovery operation planned")
+			}
+		}
+		if plan.Manifest.Digest != inv.Manifest.Digest {
+			t.Fatal("source payload manifest narrowed")
+		}
+		bad := copyOf(plan)
+		forged := plan.Updates[0]
+		forged.Target = metadata.RoleWinRE
+		bad.Updates = append(bad.Updates, forged)
+		bad.Digest = bad.digest()
+		if err = bad.Validate(); err == nil {
+			t.Fatal("resealed WinRE servicing operation accepted")
+		}
+	}
+}
+
 func TestExternalUpdatesRemainOutsideImages(t *testing.T) {
 	inv, settings := serviceFixture(t)
 	settings.Conversion.Updates = model.UpdatesExternal
@@ -277,5 +317,72 @@ func TestServicePoliciesRejectUnresolvedExplicitChoices(t *testing.T) {
 				t.Fatal("unsupported explicit choice accepted")
 			}
 		})
+	}
+}
+
+func TestServicePlanAcceptsUnpinnedSourceIdentityAndBuild(t *testing.T) {
+	inv, settings := serviceFixture(t)
+	inv.Source.UpdateID = "independent-source"
+	inv.Source.Language = "en-us"
+	inv.Source.BuildLabel = "26300.9818"
+	inv.Images[0].Build = "10.0.26300.9818"
+	inv.Images[0].Languages = []string{"en-us"}
+	var err error
+	inv.Manifest, err = model.NewPayloadManifest(inv.Source, inv.Manifest.Payloads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := BuildServicePlan(inv, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Source != inv.Source || plan.Generation.Build != 26300 || plan.Validate() != nil {
+		t.Fatalf("source identity changed or new build rejected: %+v", plan)
+	}
+}
+
+func TestServicePlanBindsObservedEdgeToManifestMembership(t *testing.T) {
+	inv, settings := serviceFixture(t)
+	edge := inv.Manifest.Payloads[0]
+	edge.Destination = "edge-content.esd"
+	edge.Identity.Provenance.Name = edge.Destination
+	edge.Identity.Digest.Value = strings.Repeat("c", 64)
+	edge.Identity.Size = 17
+	var err error
+	inv.Manifest, err = model.NewPayloadManifest(inv.Source, append(inv.Manifest.Payloads, edge))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := metadata.ResourceReference{Payload: edge.Identity}
+	inv.SourceEdge = &ref
+	settings.Apps.Edge = model.EdgeDefault
+	plan, err := BuildServicePlan(inv, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.SourceEdge == nil || *plan.SourceEdge != ref {
+		t.Fatal("observed Edge content was not preserved")
+	}
+	plan.SourceEdge.Payload.Digest.Value = strings.Repeat("d", 64)
+	plan.Digest = plan.digest()
+	if plan.Validate() == nil {
+		t.Fatal("resealed Edge reference outside manifest accepted")
+	}
+	inv.SourceEdge.Payload.Digest.Value = strings.Repeat("d", 64)
+	if _, err = BuildServicePlan(inv, settings); err == nil {
+		t.Fatal("unbound Edge inventory observation accepted")
+	}
+}
+
+func TestServicePlanRejectsResealedGenerationCapabilities(t *testing.T) {
+	inv, settings := serviceFixture(t)
+	plan, err := BuildServicePlan(inv, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan.Generation.Checkpoint = false
+	plan.Digest = plan.digest()
+	if plan.Validate() == nil {
+		t.Fatal("resealed generation capability changes accepted")
 	}
 }

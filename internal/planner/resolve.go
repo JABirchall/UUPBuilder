@@ -41,7 +41,7 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 	}
 	if req.Intent == BuildMedia {
 		for _, d := range res.Diagnostics {
-			if d.Severity == model.SeverityError && !(appsResolved && d.Code == "metadata-app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredDiagnostic(d.Code)) {
+			if d.Severity == model.SeverityError && !excludedRecoveryObservation(strings.TrimPrefix(d.Code, "metadata-"), d.Message, req.Settings) && !(appsResolved && d.Code == "metadata-app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredDiagnostic(d.Code)) {
 				return ReadyPlan{}, fmt.Errorf("%w: %s: %s", ErrBlocked, d.Code, d.Message)
 			}
 		}
@@ -57,7 +57,7 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 			return ReadyPlan{}, ErrIdentityChanged
 		}
 		for _, gap := range res.Inventory.Gaps {
-			if !(appsResolved && gap.Code == "app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredGap(gap.Code)) {
+			if !excludedRecoveryObservation(gap.Code, gap.Detail, req.Settings) && !(appsResolved && gap.Code == "app-dependency-unresolved") && !(res.AppPhase == metadata.PhasePostAssembly && deferredGap(gap.Code)) {
 				return ReadyPlan{}, fmt.Errorf("%w: metadata-%s: %s", ErrBlocked, gap.Code, gap.Detail)
 			}
 		}
@@ -115,6 +115,20 @@ func (p *Planner) Resolve(ctx context.Context, req Request) (ReadyPlan, error) {
 }
 func deferredGap(code string) bool {
 	return code == "app-inventory-unresolved" || code == "app-selection-rules-unresolved" || code == "app-phase-unresolved" || code == "app-license-unresolved" || code == "app-dependency-unresolved"
+}
+
+// Retain unresolved recovery observations in the inventory. They cannot block
+// ISO work when recovery is outside the requested and supported scope.
+func excludedRecoveryObservation(code, detail string, settings model.ResolvedSettings) bool {
+	if settings.Conversion.IncludeWinRE || settings.Conversion.WinREUpdates != model.InclusionOmit {
+		return false
+	}
+	for _, target := range settings.Conversion.Drivers.Targets {
+		if target == model.DriverWinRE {
+			return false
+		}
+	}
+	return code == "role-unresolved" && strings.HasPrefix(strings.ToLower(detail), "winre ")
 }
 func deferredDiagnostic(code string) bool {
 	return code == "apps-require-materialized-inspection" || deferredGap(strings.TrimPrefix(code, "metadata-"))

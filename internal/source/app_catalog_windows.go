@@ -438,7 +438,7 @@ func observeAppCatalog(ctx context.Context, s AppCatalogSnapshot, body []byte) (
 	return s, nil
 }
 func catalogEntry(f metadata.AppFeatureObservation, ref metadata.DocumentReference) AppCatalogEntry {
-	return AppCatalogEntry{FeatureID: f.FeatureID, Type: f.Type, Selector: f.Selector, Document: ref, Dependencies: f.Dependencies, Media: f.Media, InitialIntents: f.InitialIntents, Licenses: f.Licenses}
+	return AppCatalogEntry{FeatureID: f.FeatureID, Type: f.Type, Selector: f.Selector, Document: ref, Dependencies: f.Dependencies, Packages: f.Packages, Media: f.Media, InitialIntents: f.InitialIntents, Licenses: f.Licenses}
 }
 
 var _ AppCatalog = (*SourceAppCatalog)(nil)

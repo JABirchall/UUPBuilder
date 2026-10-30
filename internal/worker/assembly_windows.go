@@ -9,9 +9,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"uupbuilder/internal/engine/output"
 	"uupbuilder/internal/jobstore"
+	"uupbuilder/internal/metadata"
+	"uupbuilder/internal/metadata/providers"
 	"uupbuilder/internal/model"
 	"uupbuilder/internal/planner"
 	platform "uupbuilder/internal/platform/windows"
@@ -34,8 +37,8 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 			return Result{}, ErrMissingHandler
 		}
 		manifest := stage.Plan.Manifest()
-		if manifest.Source.UpdateID != source.SelectedUpdateID || manifest.Source.BuildLabel != "28000.3365" || manifest.Source.Architecture != "amd64" || manifest.Source.Language != "en-gb" {
-			return Result{}, source.ErrImplementationGap
+		if stage.Operation.SourceDigest != manifest.Digest {
+			return Result{}, planner.ErrIdentityChanged
 		}
 		dir, err := p.directory("assembly")
 		if err != nil {
@@ -53,23 +56,25 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 		if receipt.PlanDigest != stage.Plan.Digest() || receipt.ManifestDigest != manifest.Digest {
 			return Result{}, planner.ErrIdentityChanged
 		}
-		prepared := map[model.PayloadIdentity]PreparedPayload{}
-		for _, f := range receipt.Files {
-			prepared[f.Identity] = f
-		}
-		wanted := map[model.PayloadIdentity]string{}
-		for i, payload := range manifest.Payloads {
-			ext := strings.ToLower(filepath.Ext(payload.Destination))
-			if ext == ".esd" || ext == ".cab" {
-				wanted[payload.Identity] = filepath.Join(dir, "inputs", fmt.Sprintf("p%03d%s", i, ext))
-			}
-		}
+		wanted := assemblyInputPaths(manifest, dir)
 		if err = materializePrepared(ctx, stage, receipt, wanted); err != nil {
 			return Result{}, err
 		}
+		selection := stage.Plan.Selection()
+		excludedCABs := map[model.PayloadIdentity]bool{}
+		if service := stage.Plan.ServicePlan(); service != nil {
+			selection.Editions = append([]string(nil), service.Bases...)
+			for _, update := range service.Updates {
+				excludedCABs[update.Resource.Payload] = true
+			}
+		}
+		layout, original, err := inspectAssemblyMedia(ctx, manifest, selection, wanted)
+		if err != nil {
+			return Result{}, err
+		}
 		var refs []string
-		main := ""
-		cabs := 0
+		main := wanted[layout.Payload]
+		cabContent := false
 		system, err := native.GetSystemDirectory()
 		if err != nil {
 			return Result{}, err
@@ -86,20 +91,18 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 			system = filepath.Join(root, "Sysnative")
 		}
 		for i, payload := range manifest.Payloads {
-			ext := strings.ToLower(filepath.Ext(payload.Destination))
-			if ext != ".esd" && ext != ".cab" {
+			path := wanted[payload.Identity]
+			if path == "" {
 				continue
 			}
-			file, ok := prepared[payload.Identity]
-			if !ok || file.Path != "payloads/"+payload.Identity.Key()+".data" {
-				return Result{}, planner.ErrIdentityChanged
-			}
-			path := filepath.Join(dir, "inputs", fmt.Sprintf("p%03d%s", i, ext))
-			if ext == ".esd" {
+			ext := strings.ToLower(filepath.Ext(payload.Destination))
+			if ext == ".esd" || ext == ".wim" {
 				refs = append(refs, "--ref="+path)
-				if payload.Identity.Digest.Value == source.SelectedBaseSHA256 {
-					main = path
-				}
+				continue
+			}
+			// Only source-bound servicing identities can exclude CABs. Unknown
+			// CABs remain conservative content references; names imply no role.
+			if excludedCABs[payload.Identity] {
 				continue
 			}
 			cabDir := filepath.Join(dir, "cab-content", fmt.Sprintf("p%03d", i))
@@ -109,19 +112,18 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 			if err = p.runAssembly(ctx, filepath.Join(system, "expand.exe"), "-F:*", path, cabDir); err != nil {
 				return Result{}, err
 			}
-			cabs++
-		}
-		if main == "" || len(refs) != 20 || cabs != 73 {
-			return Result{}, fmt.Errorf("selected source reference closure changed")
+			cabContent = true
 		}
 		wim := p.Native.WIMLib
-		cabRef := filepath.Join(dir, "cab-references.wim")
-		if err = p.runAssembly(ctx, wim, "capture", filepath.Join(dir, "cab-content"), cabRef, "CAB content references", "--no-acls", "--compress=none"); err != nil {
-			return Result{}, err
+		if cabContent {
+			cabRef := filepath.Join(dir, "cab-references.wim")
+			if err = p.runAssembly(ctx, wim, "capture", filepath.Join(dir, "cab-content"), cabRef, "CAB content references", "--no-acls", "--compress=none"); err != nil {
+				return Result{}, err
+			}
+			refs = append(refs, "--ref="+cabRef)
 		}
-		refs = append(refs, "--ref="+cabRef)
 		base := filepath.Join(dir, "base.wim")
-		args := append([]string{"export", main, "3", base, "--compress=LZX", "--check"}, refs...)
+		args := append([]string{"export", main, strconv.Itoa(layout.OSIndex), base, "--compress=LZX", "--check"}, refs...)
 		if err = p.runAssembly(ctx, wim, args...); err != nil {
 			return Result{}, err
 		}
@@ -132,11 +134,11 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 		if err != nil {
 			return Result{}, err
 		}
-		if len(images) != 1 || !strings.EqualFold(images[0].Edition, "Professional") || images[0].Architecture != manifest.Source.Architecture || !strings.EqualFold(images[0].Language, manifest.Source.Language) {
+		if len(images) != 1 || !strings.EqualFold(images[0].Edition, original.Edition) || images[0].Architecture != manifest.Source.Architecture || !strings.EqualFold(images[0].Language, manifest.Source.Language) {
 			return Result{}, planner.ErrIdentityChanged
 		}
 		media := filepath.Join(dir, "media")
-		args = append([]string{"apply", main, "1", media, "--no-acls"}, refs...)
+		args = append([]string{"apply", main, strconv.Itoa(layout.MediaIndex), media, "--no-acls"}, refs...)
 		if err = p.runAssembly(ctx, wim, args...); err != nil {
 			return Result{}, err
 		}
@@ -146,8 +148,11 @@ func (p *CheckpointPipeline) AssemblyHandler() Handler {
 			return Result{}, err
 		}
 		boot := filepath.Join(dir, "boot.wim")
-		for _, name := range []string{"Microsoft Windows PE (amd64)", "Microsoft Windows Setup (amd64)"} {
-			args = append([]string{"export", main, "2", boot, name, "--compress=LZX", "--check"}, refs...)
+		// These two exports create output indices 1 (PE) and 2 (Setup).
+		// Source indices come exclusively from the inspected candidate layout.
+		for _, role := range []string{"PE", "Setup"} {
+			name := fmt.Sprintf("Microsoft Windows %s (%s)", role, manifest.Source.Architecture)
+			args = append([]string{"export", main, strconv.Itoa(layout.PEIndex), boot, name, "--compress=LZX", "--check"}, refs...)
 			if err = p.runAssembly(ctx, wim, args...); err != nil {
 				return Result{}, err
 			}
@@ -230,4 +235,53 @@ func assemblyFile(ctx context.Context, path string) (output.File, error) {
 	h := sha256.New()
 	size, err := io.Copy(h, preparationReader{ctx, f})
 	return output.File{Path: path, Size: size, SHA256: hex.EncodeToString(h.Sum(nil))}, err
+}
+
+func assemblyInputPaths(manifest model.PayloadManifest, dir string) map[model.PayloadIdentity]string {
+	wanted := map[model.PayloadIdentity]string{}
+	for i, payload := range manifest.Payloads {
+		ext := strings.ToLower(filepath.Ext(payload.Destination))
+		if ext == ".esd" || ext == ".wim" || ext == ".cab" {
+			wanted[payload.Identity] = filepath.Join(dir, "inputs", fmt.Sprintf("p%03d%s", i, ext))
+		}
+	}
+	return wanted
+}
+
+func inspectAssemblyMedia(ctx context.Context, manifest model.PayloadManifest, selection model.Selection, paths map[model.PayloadIdentity]string) (source.MediaLayout, metadata.Image, error) {
+	inv := metadata.Inventory{Source: manifest.Source, Manifest: manifest}
+	for _, payload := range manifest.Payloads {
+		ext := strings.ToLower(filepath.Ext(payload.Destination))
+		if ext != ".esd" && ext != ".wim" {
+			continue
+		}
+		// Inspect each reference independently. Its original digest is checked
+		// again before XML parsing; the archive's local SHA256 is insufficient.
+		observed, err := metadata.Inspect(ctx, metadata.InspectRequest{
+			Source: manifest.Source, Manifest: manifest,
+			Inspections: []metadata.Inspection{{Resource: metadata.LocalResource{Identity: payload.Identity, Path: paths[payload.Identity]}, Provider: providers.WIM{}}},
+		})
+		if err != nil {
+			return source.MediaLayout{}, metadata.Image{}, fmt.Errorf("assembly WIM metadata %s: %w", payload.Destination, err)
+		}
+		inv.Documents = append(inv.Documents, observed.Documents...)
+		inv.Images = append(inv.Images, observed.Images...)
+		inv.Roles = append(inv.Roles, observed.Roles...)
+	}
+	if err := ctx.Err(); err != nil {
+		return source.MediaLayout{}, metadata.Image{}, err
+	}
+	layout, err := source.DetectMedia(inv, selection)
+	if err != nil {
+		return source.MediaLayout{}, metadata.Image{}, fmt.Errorf("assembly source layout: %w", err)
+	}
+	if len(selection.Editions) != 1 {
+		return source.MediaLayout{}, metadata.Image{}, fmt.Errorf("assembly source layout requires %d selected base editions; multi-base export provider is unavailable", len(selection.Editions))
+	}
+	for _, image := range inv.Images {
+		if image.Resource.Payload == layout.Payload && image.Index == layout.OSIndex {
+			return layout, image, nil
+		}
+	}
+	return source.MediaLayout{}, metadata.Image{}, planner.ErrIdentityChanged
 }

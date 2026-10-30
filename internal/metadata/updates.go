@@ -14,6 +14,7 @@ const (
 	UpdateServicingStack UpdateKind = "servicing-stack"
 	UpdateCheckpoint     UpdateKind = "checkpoint"
 	UpdateCumulative     UpdateKind = "cumulative"
+	UpdateRegular        UpdateKind = "update"
 	UpdateEnablement     UpdateKind = "enablement"
 )
 
@@ -28,8 +29,11 @@ const (
 // heuristic. Packages are exact CBS identities expected after servicing. Members
 // lists MSU CABs in their inspected installation order when expansion is needed.
 type Update struct {
-	ID           string
-	Kind         UpdateKind
+	ID   string
+	Kind UpdateKind
+	// Empty is the legacy OS scope. A role observation does not authorize its
+	// servicing; excluded targets stay in the source inventory only.
+	Target       Role `json:",omitempty"`
 	Format       UpdateFormat
 	Resource     ResourceReference
 	Packages     []PackageIdentity
@@ -41,11 +45,14 @@ type Update struct {
 
 func (inv *Inventory) applyUpdates(updates []Update, known map[model.PayloadIdentity]bool) error {
 	for _, update := range updates {
+		if update.Target != "" && update.Target != RoleOS && update.Target != RoleWinRE {
+			return fmt.Errorf("%w: unsupported update target %q", ErrInvalidEvidence, update.Target)
+		}
 		if strings.TrimSpace(update.ID) == "" || !validReference(update.Resource, known) || inv.validateEvidence(update.Evidence) != nil || len(update.Packages) == 0 {
 			return fmt.Errorf("%w: update identity/resource/evidence", ErrInvalidEvidence)
 		}
 		switch update.Kind {
-		case UpdateServicingStack, UpdateCheckpoint, UpdateCumulative, UpdateEnablement:
+		case UpdateServicingStack, UpdateCheckpoint, UpdateCumulative, UpdateRegular, UpdateEnablement:
 		default:
 			return ErrInvalidEvidence
 		}
