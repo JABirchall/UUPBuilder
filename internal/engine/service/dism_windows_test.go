@@ -11,7 +11,27 @@ import (
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
 	platform "uupbuilder/internal/platform/windows"
+	"uupbuilder/internal/tools"
 )
+
+func TestManagedDISMRejectsUnacquiredRuntime(t *testing.T) {
+	w, err := platform.CreateWorkspace(t.TempDir(), "managed-dism-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	if _, err = NewManagedDISM(context.Background(), w, &tools.SelectedRuntime{}); err == nil {
+		t.Fatal("unacquired runtime accepted")
+	}
+}
+
+func TestDISMUsesOrdinaryPathsForOwnedLocalInputs(t *testing.T) {
+	got := ordinaryDISMArguments([]string{`/Image:\\?\C:\owned\mount`, `/ScratchDir:\\?\C:\owned\scratch`, `/English`})
+	want := []string{`/Image:C:\owned\mount`, `/ScratchDir:C:\owned\scratch`, `/English`}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("native paths: %v", got)
+	}
+}
 
 func TestDISMPackageInspectionKeepsExactIdentityAndState(t *testing.T) {
 	text := "Deployment Image Servicing and Management tool\r\nPackage Identity : Package_for_RollupFix~31bf3856ad364e35~amd64~~28000.3365.1.1\r\nState : Install Pending\r\nRelease Type : Security Update\r\n\r\nPackage Identity : Package_for_ServicingStack~31bf3856ad364e35~amd64~~28000.1.1.1\r\nState : Installed\r\nThe operation completed successfully.\r\n"

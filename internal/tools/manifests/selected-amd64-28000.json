@@ -1,0 +1,1603 @@
+{
+  "SourceDISM": [
+    {"Relative":"EdgeProvider.dll","Size":230816,"SHA256":"3b38d4cc77de1befabbcaf0ccf45964a022f760dd2caa58fb81df67da8155f54","Version":"10.0.28000.1"},
+    {"Relative":"en-US/EdgeProvider.dll.mui","Size":6144,"SHA256":"28a83cf9a98d77cacb06578b4af33b0d4001b87abe64ca218ea2d3e36b736334","Version":"10.0.28000.1"}
+  ],
+  "Cabinets": [
+    {
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "Bytes": 22290,
+      "SHA256": "c039b0197f556ee35df25a4f309dfad6d717612292e48e517150db4ef31731b8",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "831d004a8f355684ab94810176e8d4ec.cab",
+      "Bytes": 60802,
+      "SHA256": "a821c4c98c37af30c419322106e96fd79006400015010bf346dcf51fe190b16c",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "Bytes": 47848,
+      "SHA256": "11bfdf07e06acc9423b45cce58a2b139c28b49d34bc6e881f890f6ade55b880c",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "Bytes": 2433362,
+      "SHA256": "501c144b400ca472ba7268da8f90678974b8b121ed94a5bb2b1b546932c45989",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "Bytes": 150614,
+      "SHA256": "e01e4f080f1649e84f7ada4d508e0472a07dde167ee3541cad8521133ffd7d43",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "Bytes": 1106766,
+      "SHA256": "8d293af9ce652e4b75e43c2d81e8418b9c36cb4db51db2fa190dd70198881ce9",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "Bytes": 967730,
+      "SHA256": "5c9c0dfe8a787f7be7bdd144069c00725747eb13d4ad33a8f6c6d4504da5481d",
+      "Signature": "Valid",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    }
+  ],
+  "DISM": [
+    {
+      "Relative": "WimMountAdkSetupAmd64.exe",
+      "Size": 105856,
+      "SHA256": "875a280af0e820bd45de91649686ce267a2647c9cb6535ae3ba0e1d8f37aa932",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "fil7d30d87b7ebcca3d7a4b95d331b210e6"
+    },
+    {
+      "Relative": "wimmount.hiv",
+      "Size": 8192,
+      "SHA256": "9751979e262cb13a83425043962157981199eb03917eba034be47605e28888ad",
+      "Version": "",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "filfbc9b981ef7793429883c85df4117cd3"
+    },
+    {
+      "Relative": "imagex.exe",
+      "Size": 969160,
+      "SHA256": "88373cb98bdaedc500c473c3df81173b8a734d50ab3992c9cd5f40011b27ef75",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "fil4927034346f01b02536bd958141846b2"
+    },
+    {
+      "Relative": "wimgapi.dll",
+      "Size": 928200,
+      "SHA256": "38d63aa5b4fcd3c209fe9df80099abfdc6168a3c97c8a6ed4eac852881f1e1c9",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "filbce32eb05faf5e2ec0537a0ccd32f04e"
+    },
+    {
+      "Relative": "wimmount.sys",
+      "Size": 85456,
+      "SHA256": "94246085fbd0cb83c4799aab69950ca342ae45f8261a79324ad9415b650cdba6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "fil468e14f4b37636acb529da9d11b55362"
+    },
+    {
+      "Relative": "wimserv.exe",
+      "Size": 670192,
+      "SHA256": "8f4cdbea267f227a6cb7a82cebb82d54320ad739aace96bba1a343c059689e1b",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "d2611745022d67cf9a7703eb131ca487.cab",
+      "MsiFile": "fil56c851945da6dfbb42939c1096ab33b5"
+    },
+    {
+      "Relative": "ja-jp\\wimgapi.dll.mui",
+      "Size": 10752,
+      "SHA256": "e1af923afa7edb301dc449fa961fe0b887c24cfb1732e975afa8e07e9566ca9c",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fil07c0b0e03a282cec7eeff620914cb470"
+    },
+    {
+      "Relative": "de-de\\wimgapi.dll.mui",
+      "Size": 20480,
+      "SHA256": "3423477d86e018f17458f2907951bc1b08b50bcd364b72352fff2b33cc1bc762",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fil2d338f3c49ef6c9840a1aabd4593925f"
+    },
+    {
+      "Relative": "zh-tw\\wimgapi.dll.mui",
+      "Size": 7680,
+      "SHA256": "5e40d0cca97d7b0e08f56dfc7b7422f69c31089eee96ec6726225113b3576a1e",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fil5667e7cd4fd8a42e89652ea4ec2b3ea0"
+    },
+    {
+      "Relative": "es-es\\wimgapi.dll.mui",
+      "Size": 17920,
+      "SHA256": "4c5dd0cda75b75eb4d7a32067d1cb183e78d6c303c160c22b92ad216331c2006",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fil5c977e880f7f7ac861e65967eb55bb95"
+    },
+    {
+      "Relative": "fr-fr\\wimgapi.dll.mui",
+      "Size": 19456,
+      "SHA256": "021cb7610cd73f09df825a950a6f19349f994179171e7112b3597eddaa194e4e",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fila8fbf36099ced48cb5c953ed5f8bfba6"
+    },
+    {
+      "Relative": "zh-cn\\wimgapi.dll.mui",
+      "Size": 7680,
+      "SHA256": "b4e87388ce3cc37e3b9976a09e6a703852a8f72b50a0cd58e4078e20e1e6950e",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "filb3b938e3e11fe7c0b9563fbd53e5128b"
+    },
+    {
+      "Relative": "ko-kr\\wimgapi.dll.mui",
+      "Size": 10240,
+      "SHA256": "8859fab1c9cdf6481618267545e65c51e6102a4ad43697fe8284f29d18a121ae",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "filde9afefaa42125eae13683af865e36b4"
+    },
+    {
+      "Relative": "ru-ru\\wimgapi.dll.mui",
+      "Size": 17408,
+      "SHA256": "ef4bc1f554a8b76769e51fc36bc5bd95ccad9e90b7f4de20f09629dc3856c9fc",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "fildf4522c241fb4db2c542bb7eb5527ddc"
+    },
+    {
+      "Relative": "it-it\\wimgapi.dll.mui",
+      "Size": 18432,
+      "SHA256": "f965785950c33a620e7d4ca2ea147e2474a1ecf29cc264164f46719ef1c639c4",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "file09aa3647a272d2f6c72027cb3a5dfd4"
+    },
+    {
+      "Relative": "pt-br\\wimgapi.dll.mui",
+      "Size": 17920,
+      "SHA256": "791ce70f4fcc647a05b1654bb1d17f9b6b3fe3636ae7e925c5830c56204ada08",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "file23d7e7d3c43b4eec1f4488d28a5f1bc"
+    },
+    {
+      "Relative": "en-us\\wimgapi.dll.mui",
+      "Size": 16384,
+      "SHA256": "34bd26ca9de4bc11dffc6c067a22f263f9b93c83488a02ca4c2fe2133d10ed51",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "8624feeaa6661d6216b5f27da0e30f65.cab",
+      "MsiFile": "file7bf8c0d634293405b38e624668ce2a6"
+    },
+    {
+      "Relative": "cimfs.dll",
+      "Size": 466304,
+      "SHA256": "339eccaa3d9165919d6b6963089dd197ad86048a5c73436f2992067bf676cb99",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "filed092e3a9af6ac961aa9e4df65fa6c78"
+    },
+    {
+      "Relative": "cimfs.sys",
+      "Size": 396752,
+      "SHA256": "321f13aea0af119f78e2d5801992f76bdc1f6c27a390e2059761893ed853d4fe",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil1b11b206fc3964237f2c8bbef72bf0df"
+    },
+    {
+      "Relative": "cimwriter.dll",
+      "Size": 433536,
+      "SHA256": "d823f8c301aa046e10160596e1990ba5b5031cfe9aee5442c517b6db18961128",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil3dc9c2d14bb90a18f50d31fa12fc9a0a"
+    },
+    {
+      "Relative": "UnionFS.hiv",
+      "Size": 8192,
+      "SHA256": "c691f0b99ccc18a2c87deb24fc74d4a8fec9883be2eedf2205ad7d70dc926104",
+      "Version": "",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil9ebcea407d5d1a159e4b8fe0670fb393"
+    },
+    {
+      "Relative": "UnionFS.sys",
+      "Size": 712144,
+      "SHA256": "ffa8456eef0c35c7fa5623aa5690f08db29136afb0b45632eaed9e76445e7e79",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil58aebb32fdc35a3b4a2510b73ea2bde6"
+    },
+    {
+      "Relative": "UnionFSApi.dll",
+      "Size": 281984,
+      "SHA256": "7f6a1bf841ac89f30ab63db568ae91d276e9fa612c35f03b20491223c8025d75",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil2be67719001d9c51be32af0b9979351f"
+    },
+    {
+      "Relative": "WofAdk.hiv",
+      "Size": 8192,
+      "SHA256": "e8a78495b69b5147e854aadbbf2cc120cd6f57baa4d2a13a8f12ab489d934556",
+      "Version": "",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil21b8e7f7d2e5d4646cff984fc1e6266e"
+    },
+    {
+      "Relative": "wofadk.sys",
+      "Size": 294352,
+      "SHA256": "4fe12cff706ed3dbef99aede50c80e8fe65bf857c95de485109d7b7f30697eaf",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "fdfb8cfc2e4d170431fb6b8c67210672.cab",
+      "MsiFile": "fil50d4af1a34c5b86a045ef5432a18a0d5"
+    },
+    {
+      "Relative": "deployprovider.dll",
+      "Size": 747976,
+      "SHA256": "8de0a1699c7797fd9385dc02c77d3e6997306f95b52376b223a4b0a1301188a8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "filae2e2cf527fff8f24e09628a45206c97"
+    },
+    {
+      "Relative": "dism.exe",
+      "Size": 326088,
+      "SHA256": "172e473839b3a0dedb4264af674d7bf794089c23bf17a8efa285988d959f87d8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil5df4699ae9e87b34e1bba2136121ea7e"
+    },
+    {
+      "Relative": "dism.Format.ps1xml",
+      "Size": 27404,
+      "SHA256": "3dedad2e97a73ec903d228b363d7ebffb3350a72b267b8447c55eacaea5acd7b",
+      "Version": "",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "filffc75e13d6cd5caaca65765510bf8d50"
+    },
+    {
+      "Relative": "dism.psd1",
+      "Size": 3743,
+      "SHA256": "3d68d584568bf8928ca5f2f4e04822a0c806dffad0a64acb9e71af573e55b0ba",
+      "Version": "",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "filc2ae17f886791fd1ae47c16bc3c6a170"
+    },
+    {
+      "Relative": "dism.psm1",
+      "Size": 16848,
+      "SHA256": "8d70a876839a0a40249fe9da8d0e4f059ddcee1e30e813e499a927b61d684b28",
+      "Version": "",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil12ddaade2166e11368fa9861bdb13704"
+    },
+    {
+      "Relative": "dism.Types.ps1xml",
+      "Size": 20378,
+      "SHA256": "79ded6bbd74c833bb715b33687fe1ca9eff8a769a7938ec3c81935530e042749",
+      "Version": "",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "filee8a3d4167cd6dd4302de1321dce38d1"
+    },
+    {
+      "Relative": "dismapi.dll",
+      "Size": 1350088,
+      "SHA256": "cb219ea2be2ce69d3910148a6482d2e32e86c937f95ed02f8497b0d4e0cbe280",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "file1467cef9b504782cdf6e4e203275454"
+    },
+    {
+      "Relative": "dismcore.dll",
+      "Size": 534984,
+      "SHA256": "809037d299729125bc2ddc14fb685c7354fe1d4b462be0445b76b495f0e158b8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil29a5cb24b27b5cacc29dd1b9e93f60bc"
+    },
+    {
+      "Relative": "dismcoreps.dll",
+      "Size": 248264,
+      "SHA256": "03e0b076700419a518c48ed7982a7fc896cc7b0d9e84d4c66de1648a948a9dca",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil46c001e61736775ceb28dc21d42dc139"
+    },
+    {
+      "Relative": "dismprov.dll",
+      "Size": 346568,
+      "SHA256": "a509874dac82ebfd067bbd1484cd71eb617d488cde1569ef95eab6f38f50dc04",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil36e598a8fd9aee7b4ac8620ddd36cb08"
+    },
+    {
+      "Relative": "ffuprovider.dll",
+      "Size": 731592,
+      "SHA256": "7e58bde5311966e0218d3aebe292026d2708344738eb6b8fb6b23490318243ae",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil115b6a04b0f064d0666d190061f7d8fc"
+    },
+    {
+      "Relative": "folderprovider.dll",
+      "Size": 96752,
+      "SHA256": "80a9481c8560acbd18f891158d53c100b2f4875068baee82d6042306655b7cf0",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil8bcd27caf06f979ab8d9dfa9b7fbe3bf"
+    },
+    {
+      "Relative": "imagingprovider.dll",
+      "Size": 248264,
+      "SHA256": "77d9ac1d345e732a8cf90d71af2413c5541622b6cfdcad62fac2a298ae052d06",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil2051206e8159d97acbeca53b2c6b0ae4"
+    },
+    {
+      "Relative": "logprovider.dll",
+      "Size": 235976,
+      "SHA256": "279aaaa9e644ccf82cf6e5c3d5a44aaa7525ae679b34e1ac240caff111521b32",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "file631ed944f2cd40f21aaade0b9273762"
+    },
+    {
+      "Relative": "Microsoft.Dism.Powershell.dll",
+      "Size": 659952,
+      "SHA256": "6868cb15d94d0a6d8828d3a835d965aa3ffd443baf514bd597b79e04ea6d0572",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil04bc0d3879473c96270c5dbc1a892e6a"
+    },
+    {
+      "Relative": "osimageprovider.dll",
+      "Size": 559560,
+      "SHA256": "fd663879f82ed63ee407033f5ea28f161924a78f31c931a44b2149aa7b9e6726",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "filc27ff32e9f0714b5d61fa2ae19010e4d"
+    },
+    {
+      "Relative": "pkgmgr.exe",
+      "Size": 326088,
+      "SHA256": "fe16375460d0ffbfe6c496a590eebf3b09c78095fb64fcf818a4fc2a498d1ae6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil1c879bd0f5001fe0610ca0e8afe3b303"
+    },
+    {
+      "Relative": "vhdprovider.dll",
+      "Size": 633288,
+      "SHA256": "1be4496356c4a1a49aee1c2ab7d8f7d02b21250284446edd057c046f5ca447b6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil8175a3c715d1482ce03631c5035fc233"
+    },
+    {
+      "Relative": "wimprovider.dll",
+      "Size": 698824,
+      "SHA256": "1c5d0fc75e6bb88d59fad7755aabeeb1a85a65e353be026f20f7a604edc6696a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil23b7bb6723efd36fe466cd8fb59675a7"
+    },
+    {
+      "Relative": "ssshim.dll",
+      "Size": 166384,
+      "SHA256": "297510139047241e2fa91b5e3e6e9cfb80e2f42f196c1e652604d2a9a3d174dd",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "a7eb3390a15bcd2c80a978c75f2dcc4f.cab",
+      "MsiFile": "fil4b70f9579a26a772fabf39372c923657"
+    },
+    {
+      "Relative": "ru-ru\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "533347f68f8b61f4eb354376ec47e81a874219b84976b8d99dbcc81fe87af564",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil70d7eca70fd68d2d7114b61160d9e64a"
+    },
+    {
+      "Relative": "ru-ru\\dism.exe.mui",
+      "Size": 32256,
+      "SHA256": "f99a68271f5e24aede57c0e302fa864f5928ecbaf0336c18207aea215f3b4317",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil0738659a8f7434b672786ec253b47ef4"
+    },
+    {
+      "Relative": "ru-ru\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "d828137110204502ffb27af723282284158b03ee07fafef5215535d8026ca64a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil073027846f11ca5e2b45794519a1df16"
+    },
+    {
+      "Relative": "ru-ru\\dismcore.dll.mui",
+      "Size": 7680,
+      "SHA256": "de965e8de22fe8f46a77e49f55bac3da13d2e4b0537d78b672a94e33196c7d91",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf60453450be9ed172f9f3ac1f25555d5"
+    },
+    {
+      "Relative": "ru-ru\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "db381ec70ff41fc9ba042e94a107d68860538457d51088b4ac26c5d22867844d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil5c85aa8befb59c9c9e69b7640133eb0d"
+    },
+    {
+      "Relative": "ru-ru\\ffuprovider.dll.mui",
+      "Size": 10240,
+      "SHA256": "05bff75c110f4e27d10d37193ee35fc7ce41552c82e64c2538d139cd99e362cd",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fildbbb3c53d269851719f63eed0c386c6c"
+    },
+    {
+      "Relative": "ru-ru\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "146135b28a03f5dba63804297db599fe4439b11d7ebc642c4545d8e377b9d50b",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil001f753c2a24b7b01d6cada30c87e213"
+    },
+    {
+      "Relative": "ru-ru\\imagingprovider.dll.mui",
+      "Size": 20480,
+      "SHA256": "b5cb773d7aded619e0f74cf360125e9332b1eaec9ce38e77f04c0f55a893bd30",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4eeed9471f38861f06107fe03955638a"
+    },
+    {
+      "Relative": "ru-ru\\logprovider.dll.mui",
+      "Size": 6656,
+      "SHA256": "f5be8f2d085d51c7b1aa582590ca693337536d9b468c8024b26b559548b63da3",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file51aaebc06bebdb561bf85817c701b2f"
+    },
+    {
+      "Relative": "ru-ru\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "f62fc8358a3280740e6a54d73935e8f907509d72fde38565bf53c2c2cf273700",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fila332c4590d93eeb506f41218a2b0d402"
+    },
+    {
+      "Relative": "ru-ru\\VHDProvider.dll.mui",
+      "Size": 8704,
+      "SHA256": "c37ebcc0efe7ecdb710bdf5f803ad9f447c7381a83a40c44bd506f4fc6d2230a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil0b61f198d355eee6c5359ca595bc5b56"
+    },
+    {
+      "Relative": "ru-ru\\wimprovider.dll.mui",
+      "Size": 30208,
+      "SHA256": "db870eced479781a71cc1990c0a9016ed4bb6631535672a92fa6fa15aeb68ee8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil3ef717901086e85de902105149f6e419"
+    },
+    {
+      "Relative": "de-de\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "47b37e5ec1daf3f6fcbfa867b840dc9ca759241a032c28d6679f51b1e0b599c3",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filc0e24f6cf454c84707b20ee2b7d83764"
+    },
+    {
+      "Relative": "de-de\\dism.exe.mui",
+      "Size": 33792,
+      "SHA256": "f6d28bec67e48286802ebd8110957aa419ae119843f84846a2e0e16ed6703f28",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil86cc1953fc27d8cafbccdaffbe26739f"
+    },
+    {
+      "Relative": "de-de\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "b7cf0c555c260e9981c2d860627d0c4c973b3a04b8fd341b9411a667321cea61",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fila28c82c6f9bf76792e7d750078ee8e5d"
+    },
+    {
+      "Relative": "de-de\\dismcore.dll.mui",
+      "Size": 8192,
+      "SHA256": "d97eddb8df7880d9f9c7d15a2350d1acb44f76ead4d7278e732dc6c3ff9da097",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil87ab5b464c6c779fd524c2d14ffd3b69"
+    },
+    {
+      "Relative": "de-de\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "39771f890c77196354315f9c14fbbf37ece59852162fef3f1ff1917e05fcb83d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil163560af49bad1808c59542514d713c9"
+    },
+    {
+      "Relative": "de-de\\ffuprovider.dll.mui",
+      "Size": 11264,
+      "SHA256": "d38a8041b6f9d5bfaf952a0bb38be02d8aa6492c00853328e672e57e505f5246",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil00d07fc4ce2f705fe1fb8d79edf4c2b8"
+    },
+    {
+      "Relative": "de-de\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "7303ef521b1c2c0dc2c5addf2be2b2bc6bbe1a43fa97055a60f8a87767e8c025",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil34b6fda3f9ba4c8db099b28547060510"
+    },
+    {
+      "Relative": "de-de\\imagingprovider.dll.mui",
+      "Size": 21504,
+      "SHA256": "c167c0db349b5eb8fc99260972be1de46b2a35644e06704e2d23326525f9f296",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb7c173f53276512846da49677a35f0a8"
+    },
+    {
+      "Relative": "de-de\\logprovider.dll.mui",
+      "Size": 6656,
+      "SHA256": "9e5da44137ee2e9cc4f19a9915bd75ca2f69a83a852540be44b54264a1a7b4e3",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filc416fdb11292558926ec3da59de64cb8"
+    },
+    {
+      "Relative": "de-de\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "23d2ffdc0335a20627b78e69f4807d1db0ebfd6c62effbd4ac817df3cbff20ce",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil32aa5d374c94f648e8ee39d2ba081c80"
+    },
+    {
+      "Relative": "de-de\\VHDProvider.dll.mui",
+      "Size": 9216,
+      "SHA256": "6aad6bc4f83bcea91e86d9f4e7ecd27d473398b4feae44188b9261821922b908",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil3d0380d7b59434c8c096053ea7361c92"
+    },
+    {
+      "Relative": "de-de\\wimprovider.dll.mui",
+      "Size": 32768,
+      "SHA256": "d7949c4999ed8fce96947c983bc79030174b557d63d068ec624b5d1d6a0506c0",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filfa3d5224ea6c4de752b3dea9cdf18bb9"
+    },
+    {
+      "Relative": "fr-fr\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "f6671199d8118994a3688eb9d3eb4c479cb605791f1b6fa9d5ea298c0d8eb594",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file6f7b31ac8b147d7de5d34e5565447f3"
+    },
+    {
+      "Relative": "fr-fr\\dism.exe.mui",
+      "Size": 35328,
+      "SHA256": "36faaed1e3dff29b0fbc01cee34b1868856f1b7112a36f8e049b0a2d8b4c0f8a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7c033ec327a343716bb08b8c17bd44c0"
+    },
+    {
+      "Relative": "fr-fr\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "c5abe858af82206c2f8aca95fbbdaadf653d445bc9229be4780af229e2a2291d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7771e2cc6681fa897c60600ef21ff70b"
+    },
+    {
+      "Relative": "fr-fr\\dismcore.dll.mui",
+      "Size": 8192,
+      "SHA256": "ca5fb8237ebb6075b730aa194d24446340836bae7e48536329573899d6d3323b",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fild918f79247f3daea13d2fdb78c3e9d58"
+    },
+    {
+      "Relative": "fr-fr\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "f42dfb41897a4e5cd5d36411c92d806cc7ed2f81f90b96dafe1e8791df2061d1",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fildbfae3670565e361a08a0f43994934e3"
+    },
+    {
+      "Relative": "fr-fr\\ffuprovider.dll.mui",
+      "Size": 10240,
+      "SHA256": "c68d0f308f84d27aace1a49dbf03ee3eace647ef00b4a9b7ea601e7963bbb9d2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil416f529eaacd697e2f0b35abd09a6031"
+    },
+    {
+      "Relative": "fr-fr\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "13e1df96be9e06bdab52be1ddd6851565a145405002c79d2fdc211e7eced1acc",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filaf85a70c5eb1280e492cc555319efd74"
+    },
+    {
+      "Relative": "fr-fr\\imagingprovider.dll.mui",
+      "Size": 20480,
+      "SHA256": "2ca4d092bfb17d7dff3b5ba1f7216715159b51d759141d97830a9688ab7306f2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fildc59fe3b6adda0f62a8eb967e925e342"
+    },
+    {
+      "Relative": "fr-fr\\logprovider.dll.mui",
+      "Size": 6656,
+      "SHA256": "fc69675b0926ae1f11cf91d1bd64f5a976eeafce6b7d5802f646b8a562b80a4f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file474737d19164cd657caec9ef40c24ba"
+    },
+    {
+      "Relative": "fr-fr\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "696356072069219f801565258dba8e09a70d7320ffeaa2e5596695b8ffff96ae",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file1f37c38cb1142dd93dd645e69126f15"
+    },
+    {
+      "Relative": "fr-fr\\VHDProvider.dll.mui",
+      "Size": 8704,
+      "SHA256": "22744cd2b40d666eb92bf895c5776fe35dd47e8ddf1e88a38d6f2c6f40b2b4f5",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil95e71e5f21d32dd212e600377a9e4047"
+    },
+    {
+      "Relative": "fr-fr\\wimprovider.dll.mui",
+      "Size": 32256,
+      "SHA256": "d95162e17f4c648df4068b5a41faa7bd08e923d1dd88dfa2e46e05c8d1c3558f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil05bac0a81a50be9e571cdf63bbe9c4e6"
+    },
+    {
+      "Relative": "zh-tw\\deployprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "3f1155e8e60080c03e33d1f29ca357fca0a4e7b16cdda73fbfb9c4d23644ebe0",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb2814e1ba3f35fc5b1a8719e59cda5bd"
+    },
+    {
+      "Relative": "zh-tw\\dism.exe.mui",
+      "Size": 16896,
+      "SHA256": "7ee2b9424125bec0d5c4638fe8058b39ec06de794db588de6fa96d33ffdb61f2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil54902bad9d6f6e6a74a3b03698e90a9c"
+    },
+    {
+      "Relative": "zh-tw\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "7bdb7a79691b6f45c971aba98df22529332c7aed7f91985d46c4a80c7fbdcf18",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb5d6923952566ba71543a47fbec94d52"
+    },
+    {
+      "Relative": "zh-tw\\dismcore.dll.mui",
+      "Size": 4608,
+      "SHA256": "a39c21e39b0dab520e2f6ca90b720c482ca1458acb4d3b9787a2c4049cd7376c",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4889ff3df8514ce5f4034ce894cd3979"
+    },
+    {
+      "Relative": "zh-tw\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "2f9f43e221039db87e22b8c0345b834066cb579b477ca04c02ee32c3d0d29c2f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil91072ff89fee98c4b078d633bd95609d"
+    },
+    {
+      "Relative": "zh-tw\\ffuprovider.dll.mui",
+      "Size": 7168,
+      "SHA256": "e22656dbdd979135fa3c0ca95adae21153daf973659868c5669e01b7770a63b6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file1e9100f0a6e03305af32efb26262465"
+    },
+    {
+      "Relative": "zh-tw\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "ffb106e6785941d19b69eed3a80ae44eda725717beef22749efef80006c4b684",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil0722816d1d0c93cd9a648dad45c6e8e2"
+    },
+    {
+      "Relative": "zh-tw\\imagingprovider.dll.mui",
+      "Size": 12800,
+      "SHA256": "809db57a7b6b6902a39001cb54be46e90eacd87bbc2898869240738027eeba08",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil2926d438a9498ac27477c6daab84539c"
+    },
+    {
+      "Relative": "zh-tw\\logprovider.dll.mui",
+      "Size": 4096,
+      "SHA256": "f80a6a34b2570edacdb90f3c7706c4f00da20703b6d622efb4f8f4e3723d8a41",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1e9d0ef9384e4d0f68ef23f21782cb5b"
+    },
+    {
+      "Relative": "zh-tw\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "c429a9578e2345c083e1aabf4be1427e9b39cf19febb8be59c2bd81deff6ba58",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file20a10d563fd3125abc2bc9027122c0b"
+    },
+    {
+      "Relative": "zh-tw\\VHDProvider.dll.mui",
+      "Size": 4608,
+      "SHA256": "8010b73f7009d48e236b7f71a647109fb4733ce665cff351dd505c41d3d5dc60",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil358979cd168546134acdd6f994f30604"
+    },
+    {
+      "Relative": "zh-tw\\wimprovider.dll.mui",
+      "Size": 18432,
+      "SHA256": "2f341e43a6539ee0f6243f56cb6df9a41891c7da28e6f69a4520334d0cf68eba",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4f80b47f8dbd830ee3f8bf0bbe82887e"
+    },
+    {
+      "Relative": "zh-cn\\deployprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "35e3ef507dd042ac8ce471f919fa4789e2a9a68475cebb4b3acacb1e6b182b0c",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4bd0372b16c858582abaa1c2443b86ed"
+    },
+    {
+      "Relative": "zh-cn\\dism.exe.mui",
+      "Size": 16896,
+      "SHA256": "e59721210fb497bb06a3fe7d1bf4a2dec5dfbf7eadf2bd66cfe52b2acbba72cd",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file07628f46e4502652a135a692837cc89"
+    },
+    {
+      "Relative": "zh-cn\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "074959daadbb7c38092c8eee696f6a5144358d0061102f08a20acc24e83ad601",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil32a61cb93a00fbaec83dcd78bd04f656"
+    },
+    {
+      "Relative": "zh-cn\\dismcore.dll.mui",
+      "Size": 4608,
+      "SHA256": "157c7b8e7d74a26172fdde6956938bcfc72ff36bc7fcb34313a6849f75ca130c",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7abe1f172db3ff125dacfe642ee969bc"
+    },
+    {
+      "Relative": "zh-cn\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "dad7c80583c2bb70669fc8b9b26fbf543594d30a432aad67c3fcce87bbf0aa06",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1ea29e6310a76110cf2fdcf848c0c5f5"
+    },
+    {
+      "Relative": "zh-cn\\ffuprovider.dll.mui",
+      "Size": 7168,
+      "SHA256": "8bae4f8ba410c9bf68d3f62e909d60e11ad50064b4e951093358f5ef593e1fd7",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filaa43c4f00b748ce6ddb700ff5a825cb9"
+    },
+    {
+      "Relative": "zh-cn\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "f3ffd349a9526b6d605fb5878d7169c26f82177aeaa397c92a7bfc8df35d71f6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filc2a78a760bf00e8cb4feae3b8d91cd20"
+    },
+    {
+      "Relative": "zh-cn\\imagingprovider.dll.mui",
+      "Size": 13312,
+      "SHA256": "dae70fbbae170e1c68b77aedd52833b40c278a6300bafbb6ebc4ac1991555a60",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8fb54b93dbd1a67a2384d4a4cf38ebd9"
+    },
+    {
+      "Relative": "zh-cn\\logprovider.dll.mui",
+      "Size": 4608,
+      "SHA256": "0063b1a45237f9074a8f0e4568e0c7df3b455c4f59e502a5725aa9649a31e744",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil0c9435b8a8197a1d1e13955fb9469c98"
+    },
+    {
+      "Relative": "zh-cn\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "5665bf916508addb853b4a3a9f3a71c037c247caae0bdb1af78e37f0091c1ab1",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil288d14995f71d279a520b59edfe46b88"
+    },
+    {
+      "Relative": "zh-cn\\VHDProvider.dll.mui",
+      "Size": 4608,
+      "SHA256": "5c7913e061a36f10ab3f06956c3214e339472291572a11dfaf9c28363592f7a2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil18a0a8a353c8f4dea78f39dc1db5bb30"
+    },
+    {
+      "Relative": "zh-cn\\wimprovider.dll.mui",
+      "Size": 18944,
+      "SHA256": "f35900956f780f88a5655c619b0606348b5cc1cdab160bbe243070b643d8f095",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil542b8c2c7d74e14469d46c191015acec"
+    },
+    {
+      "Relative": "pt-br\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "b625068e069558703083ac1ad4dc946a7a399e0e3c7962f441dd47bfbfb4df69",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filfc7bd135b70a740ae025d59c4a4e7288"
+    },
+    {
+      "Relative": "pt-br\\dism.exe.mui",
+      "Size": 31232,
+      "SHA256": "47a7700b1c6178994ec25077d12d675e0c59068a050ce7b2ebec939b8c53fd49",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil2f5f942a6e4dd738a75663d60afc322f"
+    },
+    {
+      "Relative": "pt-br\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "239e98b22950a6006e38808d18e89c581486a32839d5bcb59cb01a6f7828161b",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filee880624f76e562ea4281b07ad23c3d9"
+    },
+    {
+      "Relative": "pt-br\\dismcore.dll.mui",
+      "Size": 7680,
+      "SHA256": "56e8e46be547677772367dfc3fae0455cc2801ed34169a3e3fa459c9dc0f7b87",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8ab295151f7a58279b4db3ebda2c54b0"
+    },
+    {
+      "Relative": "pt-br\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "35bb70c48d3c36cfad346210ccea4427f7f67d35b37742fe8290be4bee7b3c2b",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7008980227acd335f1745c5150f001a3"
+    },
+    {
+      "Relative": "pt-br\\ffuprovider.dll.mui",
+      "Size": 10240,
+      "SHA256": "88d8c11ccebd9a05772976fceda21ccc32ceb4c4844eb5a7025d5a625e281a92",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filffb50ed8bae3474d196b2477f62c5045"
+    },
+    {
+      "Relative": "pt-br\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "9f68ca414e5bc73005afc94e4723764f7c2abd31e20ad6c7106cc303fee688ff",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil43013a95f35d0bf7471637e028fc392c"
+    },
+    {
+      "Relative": "pt-br\\imagingprovider.dll.mui",
+      "Size": 19968,
+      "SHA256": "b0f163bb131b00bd7664ddd2218a7dc3ba915696cc63df3200dcd47f66e3024d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7f7b3119172a592989a1ee0de5d7cc6c"
+    },
+    {
+      "Relative": "pt-br\\logprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "5968200dd2e23c6f4a8e064c4f7e5094cf9987c6f43a45273fad606050aaa514",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil515fd150c058aa932ed92bb441b56340"
+    },
+    {
+      "Relative": "pt-br\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "010318d06ad15eac30d8ec7b86c48017ef84ce672e38c1cdc4bb05c7d2df0c61",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil0d92ae9886ef121927270eb0cd7e543f"
+    },
+    {
+      "Relative": "pt-br\\VHDProvider.dll.mui",
+      "Size": 8192,
+      "SHA256": "d73b6e755b0b58d3cf02ae8eee0bd4e054686de3303af9602942994b079a1901",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil434420006e84d2887c8cba4c489b7dc4"
+    },
+    {
+      "Relative": "pt-br\\wimprovider.dll.mui",
+      "Size": 30208,
+      "SHA256": "92060bed5b83d3bbf2ef3ab26e448e73e99269c827e05642ee250f3a89d2c316",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil25b3227015530b952a619e44b2b6f4ed"
+    },
+    {
+      "Relative": "en-us\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "9851ac6d15c9f0faba7d154b661751ce71b5fe5cf7c777e65c6d4afe0eca7072",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1832a375c4e6bf7357a82940dda91b77"
+    },
+    {
+      "Relative": "en-us\\dism.exe.mui",
+      "Size": 30208,
+      "SHA256": "eccb9810599f54d720d8c5666557dad297efb8493c69c5659588c08619bbf443",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1481931406c79d11fa64acef0b7bf4de"
+    },
+    {
+      "Relative": "en-us\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "89e780ce72c2fb1ea4bdfac60831b98e60a69b19f7a9a75c82e8664f97745a33",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf89f2e99085870cf245541c7c51766bb"
+    },
+    {
+      "Relative": "en-us\\dismcore.dll.mui",
+      "Size": 7680,
+      "SHA256": "1b70686e9725732d3efcb8fd371407aca39fa77dc1417762f0f1094ed7832678",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil24ece41a209945a00a1ffbdc75f9019f"
+    },
+    {
+      "Relative": "en-us\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "e3e780a0cef45f4ad694b1b9abc0eb4cfb9d01ce746c2e3b0237577e03320889",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil7288fefe48138ed62dd54cbf9f05bb3f"
+    },
+    {
+      "Relative": "en-us\\ffuprovider.dll.mui",
+      "Size": 9728,
+      "SHA256": "ae3f08ad473df1c02ea75b1ceb779cc03743312326f551e14c56954839e055a8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil561c80b97ba3200ec6b1ee5b8934e1dc"
+    },
+    {
+      "Relative": "en-us\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "3cf3036338860ccd238ecd6255ddde1cc47a7d9ee346abc2a124d90617e36b26",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb23a0f699b4a1df4619cacd283f19b27"
+    },
+    {
+      "Relative": "en-us\\imagingprovider.dll.mui",
+      "Size": 18944,
+      "SHA256": "11f6610d144f5ea9a5368f6536062e6b06823543856b25e404fc851703b7cfee",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil533f02f47e595caabe7943f4d3baf135"
+    },
+    {
+      "Relative": "en-us\\logprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "1658ced7f28eb27777d5c61183b51b834c137f32c9fbb07cc65c118365588c70",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb67e2312fbf5d3e5990c36ae967a0611"
+    },
+    {
+      "Relative": "en-us\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "517776de310890af23ef40042e7c79c9ea647fc8a7f67664769312727f99fdd8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1063142e91c9880be5f86431aaaa6410"
+    },
+    {
+      "Relative": "en-us\\VHDProvider.dll.mui",
+      "Size": 7680,
+      "SHA256": "f7443448dceab794161700f07f9b0e5d969079683268483242f40a4dcf89bdbe",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fila80c2f1246ed9f7ced78801fbd0a8a5b"
+    },
+    {
+      "Relative": "en-us\\wimprovider.dll.mui",
+      "Size": 28160,
+      "SHA256": "f890f9f3e192a8355031ced88b4791176b4d1731622ab110357ec631156b33e6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil5f7f81c1ebd058aae5cfd35cdea5177d"
+    },
+    {
+      "Relative": "es-es\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "ee0716d1e3f1fe119fbfc9faced70860fa36ebabdea1802c245d5753e65bf708",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filbb1a01d9a7c560ffdfa9d1fe5382d7cd"
+    },
+    {
+      "Relative": "es-es\\dism.exe.mui",
+      "Size": 33280,
+      "SHA256": "244c1d39039bc96e2adafd1607a3f8f44524e92251e759288e608511193614ba",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil558c21f188cd84cc98b93cb2c76a4f8d"
+    },
+    {
+      "Relative": "es-es\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "d8738b124bf85ee4dd098d978f32a7b1af0f15255beeab60e5a8ce463747e807",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb49f29b1e48148bf7654241b095f8d81"
+    },
+    {
+      "Relative": "es-es\\dismcore.dll.mui",
+      "Size": 7680,
+      "SHA256": "5d9cc9277bf5b87a821f52df06946eee251514a3adc152f820c189c844e4c6f0",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filff50acbf5aa3e831c39e10e1842ec138"
+    },
+    {
+      "Relative": "es-es\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "82c9ed5620c7a0e2a8bac18415fa915940091d1151d5464e2a129f0682543fae",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb46e2f4909f1be02a2f8871da0ca7ea8"
+    },
+    {
+      "Relative": "es-es\\ffuprovider.dll.mui",
+      "Size": 10240,
+      "SHA256": "edb8f204878fe812423a82325b02f12436f008cf117e750d07db138942ba6e96",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fild7094cb63608e00e8b35902851c72d5d"
+    },
+    {
+      "Relative": "es-es\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "1fed7bdc6d32d1e6e258eddd5ab7d84b6e09fd33a84bc5d2852bb143da0f6f77",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb8bd562498de4d0395f979ae08cd6049"
+    },
+    {
+      "Relative": "es-es\\imagingprovider.dll.mui",
+      "Size": 20480,
+      "SHA256": "7cf8fc4c1af0be90939f950cb8d59255c87837e8bac52c81f48b0b6975b7dd09",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filad1fc34ad5e93a936af33bf908761fe0"
+    },
+    {
+      "Relative": "es-es\\logprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "cd277230153b426376f31b9cb6eaebcda3632267a1d34e56fe0a0f01731275a2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil56cef7cb259b601adceea7a0f1099fff"
+    },
+    {
+      "Relative": "es-es\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "4f5fa5b7ea8c711186ca0c6e69b902fda321264bb843090e0220112f765ff64c",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil2ed49a5e086f627bcde078a8b613ea06"
+    },
+    {
+      "Relative": "es-es\\VHDProvider.dll.mui",
+      "Size": 8192,
+      "SHA256": "3d620c0d951bfa3ad6dcb0e1b7c79f7f3ac9ffc9ae1d027877338e3a5e1661f4",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1ccfe4939d8a138fc9e7459061612ca8"
+    },
+    {
+      "Relative": "es-es\\wimprovider.dll.mui",
+      "Size": 31744,
+      "SHA256": "ce9f56e5d3480be8b02deffbb800ac32881a2750ea0b4e76ea93e6e45be461ba",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf267683923a0ef42c8d10caaa538ca6c"
+    },
+    {
+      "Relative": "it-it\\deployprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "7833b08f33ef10ce89d92848fb9202efbff81574a64ed74c90bac61a4a583d34",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil345222b65cf4b8dc691eeeb24eb2aa75"
+    },
+    {
+      "Relative": "it-it\\dism.exe.mui",
+      "Size": 36352,
+      "SHA256": "cf499e8cf4ec737c9430ea5a81c9448d6206bc8751a616ca9848e91b6572f1c6",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil9b5489937ea77249d83df30b0cd367b0"
+    },
+    {
+      "Relative": "it-it\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "306b45be6ca2eb4b36af27f01e985d7e71ceb01513b5a20b496609ee42f70755",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4cc8cbaa7dc08db0a6efcdfd3df05810"
+    },
+    {
+      "Relative": "it-it\\dismcore.dll.mui",
+      "Size": 8704,
+      "SHA256": "2db0afac13a6ddfd89cad7db639b616bb3872e9c2fb53dc83da06e7cf56e3963",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil1e0bc4e08fb94f1d2a96631de041e5ae"
+    },
+    {
+      "Relative": "it-it\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "7d0bfad22dc75e5ce8bf2bd17392cb40e3c61da4e665f74bad77239e96921899",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil521d9e058d0315f050ceb58a6f7d8ada"
+    },
+    {
+      "Relative": "it-it\\ffuprovider.dll.mui",
+      "Size": 10752,
+      "SHA256": "b5d644a71b7d698baea25dda9a5952ecb8843e16a7d60b1fcaf640e319e6da16",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fila10435f8093dcc95e4a0e3e3b7887e99"
+    },
+    {
+      "Relative": "it-it\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "1fc5a2abe0fdc17875b7e2473feddcb96c89aa91f1e7acbbebb709b0684c504f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil5cbc2d0c17b5452e84daffe96d40bbfd"
+    },
+    {
+      "Relative": "it-it\\imagingprovider.dll.mui",
+      "Size": 20480,
+      "SHA256": "f7cf315e81bf76c2b1534ac3b1383e7372292237e8faf48d8be0ef1ce7221cac",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filde2565c80955e3ce46841c7fba63bf0b"
+    },
+    {
+      "Relative": "it-it\\logprovider.dll.mui",
+      "Size": 6656,
+      "SHA256": "0fae05f585355f6c4b75c9af258d2c97a46e0363c90e512d9e81fa2501def4e7",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8f5bac05a98307a2867240cc2b139301"
+    },
+    {
+      "Relative": "it-it\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "e1d3526cf715cca3c17bfbcc6d7c4b84b72026f627f55ba182b6587089aa560f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filbfd02006dd29c5725bd1e25ecc99bc63"
+    },
+    {
+      "Relative": "it-it\\VHDProvider.dll.mui",
+      "Size": 8704,
+      "SHA256": "aff14af9109935fe87ff989f6ad1d15118792bf47604e090dedbefb322779619",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil95d37e5b79e17cf12672823c86b88644"
+    },
+    {
+      "Relative": "it-it\\wimprovider.dll.mui",
+      "Size": 32256,
+      "SHA256": "9af2393f79ea811b897d13997012a2f9b63f6941a15ac633339408eb65f034ee",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf80ad0e0e74ccbe3ac24996e06e6c702"
+    },
+    {
+      "Relative": "ko-kr\\deployprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "8c11887a8b64db7f0287198df5b1bb00c4d37fee61fbab0bc215acbbb0f845b5",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb6ddfad3144b5d877823c54b4b20fd54"
+    },
+    {
+      "Relative": "ko-kr\\dism.exe.mui",
+      "Size": 20480,
+      "SHA256": "d9446cfa9cf913917c810620ad045e994aa67639d2458fa7a95a2d93f8f15c19",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fild9672343c29aeecaef7630408c7d1b48"
+    },
+    {
+      "Relative": "ko-kr\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "3e436342d4795d123c4e30a7d3c0318758bada3e950278dbac7cffa4565a63c9",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "file1a4f2ca3aba44501fd77c353bef7a74"
+    },
+    {
+      "Relative": "ko-kr\\dismcore.dll.mui",
+      "Size": 5120,
+      "SHA256": "9068b883de704a72636977394d30b19cd2a04edabe588831ef69f0a9436f97dd",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil9faf020497d276abb8ff275736a3816a"
+    },
+    {
+      "Relative": "ko-kr\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "c5cbe190487ca3f6aaf19af679936cc506f0315c78c565dccb57b14e76cc2f08",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filbc5ac5e6070bfe20c7af48f66e65262f"
+    },
+    {
+      "Relative": "ko-kr\\ffuprovider.dll.mui",
+      "Size": 7680,
+      "SHA256": "7c69bcafe1869c0aaec25775b4e528d3b44a125e10947e185dd2c651d0f179fd",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fila36c29a23646f6ad61e7a37f23a09ab1"
+    },
+    {
+      "Relative": "ko-kr\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "8aef212ad98e215faca6cee9b2407812e6a017350261ee85be3fe3518a9c454f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf359cb7adbbae0e9c5794254d40d013e"
+    },
+    {
+      "Relative": "ko-kr\\imagingprovider.dll.mui",
+      "Size": 14848,
+      "SHA256": "88b409ade68429bbafa3e90501bae6f689d6d94970c031c071e5bd53a7cd6567",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8ae308ad428f9d65a20fb0ce470b1556"
+    },
+    {
+      "Relative": "ko-kr\\logprovider.dll.mui",
+      "Size": 4608,
+      "SHA256": "803fb19ce4757a8470b5ccb23067ef6caa162174e1388d7d051d47ce7b8fdfd7",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filabe529fb0b8633a8f781b5fd5c8a8eeb"
+    },
+    {
+      "Relative": "ko-kr\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "232d1bb71d354e67b72ca9fd2c2088dc2449434c3453260a1e465994e6c8d783",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb5cb5a4ba65e5e99a4abbc2db31fbd26"
+    },
+    {
+      "Relative": "ko-kr\\VHDProvider.dll.mui",
+      "Size": 5632,
+      "SHA256": "683efb543d259abba9d0001822774e0641810767b011e9082000f00ca167ca98",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf627de3629ae62b6a32de896f9dc96ee"
+    },
+    {
+      "Relative": "ko-kr\\wimprovider.dll.mui",
+      "Size": 21504,
+      "SHA256": "49bf1e9c2247b707de943d4fc3e415713cabe0cb637d6ed454447366982e3823",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil2e101031962c00a675b0c07fb0afba48"
+    },
+    {
+      "Relative": "ja-jp\\deployprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "46b11d9b872070730311a6c7058f3aa94bfbf90a53e61c39bd076b28c356d796",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil90f8caf69b0be485d5142a2c4b742525"
+    },
+    {
+      "Relative": "ja-jp\\dism.exe.mui",
+      "Size": 21504,
+      "SHA256": "82f22f9d4d5b8e3341ef536fc6b446be0cbe23563b4df25261e0763264442ef8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf044a8eaa164a53fa3a6c25600b2c551"
+    },
+    {
+      "Relative": "ja-jp\\dismapi.dll.mui",
+      "Size": 5120,
+      "SHA256": "cd91d51e309dcc094e992c944ec890c02bdfbdef00040180b4b81fb05c3249e8",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8f884f818ccac06d8fdab78d74cf892c"
+    },
+    {
+      "Relative": "ja-jp\\dismcore.dll.mui",
+      "Size": 5632,
+      "SHA256": "89043eb9ecf1f269c9f0a2b319a080006ba017c63cd31819305356f848a21374",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil5d6434d91b54f1cc4a40c85186b2f5cc"
+    },
+    {
+      "Relative": "ja-jp\\dismprov.dll.mui",
+      "Size": 2560,
+      "SHA256": "57eef353f88bb99894c8b9ba59ab10748a43f8412f2a56cbf463f5a17e847994",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil51efc102dafad4179358725c9c3d9088"
+    },
+    {
+      "Relative": "ja-jp\\ffuprovider.dll.mui",
+      "Size": 8192,
+      "SHA256": "ef00fc12d5bab70742962a69d9aff45e6b55ea2bdf743455cb2428b6bc3d317d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil8e6b97117bb4918b8b4f415e0414bb13"
+    },
+    {
+      "Relative": "ja-jp\\folderprovider.dll.mui",
+      "Size": 2560,
+      "SHA256": "b0120373deb0c10b32a7dfd1c95d890321df528c17589023f18be01a2423eec2",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4bdf946743763900e1bfeaf646c3c800"
+    },
+    {
+      "Relative": "ja-jp\\imagingprovider.dll.mui",
+      "Size": 15360,
+      "SHA256": "0cf5f43c0602a2ba99a74f51e95b5978dfa699deec799bf751c0e1d703eb03be",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filf355c654b54f338a1843dc74f825ed1d"
+    },
+    {
+      "Relative": "ja-jp\\logprovider.dll.mui",
+      "Size": 5120,
+      "SHA256": "aa27ed28578b7050d5ed05717cc1b6cd43f0761c00434193186028198fde28fc",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filbcecde734dab43fa1f263af5cbf470dd"
+    },
+    {
+      "Relative": "ja-jp\\osimageprovider.dll.mui",
+      "Size": 3072,
+      "SHA256": "f9a7ed2d96213b30462dd280345b97e3c975edca2036162c106139e0fac2249a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "filb2180665aa4d739654b169d7edec78f6"
+    },
+    {
+      "Relative": "ja-jp\\VHDProvider.dll.mui",
+      "Size": 5632,
+      "SHA256": "e062d3a2a806b1a32b1d44010cdaec02864e360b2b2bd7a5063f8ed087c2c452",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil4e23cbe67ca60491cde377215f0d2b90"
+    },
+    {
+      "Relative": "ja-jp\\wimprovider.dll.mui",
+      "Size": 22016,
+      "SHA256": "409d5d885811860e3fcca71188518b6eef6e249b8484ff6160aea4b111021109",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "abbeaf25720d61b6b6339ada72bdd038.cab",
+      "MsiFile": "fil74b792687cdebbb200c3b9aee52e928f"
+    },
+    {
+      "Relative": "siloedpackageprovider.dll",
+      "Size": 141768,
+      "SHA256": "e83b6e7f57694cf7628a95d967a6a22bb1394b0bec354528114b6ee774d405d4",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "831d004a8f355684ab94810176e8d4ec.cab",
+      "MsiFile": "fil0427d89cc7be22ef4ab93e42290e175d"
+    },
+    {
+      "Relative": "zh-tw\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "ccaedcf7b2fa992b01c5d780e52ae710b83f1f358a361c7bc3c42259b43cac4d",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fil10629605047f88042483d018c9ec7360"
+    },
+    {
+      "Relative": "zh-cn\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "897d8f9599c95b7165c221052f7bf1d0f64aa91939b782282b116e8685dee5d9",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fil10a53f73dfbab89ec1b09e83117224e1"
+    },
+    {
+      "Relative": "ko-kr\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "34633ad287ec304e12152c739968fc8b2ec94f1f2ac526010d37e7c273b8755f",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fil200885fcdb70b764d20b41e6fa34d77b"
+    },
+    {
+      "Relative": "pt-br\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "63b7b60d06560d728eb584baf98bda8e399e065c34ca93d4755b8859ed0b10b5",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fil687d6dad0032a39f4f868061d198a7f7"
+    },
+    {
+      "Relative": "fr-fr\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "e70c762ce887115893c17bf3aa200d0bfb8120098bed25301cdcb9d3cf5da6ae",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fil9eb6be42a02a8a74f9805f0f831fc8b2"
+    },
+    {
+      "Relative": "es-es\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "82b0cf583db13b23909928033d2c9ab4d6e5607aed5af32055e9c3ab49202688",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "filc3fe6b5230241df1d0fde7f075f01cb3"
+    },
+    {
+      "Relative": "ru-ru\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "c2cf11196a9332ea5709fd50bdbd3050ad03228058792394e91ffc03d80d71e5",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fild1e81d0b544b123950ef04361ff1eb4d"
+    },
+    {
+      "Relative": "ja-jp\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "cb3a9cb329db09da8e9910b7fe4035112d3d734239e738bef8c1c81d806ecb21",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "file74677b91dc9cc86e07f0392174fe424"
+    },
+    {
+      "Relative": "en-us\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "6a37cbe4c9761fed4505e0cfef4a1b46b47ada600bf00edd715ecf918ece0e17",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "file7646c8e3699a3ef580df65c5f3fabbd"
+    },
+    {
+      "Relative": "it-it\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "80004f4824367fe6b103f9d538eb6ded2dd54eac027a4f6599288219b08397bb",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "fileba782597c58c45b46a82c5bcc0840ac"
+    },
+    {
+      "Relative": "de-de\\siloedpackageprovider.dll.mui",
+      "Size": 6144,
+      "SHA256": "86793ae2cbfebf30d948e1df5b6f1f6de249380fdf84b3976883e406abd9fc4a",
+      "Version": "10.0.28000.3481",
+      "Cabinet": "7e6e508fe7702607bff0b24b764e4990.cab",
+      "MsiFile": "filec13dfc1d5d0c25b6b97b42f1654d0f1"
+    }
+  ],
+  "WIMLib": [
+    {
+      "Relative": "COPYING.GPLv3.txt",
+      "Size": 35823,
+      "SHA256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "Relative": "COPYING.LGPL.txt",
+      "Size": 26920,
+      "SHA256": "b14c366c41cc9f62dc20ec1a0885f278cf9681076d98027012a910fca5e89639"
+    },
+    {
+      "Relative": "COPYING.libdivsufsort-lite.txt",
+      "Size": 1144,
+      "SHA256": "6783c2be541a8871bccfd0e9a26253def3a32922fb1da5344b6bbd43cbab851f"
+    },
+    {
+      "Relative": "COPYING.txt",
+      "Size": 1732,
+      "SHA256": "ed5cc16630b6aa5edaf9cfd440dbf5eda8e2257471752ead93634ac8eb102583"
+    },
+    {
+      "Relative": "libwim-15.dll",
+      "Size": 497678,
+      "SHA256": "ba853ee1e3fc5f5798581f02e8e066ba07a0a2375f0bf444fe981431fd508495"
+    },
+    {
+      "Relative": "wimlib-imagex.exe",
+      "Size": 112654,
+      "SHA256": "34c0c4165591ad1f592837ed99d08273c58d6ed3fe0ed6360cf34e7b0739b353"
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import (
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
 	platform "uupbuilder/internal/platform/windows"
+	"uupbuilder/internal/tools"
 )
 
 // DISM borrows an owned workspace for process lifetime, logs, expansion and
@@ -32,11 +33,39 @@ type DISM struct {
 	dism, expand *installedExecutable
 	mu           sync.Mutex
 	closed       bool
+	runtime      *tools.SelectedRuntime
+	edgeSource   string
+	edgeSamples  map[string]string
 }
 type installedExecutable struct {
 	path, digest string
 	file         *os.File
 	size         int64
+}
+
+// NewManagedDISM borrows the complete pinned runtime lease. It only opens
+// executable files; the caller must keep the lease alive through all mounts.
+func NewManagedDISM(ctx context.Context, workspace *platform.Workspace, runtime *tools.SelectedRuntime) (*DISM, error) {
+	if runtime == nil || runtime.Build() == 0 || runtime.DISM() == "" {
+		return nil, ErrProviderUnavailable
+	}
+	d, err := NewDISM(ctx, workspace)
+	if err != nil {
+		return nil, err
+	}
+	exe, err := openExecutable(runtime.DISM())
+	if err != nil {
+		d.Close()
+		return nil, err
+	}
+	if err = d.dism.file.Close(); err != nil {
+		exe.file.Close()
+		d.Close()
+		return nil, err
+	}
+	d.dism = exe
+	d.runtime = runtime
+	return d, nil
 }
 
 func NewDISM(ctx context.Context, workspace *platform.Workspace) (*DISM, error) {
@@ -88,6 +117,9 @@ func openInstalledExecutable(ctx context.Context, name string) (*installedExecut
 		dir = filepath.Join(root, "Sysnative")
 	}
 	path := filepath.Join(dir, name)
+	return openExecutable(path)
+}
+func openExecutable(path string) (*installedExecutable, error) {
 	wide, err := windows.UTF16PtrFromString(path)
 	if err != nil {
 		return nil, err
@@ -128,7 +160,14 @@ func (d *DISM) Check(ctx context.Context, req ServiceRequest) error {
 	if err != nil {
 		return err
 	}
-	if host.WindowsBuild < req.Plan.Generation.Build {
+	build := host.WindowsBuild
+	if d.runtime != nil {
+		build = d.runtime.Build()
+		if build == 0 {
+			return ErrProviderUnavailable
+		}
+	}
+	if build < req.Plan.Generation.Build {
 		return fmt.Errorf("%w: installed DISM host build %d predates target %d; a matching managed ADK provider is required", ErrProviderUnavailable, host.WindowsBuild, req.Plan.Generation.Build)
 	}
 	return d.checkExecutable(ctx, d.dism)
@@ -170,7 +209,7 @@ func (d *DISM) run(ctx context.Context, exe *installedExecutable, args []string,
 			emit(event)
 		}
 	}
-	result, err := d.runner.Run(ctx, platform.Invocation{Executable: exe.path, Arguments: args, Workspace: d.workspace, JobID: d.workspace.Identity().JobID, OperationID: "service-image", Cancellation: platform.CancelWait}, sink)
+	result, err := d.runner.Run(ctx, platform.Invocation{Executable: exe.path, Arguments: ordinaryDISMArguments(args), Workspace: d.workspace, JobID: d.workspace.Identity().JobID, OperationID: "service-image", Cancellation: platform.CancelWait}, sink)
 	if overflow {
 		return "", fmt.Errorf("%w: DISM output exceeds observation bound", ErrVerification)
 	}
@@ -178,6 +217,15 @@ func (d *DISM) run(ctx context.Context, exe *installedExecutable, args []string,
 		return "", fmt.Errorf("offline helper (exit %d): %w", result.ExitCode, err)
 	}
 	return decodeOutput(output.String()), nil
+}
+
+func ordinaryDISMArguments(args []string) []string {
+	out := append([]string(nil), args...)
+	for i, arg := range out {
+		arg = strings.ReplaceAll(arg, `\\?\UNC\`, `\\`)
+		out[i] = strings.ReplaceAll(arg, `\\?\`, "")
+	}
+	return out
 }
 func (d *DISM) args(operation ...string) []string {
 	args := []string{"/English", "/NoRestart", "/ScratchDir:" + filepath.Join(d.workspace.Path(), "scratch"), "/LogPath:" + filepath.Join(d.workspace.Path(), "logs", "dism.log")}
