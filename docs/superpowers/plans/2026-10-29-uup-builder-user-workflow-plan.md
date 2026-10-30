@@ -262,11 +262,27 @@ completion boundary. Full tests and Windows 386/amd64/arm64 builds passed;
 Luna high approved this output slice. Actual component checks verified all
 1,058 source media files and a 4,353,046,426-byte file inside a real UDF ISO.
 These private component ISOs are not the configured Windows deliverable.
-Selected-source producer composition and elevated servicing/customization remain
-the next U10 slice. A real unserviced Professional/amd64/en-GB/28000.1 base WIM
+Selected-source producer composition is recorded below; elevated servicing and
+customization remain pending. A real unserviced Professional/amd64/en-GB/28000.1 base WIM
 was separately exported from the exact configured inputs and independently
 inspected; source matching DISM files are acquired without machine installation.
 No full U10 or native configured-ISO acceptance is claimed yet.
+
+**U10 selected-source composition evidence (2026-10-30):** Commits `37c81d6`,
+`14f296b` and `7e3518a` wire managed tools, exact source/app metadata, complete
+source assembly, servicing/customization and verified ISO publication into the
+same planner/controller, with a runnable `--build-iso` entry. The real frozen
+plan resolves 350 payloads, two editions and 17 app/framework operations.
+Actual non-elevated checkpoint assembly produced a verified Professional WIM
+and two-index Setup boot WIM with launcher readback. Managed runtime acquisition,
+source Edge provider readback, full package tests and Windows 386/amd64/arm64
+builds passed; Luna high approved this composition slice without findings.
+The prepared executable/config/invocation and evidence are retained in
+`task-10b-report.md` in this plan's execution workspace. Current DISM execution
+requires an elevated token (740); native updates, Enterprise derivation, Edge,
+app provisioning and final ISO acceptance are still pending. U11 follows the
+first configured ISO; component evidence does not complete U08–U10.
+
 ## U11 — Make every required source generation work through the same journey
 
 **Files:** Extend `internal/engine/source`, generation-specific `internal/engine/{rules,service}`, discovery/provider capability manifests, tests, sanitized `testdata/source-families` descriptors and existing census/compatibility records. Add `docs/feasibility/source-family-contracts.md` for actual algorithms and fixtures, not a second task schedule.
@@ -294,7 +310,7 @@ No full U10 or native configured-ISO acceptance is claimed yet.
 
 ## Tracking and execution rules
 
-- **U01–U05 are complete with task reviews clean. U06 and U07 have reviewed partial implementations and actual source-byte evidence, but their full semantic/provider/native/assembly acceptance remains incomplete.** The current continuation starts at U08 as explicitly requested, carrying unfinished U06/U07 prerequisites rather than claiming them complete. U08 has a reviewed implementation slice; actual U08 acceptance and U09–U12 remain pending. Current user scope prioritizes a configured ISO and excludes recoveries, regressions, audits and extremely tight requirements. No elevation, host servicing or excluded recovery/boot execution has been performed.
+- **U01–U05 are complete with task reviews clean. U06 and U07 have reviewed partial implementations and actual source-byte evidence, but their full semantic/provider/native/assembly acceptance remains incomplete.** The current continuation starts at U08 as explicitly requested, carrying unfinished U06/U07 prerequisites rather than claiming them complete. U08–U10 have reviewed implementation slices, including real selected-source assembly and concrete producer composition; their native acceptance and the first configured ISO remain pending elevation. U11–U12 remain pending. Current user scope prioritizes a configured ISO and excludes recoveries, regressions, audits and extremely tight requirements. No elevation, host servicing or excluded recovery/boot execution has been performed.
 - Work top to bottom. A task may prepare a narrowly required downstream interface, but must not start unrelated provider research or a second subsystem schedule. Put newly found work under its owning workflow task, with its concrete acceptance condition.
 - For substantive code changes, run the named new behavior checks before implementation and establish the expected failure; then implement and rerun the owning task's verification. Existing passing checks alone do not establish the new behavior. Finish each independently testable change with a focused reviewable commit.
 - Check a task off only when its deliverable is demonstrated. Add a short evidence line with changed files/commit, executed tests, actual user-visible result and any remaining gap. Do not import old unchecked boxes or count old component observations as current completion.
