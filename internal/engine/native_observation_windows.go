@@ -28,6 +28,11 @@ type sourceNativeObservation struct {
 	closeErr error
 }
 
+// Fixed attempt: construction/invocation (2), metadata-pass starts (2),
+// comparison-final/post-comparison (2), and bounded serialization (2).
+// Repeated later exports/checks still spend the same cumulative runtime cap.
+const fixedSourceExplicitValidationChecks = 8
+
 func newSourceNativeObservation(ctx context.Context, x *SourceExpectations, c *jobstore.DirectoryClaim, limits platform.NativeObservationLimits) (*sourceNativeObservation, error) {
 	if ctx == nil || c == nil {
 		return nil, ErrInput
@@ -101,7 +106,7 @@ func newSourceNativeObservation(ctx context.Context, x *SourceExpectations, c *j
 		}
 		paths = append(paths, p)
 	}
-	b, e := platform.PreflightNativeObservation(paths, l)
+	b, e := platform.PreflightNativeObservation(paths, l, fixedSourceExplicitValidationChecks)
 	if e != nil {
 		return nil, e
 	}
@@ -110,7 +115,7 @@ func newSourceNativeObservation(ctx context.Context, x *SourceExpectations, c *j
 	if cost > l.MaxResultBytes-b.AccountedBytes {
 		return nil, platform.ErrTreeLimit
 	}
-	s, e := platform.BorrowNativeObservation(ctx, c.Tree(), paths, l)
+	s, e := platform.BorrowNativeObservation(ctx, c.Tree(), paths, l, fixedSourceExplicitValidationChecks)
 	if e != nil {
 		return nil, e
 	}
@@ -122,6 +127,16 @@ func newSourceNativeObservation(ctx context.Context, x *SourceExpectations, c *j
 }
 
 func (s *sourceNativeObservation) live(ctx context.Context) error {
+	if e := s.bindingLive(ctx); e != nil {
+		return e
+	}
+	return s.session.CheckObservationLive(ctx)
+}
+
+// Forwarded platform operations already hold their native root/entry checks.
+// Keep the independent source/proof, durable claim and exact identity custody
+// before and after forwarding, without charging a duplicate session check.
+func (s *sourceNativeObservation) bindingLive(ctx context.Context) error {
 	if s == nil || ctx == nil || s.expected == nil || s.claim == nil || s.session == nil {
 		return ErrInput
 	}
@@ -140,7 +155,7 @@ func (s *sourceNativeObservation) live(ctx context.Context) error {
 	if s.claim.Tree().Identity() != s.id || s.session.Identity() != s.id || s.id.SourceDigest != s.expected.state.ProofDigest {
 		return ErrInput
 	}
-	return s.session.CheckObservationLive(ctx)
+	return nil
 }
 func (s *sourceNativeObservation) Identity() platform.TreeIdentity {
 	if s == nil {
@@ -162,11 +177,11 @@ func (s *sourceNativeObservation) ObserveInventory(ctx context.Context, l platfo
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if e := s.live(ctx); e != nil {
+	if e := s.bindingLive(ctx); e != nil {
 		return platform.TreeInventory{}, e
 	}
 	v, e := s.session.ObserveInventory(ctx, l)
-	return v, errors.Join(e, s.live(ctx))
+	return v, errors.Join(e, s.bindingLive(ctx))
 }
 func (s *sourceNativeObservation) Observe(ctx context.Context, name string, l platform.MetadataLimits) (platform.MetadataObservation, error) {
 	if s == nil {
@@ -174,11 +189,11 @@ func (s *sourceNativeObservation) Observe(ctx context.Context, name string, l pl
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if e := s.live(ctx); e != nil {
+	if e := s.bindingLive(ctx); e != nil {
 		return platform.MetadataObservation{}, e
 	}
 	v, e := s.session.Observe(ctx, name, l)
-	return v, errors.Join(e, s.live(ctx))
+	return v, errors.Join(e, s.bindingLive(ctx))
 }
 func (s *sourceNativeObservation) ReadOwnedAt(ctx context.Context, name, stream string, b []byte, off int64) (int, error) {
 	if s == nil {
@@ -186,11 +201,11 @@ func (s *sourceNativeObservation) ReadOwnedAt(ctx context.Context, name, stream 
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if e := s.live(ctx); e != nil {
+	if e := s.bindingLive(ctx); e != nil {
 		return 0, e
 	}
 	n, e := s.session.ReadOwnedAt(ctx, name, stream, b, off)
-	return n, errors.Join(e, s.live(ctx))
+	return n, errors.Join(e, s.bindingLive(ctx))
 }
 func (s *sourceNativeObservation) beginMetadataPass(ctx context.Context) error {
 	if s == nil {
@@ -198,11 +213,11 @@ func (s *sourceNativeObservation) beginMetadataPass(ctx context.Context) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if e := s.live(ctx); e != nil {
+	if e := s.bindingLive(ctx); e != nil {
 		return e
 	}
 	e := s.session.BeginMetadataPass(ctx)
-	return errors.Join(e, s.live(ctx))
+	return errors.Join(e, s.bindingLive(ctx))
 }
 func (s *sourceNativeObservation) Close() error {
 	if s == nil {

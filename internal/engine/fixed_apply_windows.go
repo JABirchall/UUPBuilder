@@ -231,6 +231,7 @@ type fixedApplyEvidence struct {
 	OperationModules                                                                    []ModuleIdentity // Observation, never full transitive closure proof.
 	SourceVerificationReadBytes                                                         uint64
 	Preflight                                                                           platform.NativeObservationBudget
+	ObserverFailure                                                                     platform.NativeObservationFailureSummary
 	CacheInventory                                                                      platform.TreeInventory
 	Preserved                                                                           []jobstore.PreservedResource
 	NativeReturn, ModuleObservation, Unregister, Drain                                  applyOperationOutcome
@@ -553,6 +554,7 @@ func (r *fixedApplyRun) Close() error {
 	}
 	if r.observer != nil {
 		e := r.observer.Close()
+		r.evidence.ObserverFailure = r.observer.session.FailureSummary()
 		r.evidence.ObserverClose = applyOutcome(e)
 		r.closeErr = errors.Join(r.closeErr, e)
 	}

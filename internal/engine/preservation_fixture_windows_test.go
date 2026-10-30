@@ -48,16 +48,26 @@ func preservationFixtureExtraFiles(t *testing.T, emptyKernel bool, hardlinkGroup
 }
 
 func preservationFixtureStorage(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, extra int, cabBacked bool, clean ...bool) (source.Inputs, []byte, func()) {
+	return preservationFixtureStorageData(t, emptyKernel, hardlinkGroup, short, extra, cabBacked, false, []byte("shared original"), clean...)
+}
+
+func preservationFixtureStorageData(t *testing.T, emptyKernel bool, hardlinkGroup uint64, short string, extra int, cabBacked, ordinary bool, data []byte, clean ...bool) (source.Inputs, []byte, func()) {
 	t.Helper()
 	ctx := context.Background()
 	le := binary.LittleEndian
-	data, ads, reparse := []byte("shared original"), []byte("named bytes"), []byte("opaque reparse bytes")
+	ads, reparse := []byte("named bytes"), []byte("opaque reparse bytes")
 	h1, h2, h3 := sha1.Sum(data), sha1.Sum(ads), sha1.Sum(reparse)
 	kernel := h1[:]
 	if emptyKernel {
 		kernel = nil
 	}
 	nodes := testNode{attrs: 16, children: []testNode{{name: "Windows", attrs: 16, children: []testNode{{name: "System32", attrs: 16, children: []testNode{{name: "ntoskrnl.exe", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "kernel.link", attrs: 32, hash: kernel, link: hardlinkGroup}, {name: "config", attrs: 16, children: []testNode{{name: "SOFTWARE", attrs: 32, hash: h1[:]}, {name: "SYSTEM", attrs: 32, hash: h1[:]}}}, {name: "named", attrs: 32, hash: h1[:], ads: h2[:], tag: true}, {name: "empty", attrs: 32}, {name: "reparse", attrs: 0x420, hash: h3[:]}}}}}}}
+	if ordinary {
+		// Budget fixtures use only ordinary directories/files/ADS. They make
+		// no reparse, metadata-equality or native-application acceptance claim.
+		v := &nodes.children[0].children[0].children
+		*v = (*v)[:len(*v)-1]
+	}
 	for j := 0; j < extra; j++ {
 		nodes.children[0].children[0].children = append(nodes.children[0].children[0].children, testNode{name: fmt.Sprintf("extra-%04d", j), attrs: 32, hash: h1[:]})
 	}

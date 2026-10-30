@@ -85,10 +85,22 @@ func nativeMetadataScratch(l MetadataLimits) uint64 {
 // complete per-name content read. DirectoryCapacityBytes is a nominal two
 // queries per directory per pass; extra pages still spend the runtime budget.
 // Query fields count requested buffer/copy capacities, not reported disk I/O.
-func PreflightNativeObservation(paths []NativeObservationPath, limits NativeObservationLimits) (b NativeObservationBudget, err error) {
+// The optional count composes a caller's explicit session checks/pass starts;
+// it grants no extra allowance and cannot raise the fixed profile ceilings.
+func PreflightNativeObservation(paths []NativeObservationPath, limits NativeObservationLimits, explicitChecks ...uint64) (b NativeObservationBudget, err error) {
 	l, e := nativeObservationBounds(limits)
 	if e != nil {
 		return b, e
+	}
+	if len(explicitChecks) > 1 {
+		return b, ErrTreeLimit
+	}
+	var extra uint64
+	if len(explicitChecks) == 1 {
+		extra = explicitChecks[0]
+		if extra > l.MaxReadBytes/8192 {
+			return b, ErrTreeLimit
+		}
 	}
 	if len(paths) == 0 || len(paths) > l.MaxEntries {
 		return b, fmt.Errorf("%w: source entry count", ErrTreeLimit)
@@ -99,7 +111,7 @@ func PreflightNativeObservation(paths []NativeObservationPath, limits NativeObse
 	}
 	b.AccountedBytes = 16 << 10
 	b.ExpectedExportBytes = 8192
-	b.ValidationCalls = 5
+	b.ValidationCalls = 5 + extra
 	for _, p := range paths {
 		if len(p.Path) > 4096 || len(p.Streams) > 256 {
 			return b, ErrTreeLimit
@@ -235,6 +247,53 @@ type NativeObservationSession struct {
 	failureEvidenceExhausted                        bool
 	terminalFailure                                 NativeObservationFailure
 	terminalCause                                   error
+	operation                                       string
+	firstBound                                      NativeObservationBoundFailure
+	closeHandleFailed                               bool
+	priorLatchedObservationFailed                   bool
+}
+
+// Fixed historical accounting only: no paths, identities, variable arrays or
+// authority. All labels are fixed internal call sites; first refusal wins.
+type NativeObservationBoundFailure struct {
+	Recorded                                                                  bool
+	Operation, Site, Dimension                                                string
+	Requested, Used, Limit                                                    uint64
+	ReadBytes, ContentReadBytes, QueryCapacityBytes, ValidationAllowanceBytes uint64
+	AccountedBytes, ScratchBytes                                              uint64
+	RetainedHandles                                                           int
+}
+
+type NativeObservationFailureSummary struct {
+	FirstBound                                                  NativeObservationBoundFailure
+	LatchedObservationFailed, CloseAttempted, HandleCloseFailed bool
+}
+
+// FailureSummary is independently exportable even after cancellation, Close or
+// a refused variable-size Evidence export. It confers no live observation.
+func (s *NativeObservationSession) FailureSummary() NativeObservationFailureSummary {
+	if s == nil {
+		return NativeObservationFailureSummary{}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.failureSummary()
+}
+
+func (s *NativeObservationSession) failureSummary() NativeObservationFailureSummary {
+	prior := s.errorState != nil
+	if s.closed {
+		prior = s.priorLatchedObservationFailed
+	}
+	return NativeObservationFailureSummary{FirstBound: s.firstBound, LatchedObservationFailed: prior, CloseAttempted: s.closed, HandleCloseFailed: s.closeHandleFailed}
+}
+
+func (s *NativeObservationSession) bound(site, dimension string, requested, used, limit uint64) error {
+	if !s.firstBound.Recorded {
+		s.firstBound = NativeObservationBoundFailure{Recorded: true, Operation: s.operation, Site: site, Dimension: dimension, Requested: requested, Used: used, Limit: limit,
+			ReadBytes: s.read, ContentReadBytes: s.contentRead, QueryCapacityBytes: s.queryCapacity, ValidationAllowanceBytes: s.validationAllowance, AccountedBytes: s.accounted, ScratchBytes: s.scratch, RetainedHandles: s.handles}
+	}
+	return ErrTreeLimit
 }
 
 type NativeObservationFailure struct {
@@ -262,9 +321,10 @@ type NativeSessionEvidence struct {
 	ActualQueryReadBytesKnown                                      bool
 	FailureEvidenceExhausted                                       bool
 	TerminalFailure                                                NativeObservationFailure
+	FailureSummary                                                 NativeObservationFailureSummary
 }
 
-func BorrowNativeObservation(ctx context.Context, root *OwnedTree, paths []NativeObservationPath, limits NativeObservationLimits) (*NativeObservationSession, error) {
+func BorrowNativeObservation(ctx context.Context, root *OwnedTree, paths []NativeObservationPath, limits NativeObservationLimits, explicitChecks ...uint64) (*NativeObservationSession, error) {
 	if ctx == nil || root == nil {
 		return nil, ErrTreePreserved
 	}
@@ -275,7 +335,7 @@ func BorrowNativeObservation(ctx context.Context, root *OwnedTree, paths []Nativ
 	if e != nil {
 		return nil, e
 	}
-	b, e := PreflightNativeObservation(paths, l)
+	b, e := PreflightNativeObservation(paths, l, explicitChecks...)
 	if e != nil {
 		return nil, e
 	}
@@ -289,16 +349,18 @@ func BorrowNativeObservation(ctx context.Context, root *OwnedTree, paths []Nativ
 	if b.Handles+len(root.parents) > l.MaxHandles {
 		return nil, fmt.Errorf("%w: retained root/parent handles", ErrTreeLimit)
 	}
-	validationExtra := b.ValidationCalls * uint64(len(root.parents)) * 64
-	if validationExtra > l.MaxReadBytes-b.ExpectedReadBytes {
+	parentCharge := uint64(len(root.parents)) * 64
+	if parentCharge != 0 && b.ValidationCalls > (l.MaxReadBytes-b.ExpectedReadBytes)/parentCharge {
 		return nil, fmt.Errorf("%w: source root/owner validation allowance", ErrTreeLimit)
 	}
+	validationExtra := b.ValidationCalls * parentCharge
 	b.ExpectedReadBytes += validationExtra
 	b.ValidationAllowanceBytes += validationExtra
 	s := &NativeObservationSession{root: root, id: root.identity, limits: l, expected: make(map[string]NativeObservationPath, len(paths)), entries: make(map[string]*nativeObservedEntry, len(paths)), accounted: b.AccountedBytes, handles: base, baseHandles: base, info: nativeInfo, closeFile: func(f *os.File) error { return f.Close() }, queryDirectory: func(h windows.Handle, c uint32, b []byte) error {
 		return windows.GetFileInformationByHandleEx(h, c, &b[0], uint32(len(b)))
 	}}
 	s.budget = b
+	s.operation = "borrow"
 	if e = s.validateRoot(); e != nil {
 		return nil, e
 	}
@@ -370,9 +432,9 @@ func (s *NativeObservationSession) live(ctx context.Context) error {
 // rechecks the original root. Both slots, marker reads and query scratch count.
 func (s *NativeObservationSession) validateRoot() error {
 	if s.handles > s.limits.MaxHandles || 2 > s.limits.MaxHandles-s.handles {
-		return ErrTreeLimit
+		return s.bound("root-validation", "handles", 2, uint64(s.handles), uint64(s.limits.MaxHandles))
 	}
-	if e := s.reserve(uint64(8192+len(s.root.parents)*64), 0, nativeRootValidationScratch); e != nil {
+	if e := s.reserve(uint64(8192+len(s.root.parents)*64), 0, nativeRootValidationScratch, "root-validation"); e != nil {
 		return e
 	}
 	s.validationAllowance += uint64(8192 + len(s.root.parents)*64)
@@ -386,15 +448,25 @@ func (s *NativeObservationSession) CheckObservationLive(ctx context.Context) err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "check-live"
 	s.root.mu.Lock()
 	defer s.root.mu.Unlock()
 	return s.live(ctx)
 }
 
-func (s *NativeObservationSession) reserve(read, result, scratch uint64) error {
-	if read > s.limits.MaxReadBytes-s.read || result > s.limits.MaxResultBytes-s.accounted || scratch > s.limits.MaxResultBytes-s.accounted-result || s.scratch > s.limits.MaxResultBytes-s.accounted-result-scratch {
+func (s *NativeObservationSession) reserve(read, result, scratch uint64, site string) error {
+	if read > s.limits.MaxReadBytes-min(s.read, s.limits.MaxReadBytes) {
 		s.incomplete = true
-		return ErrTreeLimit
+		return s.bound(site, "read", read, s.read, s.limits.MaxReadBytes)
+	}
+	if result > s.limits.MaxResultBytes-min(s.accounted, s.limits.MaxResultBytes) {
+		s.incomplete = true
+		return s.bound(site, "result", result, s.accounted, s.limits.MaxResultBytes)
+	}
+	remaining := s.limits.MaxResultBytes - s.accounted - result
+	if scratch > remaining || s.scratch > remaining-scratch {
+		s.incomplete = true
+		return s.bound(site, "scratch", scratch, s.accounted+result+s.scratch, s.limits.MaxResultBytes)
 	}
 	s.read += read
 	s.accounted += result
@@ -404,7 +476,7 @@ func (s *NativeObservationSession) reserve(read, result, scratch uint64) error {
 func (s *NativeObservationSession) retainHandle() error {
 	if s.handles >= s.limits.MaxHandles {
 		s.incomplete = true
-		return ErrTreeLimit
+		return s.bound("retain-handle", "handles", 1, uint64(s.handles), uint64(s.limits.MaxHandles))
 	}
 	s.handles++
 	return nil
@@ -427,7 +499,7 @@ func (s *NativeObservationSession) recordFailure(name string, id FileIdentity, e
 	if len(f.Detail) > 2048 {
 		f.Detail = f.Detail[:2048]
 	}
-	if err := s.reserve(0, uint64(512+(len(name)+len(f.Detail))*4), 0); err != nil {
+	if err := s.reserve(0, uint64(512+(len(name)+len(f.Detail))*4), 0, "failure-record"); err != nil {
 		// A fixed emergency slot is included in the initial 16 KiB reservation.
 		// Keep the first unavailable failure's exact known ID and native cause;
 		// later failures cannot allocate an unbounded error chain on exhaustion.
@@ -450,6 +522,7 @@ func (s *NativeObservationSession) Evidence(ctx context.Context, allowance uint6
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "evidence"
 	if e := ctx.Err(); e != nil {
 		return NativeSessionEvidence{}, e
 	}
@@ -464,10 +537,14 @@ func (s *NativeObservationSession) Evidence(ctx context.Context, allowance uint6
 		cost += uint64(len(f.Path)+len(f.Detail)) * 4
 	}
 	cost += uint64(len(s.terminalFailure.Path)+len(s.terminalFailure.Detail)) * 4
-	if allowance > s.limits.MaxExportBytes || cost > allowance {
-		return NativeSessionEvidence{}, ErrTreeLimit
+	if allowance > s.limits.MaxExportBytes {
+		return NativeSessionEvidence{}, s.bound("evidence-profile", "export", allowance, 0, s.limits.MaxExportBytes)
+	}
+	if cost > allowance {
+		return NativeSessionEvidence{}, s.bound("evidence-allowance", "export", cost, 0, allowance)
 	}
 	v := NativeSessionEvidence{Tree: s.id, Limits: s.limits, Failures: slices.Clone(s.failures), ReadBytes: s.read, AccountedBytes: s.accounted, RetainedHandles: s.handles, Closed: s.closed, Incomplete: s.incomplete, Preserved: true, Preflight: s.budget, ContentReadBytes: s.contentRead, QueryCapacityBytes: s.queryCapacity, ValidationAllowanceBytes: s.validationAllowance, FailureEvidenceExhausted: s.failureEvidenceExhausted, TerminalFailure: s.terminalFailure}
+	v.FailureSummary = s.failureSummary()
 	for name, entry := range s.entries {
 		row := NativeObservedIdentity{Path: name, Identity: entry.id, ShortName: slices.Clone(entry.short)}
 		for stream := range entry.streams {
@@ -497,7 +574,7 @@ func (s *NativeObservationSession) checkEntry(name string) error {
 		return e
 	}
 	p := s.entries[v.parent]
-	if e := s.reserve(128, 0, 4096); e != nil {
+	if e := s.reserve(128, 0, 4096, "entry-identity"); e != nil {
 		return e
 	}
 	s.queryCapacity += 128
@@ -533,6 +610,7 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "inventory"
 	s.root.mu.Lock()
 	defer s.root.mu.Unlock()
 	startRead, startResult := s.read, s.accounted
@@ -553,7 +631,7 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 	maxRead := s.limits.MaxReadBytes - s.read
 	maxResult := s.limits.MaxResultBytes - s.accounted
 	if limits.MaxEntries < 0 || limits.MaxDepth < 0 {
-		return out, ErrTreeLimit
+		return out, s.bound("inventory-limits", "arguments", 1, 0, 0)
 	}
 	if limits.MaxEntries > 0 {
 		maxEntries = min(maxEntries, limits.MaxEntries)
@@ -572,10 +650,13 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 		if cause != nil {
 			cost += 8192
 		}
-		if len(out.Entries) >= maxEntries || cost > maxResult-min(returnedBytes+s.accounted-startResult, maxResult) {
-			return ErrTreeLimit
+		if len(out.Entries) >= maxEntries {
+			return s.bound("inventory-entry", "entries", 1, uint64(len(out.Entries)), uint64(maxEntries))
 		}
-		if e := s.reserve(0, 0, cost); e != nil {
+		if cost > maxResult-min(returnedBytes+s.accounted-startResult, maxResult) {
+			return s.bound("inventory-result", "result", cost, returnedBytes+s.accounted-startResult, maxResult)
+		}
+		if e := s.reserve(0, 0, cost, "inventory-result"); e != nil {
 			return e
 		}
 		returnedBytes += cost
@@ -607,7 +688,11 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 			return e
 		}
 		if depth > s.limits.MaxDepth || limits.MaxDepth > 0 && depth > limits.MaxDepth {
-			return ErrTreeLimit
+			ceiling := s.limits.MaxDepth
+			if limits.MaxDepth > 0 {
+				ceiling = min(ceiling, limits.MaxDepth)
+			}
+			return s.bound("inventory-depth", "depth", uint64(depth), 0, uint64(ceiling))
 		}
 		if e := s.checkEntry(prefix); e != nil {
 			if row := s.entries[prefix]; row != nil {
@@ -616,7 +701,7 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 			return e
 		}
 		dir := s.entries[prefix]
-		if e := s.reserve(128, 0, 0); e != nil {
+		if e := s.reserve(128, 0, 0, "identity-query"); e != nil {
 			return e
 		}
 		s.queryCapacity += 128
@@ -630,10 +715,13 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 				return e
 			}
 			const size = 64 << 10
-			if size > maxRead-min(s.read-startRead, maxRead) || size > maxResult-min(s.scratch+s.accounted-startResult, maxResult) {
-				return ErrTreeLimit
+			if size > maxRead-min(s.read-startRead, maxRead) {
+				return s.bound("directory-query", "read", size, s.read-startRead, maxRead)
 			}
-			if e := s.reserve(size, 0, size); e != nil {
+			if size > maxResult-min(s.scratch+s.accounted-startResult, maxResult) {
+				return s.bound("directory-query", "result", size, s.scratch+s.accounted-startResult, maxResult)
+			}
+			if e := s.reserve(size, 0, size, "directory-query"); e != nil {
 				return e
 			}
 			s.queryCapacity += size
@@ -676,7 +764,7 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 					if prefix != "." {
 						if len(prefix)+len(leaf)+1 > 4096 {
 							s.scratch -= size
-							return ErrTreeLimit
+							return s.bound("inventory-path", "name-units", uint64(len(prefix)+len(leaf)+1), 0, 4096)
 						}
 						name = prefix + "/" + leaf
 					}
@@ -706,7 +794,7 @@ func (s *NativeObservationSession) ObserveInventory(ctx context.Context, limits 
 						cause = shortErr
 					}
 					if status == "known" {
-						if e := s.reserve(128, 0, 0); e != nil {
+						if e := s.reserve(128, 0, 0, "identity-query"); e != nil {
 							s.scratch -= size
 							return e
 						}
@@ -807,6 +895,7 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "metadata"
 	s.root.mu.Lock()
 	defer s.root.mu.Unlock()
 	defer func() { s.latch(runErr) }()
@@ -835,7 +924,7 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 		return out, e
 	}
 	if l.MaxBufferBytes > 64<<10 {
-		return out, ErrTreeLimit
+		return out, s.bound("metadata-buffer", "buffer", uint64(l.MaxBufferBytes), 0, 64<<10)
 	}
 	scratch := nativeMetadataScratch(l)
 	read := uint64(4*l.MaxBufferBytes + 64 + 128)
@@ -845,7 +934,7 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 	// The returned metadata belongs to the caller's per-call result budget.
 	// This session retains no raw metadata. Its peak scratch is reserved until
 	// return; the private comparison caller accounts its own retained witnesses.
-	if e = s.reserve(read, 0, scratch); e != nil {
+	if e = s.reserve(read, 0, scratch, "metadata-query"); e != nil {
 		return out, e
 	}
 	s.queryCapacity += read
@@ -870,7 +959,7 @@ func (s *NativeObservationSession) Observe(ctx context.Context, name string, lim
 		out.ShortNameUTF16 = slices.Clone(v.short)
 	}
 	if len(out.NamedStreams) > s.limits.MaxStreams-s.streamRecords {
-		return out, ErrTreeLimit
+		return out, s.bound("metadata-streams", "streams", uint64(len(out.NamedStreams)), uint64(s.streamRecords), uint64(s.limits.MaxStreams))
 	}
 	s.streamRecords += len(out.NamedStreams)
 	if !out.Complete {
@@ -890,6 +979,7 @@ func (s *NativeObservationSession) BeginMetadataPass(ctx context.Context) error 
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "begin-metadata-pass"
 	s.root.mu.Lock()
 	defer s.root.mu.Unlock()
 	if e := s.live(ctx); e != nil {
@@ -905,6 +995,7 @@ func (s *NativeObservationSession) ReadOwnedAt(ctx context.Context, name, stream
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "content"
 	s.root.mu.Lock()
 	defer s.root.mu.Unlock()
 	defer func() { s.latch(runErr) }()
@@ -912,7 +1003,13 @@ func (s *NativeObservationSession) ReadOwnedAt(ctx context.Context, name, stream
 		return 0, e
 	}
 	if len(b) > 64<<10 || len(name) > 4096 || len(stream) > 1024 {
-		return 0, ErrTreeLimit
+		if len(b) > 64<<10 {
+			return 0, s.bound("content-buffer", "buffer", uint64(len(b)), 0, 64<<10)
+		}
+		if len(name) > 4096 {
+			return 0, s.bound("content-path", "name-units", uint64(len(name)), 0, 4096)
+		}
+		return 0, s.bound("content-stream", "name-units", uint64(len(stream)), 0, 1024)
 	}
 	if off < 0 {
 		return 0, ErrTreePreserved
@@ -942,7 +1039,7 @@ func (s *NativeObservationSession) ReadOwnedAt(ctx context.Context, name, stream
 	if e := s.checkEntry(name); e != nil {
 		return 0, e
 	}
-	if e := s.reserve(uint64(len(b)), 0, 0); e != nil {
+	if e := s.reserve(uint64(len(b)), 0, 0, "content-bytes"); e != nil {
 		return 0, e
 	}
 	s.contentRead += uint64(len(b))
@@ -950,7 +1047,7 @@ func (s *NativeObservationSession) ReadOwnedAt(ctx context.Context, name, stream
 	if stream != "" {
 		f = v.streams[stream]
 		if f == nil {
-			if e := s.reserve(0, uint64(512+len(stream)*4), 0); e != nil {
+			if e := s.reserve(0, uint64(512+len(stream)*4), 0, "stream-handle"); e != nil {
 				return 0, e
 			}
 			if e := s.retainHandle(); e != nil {
@@ -970,7 +1067,7 @@ func (s *NativeObservationSession) ReadOwnedAt(ctx context.Context, name, stream
 			v.streamOrder = append(v.streamOrder, stream)
 		}
 	}
-	if e := s.reserve(128, 0, 0); e != nil {
+	if e := s.reserve(128, 0, 0, "identity-query"); e != nil {
 		return 0, e
 	}
 	s.queryCapacity += 128
@@ -992,9 +1089,11 @@ func (s *NativeObservationSession) Close() error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.operation = "close"
 	if s.closed {
 		return s.closeErr
 	}
+	s.priorLatchedObservationFailed = s.errorState != nil
 	s.closed = true
 	s.closeErr = fmt.Errorf("%w: read-only observation scope %s [volume=%d file=%d]; durable claim unresolved", ErrTreePreserved, s.id.RelativePath, s.id.Root.VolumeSerial, s.id.Root.FileIndex)
 	s.closeErr = errors.Join(s.closeErr, s.errorState)
@@ -1005,6 +1104,7 @@ func (s *NativeObservationSession) Close() error {
 			stream := v.streamOrder[k]
 			f := v.streams[stream]
 			if e := s.closeFile(f); e != nil {
+				s.closeHandleFailed = true
 				if s.recordFailure(name+":"+stream, v.id, e) {
 					s.closeErr = errors.Join(s.closeErr, fmt.Errorf("%s:%s [volume=%d file=%d]: %w", name, stream, v.id.VolumeSerial, v.id.FileIndex, e))
 				}
@@ -1013,6 +1113,7 @@ func (s *NativeObservationSession) Close() error {
 		}
 		if name != "." {
 			if e := s.closeFile(v.file); e != nil {
+				s.closeHandleFailed = true
 				if s.recordFailure(name, v.id, e) {
 					s.closeErr = errors.Join(s.closeErr, fmt.Errorf("%s [volume=%d file=%d]: %w", name, v.id.VolumeSerial, v.id.FileIndex, e))
 				}
@@ -1025,6 +1126,7 @@ func (s *NativeObservationSession) Close() error {
 		for j := len(root.streamOrder) - 1; j >= 0; j-- {
 			name := root.streamOrder[j]
 			if e := s.closeFile(root.streams[name]); e != nil {
+				s.closeHandleFailed = true
 				if s.recordFailure(".:"+name, root.id, e) {
 					s.closeErr = errors.Join(s.closeErr, e)
 				}

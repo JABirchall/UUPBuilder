@@ -113,6 +113,9 @@ func TestNativeReadOnlyObservationExactHandleLimitAndPartialClose(t *testing.T) 
 	if e = s.Close(); !errors.Is(e, windows.ERROR_ACCESS_DENIED) || closed != 3 {
 		t.Fatal("close not latched", e, closed)
 	}
+	if summary := s.FailureSummary(); summary.LatchedObservationFailed || !summary.HandleCloseFailed || !summary.CloseAttempted {
+		t.Fatal("actual handle close confused with prior observation failure", summary)
+	}
 	v, e := s.Evidence(ctx, 1<<20)
 	if e != nil || !v.Closed || len(v.Entries) != 3 || len(v.Failures) != 3 {
 		t.Fatal("historical close evidence", v, e)
@@ -155,6 +158,76 @@ func TestNativeReadOnlyObservationRuntimeBudgetRefusesBeforeQueryOrRead(t *testi
 
 func nativeObservationPaths() []NativeObservationPath {
 	return []NativeObservationPath{{Path: ".", Directory: true}, {Path: "known", Directory: true}, {Path: "known/file", DefaultSize: 17, Streams: []NativeObservationStream{{Name: "ads", Size: 3}}}}
+}
+
+func TestNativeObservationFirstBoundSurvivesFailedExportAndClose(t *testing.T) {
+	for _, kind := range []string{"read", "scratch", "handles", "entries", "inventory-read", "metadata-buffer", "content-buffer", "export"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx := context.Background()
+			root, _ := nativeObservationFixture(t)
+			s, e := BorrowNativeObservation(ctx, root, nativeObservationPaths(), NativeObservationLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer s.Close()
+			if _, e = s.ObserveInventory(ctx, TreeLimits{}); e != nil {
+				t.Fatal(e)
+			}
+			before := s.read
+			queries := 0
+			original := s.queryDirectory
+			s.queryDirectory = func(h windows.Handle, c uint32, b []byte) error { queries++; return original(h, c, b) }
+			want := ""
+			switch kind {
+			case "read":
+				s.limits.MaxReadBytes = s.read
+				want = "read"
+			case "scratch":
+				s.limits.MaxResultBytes = s.accounted + nativeRootValidationScratch - 1
+				want = "scratch"
+			case "handles":
+				s.limits.MaxHandles = s.handles
+				want = "handles"
+			case "entries":
+				_, e = s.ObserveInventory(ctx, TreeLimits{MaxEntries: 1})
+				want = "entries"
+			case "inventory-read":
+				_, e = s.ObserveInventory(ctx, TreeLimits{MaxReadBytes: 1})
+				want = "read"
+			case "metadata-buffer":
+				_, e = s.Observe(ctx, "known/file", MetadataLimits{MaxBufferBytes: 128 << 10})
+				want = "buffer"
+			case "content-buffer":
+				_, e = s.ReadOwnedAt(ctx, "known/file", "", make([]byte, 65537), 0)
+				want = "buffer"
+			case "export":
+				_, e = s.Evidence(ctx, 0)
+				want = "export"
+			}
+			if kind == "read" || kind == "scratch" || kind == "handles" {
+				_, e = s.ReadOwnedAt(ctx, "known/file", "ads", make([]byte, 3), 0)
+				if queries != 0 || s.read != before {
+					t.Fatal("work after refusal", queries, s.read, before)
+				}
+			}
+			if !errors.Is(e, ErrTreeLimit) {
+				t.Fatal("missing refusal", e)
+			}
+			v := s.FailureSummary()
+			if !v.FirstBound.Recorded || v.FirstBound.Dimension != want || v.FirstBound.Operation == "" || v.FirstBound.Site == "" || v.FirstBound.Requested <= v.FirstBound.Limit-min(v.FirstBound.Used, v.FirstBound.Limit) || v.LatchedObservationFailed != (kind != "export") || v.CloseAttempted {
+				t.Fatal("missing precise first accounting refusal", v)
+			}
+			if _, e = s.Evidence(ctx, 0); !errors.Is(e, ErrTreeLimit) {
+				t.Fatal(e)
+			}
+			s.Close()
+			s.Close()
+			closed := s.FailureSummary()
+			if closed.FirstBound != v.FirstBound || !closed.CloseAttempted || closed.HandleCloseFailed || len(root.entries) != 0 {
+				t.Fatal("history changed or handles/ledger misreported", v, closed, len(root.entries))
+			}
+		})
+	}
 }
 
 // Catches fixture-ledger adoption, arbitrary/unknown reads, loss of held identity,

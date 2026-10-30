@@ -337,6 +337,41 @@ func TestFixedApplyPreflightReservesExecutorAndRejectsExhaustion(t *testing.T) {
 	}
 }
 
+func TestFixedApplyComposedReadBudgetRefusesBeforeApply(t *testing.T) {
+	b, _ := applyTestBinding(t)
+	read, _ := fixedSourceReadBudget(t, b.expected, b.destination)
+	b.profile.MaxReadBytes = read - 1
+	var order []string
+	n := applyTestPorts(b, &order)
+	priv := &applyTestPrivilege{active: true}
+	r, e := invokeFixedApply(context.Background(), b, n, priv, &applyCallbackHub{})
+	if r != nil {
+		defer r.Close()
+	}
+	if !errors.Is(e, platform.ErrTreeLimit) || len(order) != 0 || b.prepared != nil {
+		t.Fatal("incomplete preflight reached native ports", e, order, b.prepared != nil)
+	}
+}
+
+func TestFixedApplyRetainsObserverFirstBoundWithoutFullExport(t *testing.T) {
+	b, _ := applyTestBinding(t)
+	if e := prepareFixedApplyObservation(context.Background(), b); e != nil {
+		t.Fatal(e)
+	}
+	r := &fixedApplyRun{b: b, observer: b.prepared, hub: &applyCallbackHub{}}
+	if _, e := b.prepared.ReadOwnedAt(context.Background(), "unknown", "", make([]byte, 65537), 0); !errors.Is(e, platform.ErrTreeLimit) {
+		t.Fatal(e)
+	}
+	before := b.prepared.session.FailureSummary()
+	if _, e := b.prepared.session.Evidence(context.Background(), 0); !errors.Is(e, platform.ErrTreeLimit) {
+		t.Fatal(e)
+	}
+	r.Close()
+	if r.evidence.ObserverFailure.FirstBound != before.FirstBound || !r.evidence.ObserverFailure.FirstBound.Recorded || !r.evidence.ObserverFailure.LatchedObservationFailed || !r.evidence.ObserverFailure.CloseAttempted || r.evidence.ObserverFailure.HandleCloseFailed || !r.evidence.ObserverClose.LimitExceeded || !r.evidence.ObserverClose.Preserved {
+		t.Fatal("fixed failure evidence lost or close cause changed", r.evidence.ObserverFailure, r.evidence.ObserverClose)
+	}
+}
+
 func TestObservedSourceContractRejectsCounterfeitCompletionAndComparison(t *testing.T) {
 	if e := (&ObservedSourceContractResult{}).CheckLive(context.Background()); e == nil {
 		t.Fatal("zero result accepted")
