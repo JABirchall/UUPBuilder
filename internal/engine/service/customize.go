@@ -384,6 +384,11 @@ func (e *CustomizationExecutor) customizeOne(ctx context.Context, req Customizat
 	}
 	var required []metadata.PackageIdentity
 	for _, p := range expected.Packages {
+		// Staged or absent FoDs such as OneSync are not installed requirements.
+		// Keep strict verification for every other state, including unknown ones.
+		if strings.EqualFold(p.State, "Staged") || strings.EqualFold(p.State, "Not Present") {
+			continue
+		}
 		required = append(required, p.Identity)
 	}
 	if err = verifyPackages(inspection.Packages, required); err != nil {
