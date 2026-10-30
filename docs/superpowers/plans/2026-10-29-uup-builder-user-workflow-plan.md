@@ -234,6 +234,16 @@ these concrete prerequisites; no recovery, regression or audit campaign.
 - [ ] Implement supported app provisioning/removal, NetFx3 and separate OS/WinPE driver targets using source-specific rules. Keep requested and effective values visible in applicability/report data; set `AppsApplicable` only from matching validated source/draft results. Explicit excluded recovery targets are rejected without dropping readable schema-1 settings.
 - [ ] Run `go test ./internal/metadata/... ./internal/planner ./internal/engine/service ./internal/engine/rules ./internal/tui -count=1` and independently inspect actual provisioned packages, features and driver state in the resulting image. Exercise dependency/license failure without publishing an ISO. Demonstrate that U03's chosen requests reach real customization unchanged.
 
+**U09 implementation evidence (2026-10-30):** Commit `c8eef53` adds source-bound
+app/bundle/license planning, concrete DISM customization, NetFx3 and separate
+OS/WinPE driver operations, a deferred inventory barrier and draft-bound TUI
+applicability. Required affected tests and the full Go suite passed; Luna high
+approved the implementation slice. The actual saved requests resolved from
+243 package manifests and 12 external bundle manifests: all 12 requested IDs,
+5 framework operations and 237 declared bundle children, with source licenses.
+Native provisioned/stub/feature/driver state and full U09 acceptance remain
+pending an elevated compatible runtime and production stage composition.
+Edge include/exclude are explicitly unavailable; the saved default is retained.
 ## U10 — Create, verify and save the ISO
 
 **Files:** Create `internal/engine/output/{types,export,master,verify,publish,report}.go` and tests. Extract reusable ISO/UDF content inspection from `tests/probes` into a focused internal package if needed while retaining corruption/bounds tests. Connect output handlers to the existing job and application result path.
