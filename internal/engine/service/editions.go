@@ -73,12 +73,8 @@ func (e *Executor) serviceOne(ctx context.Context, req ServiceRequest, path, mou
 	if !strings.EqualFold(out.Edition, edition) {
 		return out, fmt.Errorf("%w: expected edition %s, observed %s", ErrVerification, edition, out.Edition)
 	}
-	for _, update := range req.Plan.Updates {
-		if update.Integrate && rules.Applies(update, edition) {
-			if err = verifyPackages(out.Packages, update.Packages); err != nil {
-				return out, err
-			}
-		}
+	if err = verifyIntegratedPackages(out.Packages, req.Plan.Updates, edition); err != nil {
+		return out, err
 	}
 	if err = e.Backend.Unmount(ctx, mount, true, emit); err != nil {
 		return out, err
