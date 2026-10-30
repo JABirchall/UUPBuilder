@@ -42,7 +42,7 @@ type applyFileMessage struct {
 }
 
 // Fixed-size evidence of healthy, admitted opaque dispatch only. It contains
-// no parameters/addresses and establishes no exclusion or metadata semantics.
+// no parameters/addresses and establishes no payload or metadata semantics.
 type applyOpaqueCallbackEvidence struct {
 	MessageID   uint32
 	Count       uint64
@@ -56,6 +56,8 @@ type applyCallbackEvidence struct {
 	Failure                                         error `json:"-"`
 	FailureText                                     string
 	OpaqueMetadataExclude                           applyOpaqueCallbackEvidence
+	Unconsumed                                      [16]applyOpaqueCallbackEvidence
+	UnconsumedOverflowDeliveries                    uint64
 }
 
 // There is exactly one production trampoline, allocated once. UserData is a
@@ -246,9 +248,27 @@ func (h *applyCallbackHub) deliver(token uintptr, msg uint32, w, l uintptr) uint
 		} else {
 			s.fail(fmt.Errorf("native message %#x path=%q code=%d", msg, name, uint32(l)))
 		}
-	default:
-		// No guessed layouts for undocumented/operation-inapplicable messages.
+	case 0x9477, 0x947e, 0x9480, 0x9481, 0x9482,
+		0x9488, 0x9489, 0x948a, 0x948b, 0x948c, 0x948d:
+		// Known TEXT anomaly, compression/alignment/retry/split and mount/cleanup
+		// operations remain refused without accessing either payload word.
 		s.fail(fmt.Errorf("unsupported native callback message %#x", msg))
+	default:
+		// Uninterested-subscriber SUCCESS, not semantic admission or authority.
+		// Neither word is accessed. Unknown-event anomaly detection is withdrawn;
+		// fixed evidence saturation summarizes rather than aborting the operation.
+		for j := range s.v.Unconsumed {
+			entry := &s.v.Unconsumed[j]
+			if entry.Count == 0 {
+				*entry = applyOpaqueCallbackEvidence{MessageID: msg, Count: 1, ReturnValue: 0}
+				return 0
+			}
+			if entry.MessageID == msg {
+				entry.Count++
+				return 0
+			}
+		}
+		s.v.UnconsumedOverflowDeliveries++
 	}
 	return 0
 }

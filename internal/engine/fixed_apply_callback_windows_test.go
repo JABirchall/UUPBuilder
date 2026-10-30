@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -26,6 +27,22 @@ func callbackPath(t *testing.T, h *applyCallbackHub, token uintptr, msg uint32, 
 	pin.Pin(&u[0])
 	defer pin.Unpin()
 	ret := h.deliver(token, msg, uintptr(unsafe.Pointer(&u[0])), uintptr(unsafe.Pointer(&process)))
+	runtime.KeepAlive(u)
+	return ret
+}
+
+func callbackFileInfo(t *testing.T, h *applyCallbackHub, token uintptr, name string, info *windows.Win32finddata) uintptr {
+	t.Helper()
+	u, e := windows.UTF16FromString(name)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var pin runtime.Pinner
+	pin.Pin(info)
+	pin.Pin(&u[0])
+	defer pin.Unpin()
+	ret := h.deliver(token, 0x9483, uintptr(unsafe.Pointer(&u[0])), uintptr(unsafe.Pointer(info)))
+	runtime.KeepAlive(info)
 	runtime.KeepAlive(u)
 	return ret
 }
@@ -135,8 +152,8 @@ func TestFixedApplyCallbackConcurrentDrainAndQuarantine(t *testing.T) {
 	}
 }
 
-func TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse(t *testing.T) {
-	for _, kind := range []string{"unknown-name", "nil-process", "nil-fileinfo", "invalid-pointer", "unterminated", "malformed-utf16", "unknown-message", "native-error", "warning"} {
+func TestFixedApplyCallbackKnownRefusalsMalformedAndOversizeRefuse(t *testing.T) {
+	for _, kind := range []string{"unknown-name", "nil-process", "nil-fileinfo", "invalid-pointer", "unterminated", "malformed-utf16", "known-operation", "native-error", "warning"} {
 		t.Run(kind, func(t *testing.T) {
 			h := &applyCallbackHub{}
 			s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
@@ -168,8 +185,8 @@ func TestFixedApplyCallbackUnknownMalformedAndOversizeRefuse(t *testing.T) {
 				u := []uint16{0xd800, 0}
 				pin.Pin(&u[0])
 				h.deliver(s.token, 0x9479, uintptr(unsafe.Pointer(&u[0])), 0)
-			case "unknown-message":
-				h.deliver(s.token, 0x9499, 1, 1)
+			case "known-operation":
+				h.deliver(s.token, 0x9480, 1, 1)
 			case "native-error":
 				if v := h.deliver(s.token, 0x947f, wp, 5); v != 0 {
 					t.Fatal("native error skipped", v)
@@ -194,6 +211,24 @@ type opaqueCallbackRecord struct {
 	MessageID   uint32
 	Count       uint64
 	ReturnValue uint32
+}
+
+type unconsumedCallbackRecord struct {
+	Unconsumed                   [16]opaqueCallbackRecord
+	UnconsumedOverflowDeliveries uint64
+}
+
+func unconsumedRecord(t *testing.T, v applyCallbackEvidence) unconsumedCallbackRecord {
+	t.Helper()
+	b, e := json.Marshal(v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var record unconsumedCallbackRecord
+	if e = json.Unmarshal(b, &record); e != nil {
+		t.Fatal(e)
+	}
+	return record
 }
 
 func metadataExcludeRecord(t *testing.T, v applyCallbackEvidence) opaqueCallbackRecord {
@@ -258,7 +293,7 @@ func TestFixedApplyCallbackOpaqueMetadataExcludeContinuesWithoutParameterUse(t *
 }
 
 func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
-	kinds := []string{"outside-path", "outside-fileinfo", "cancel", "error", "info", "warning", "object-id", "unknown", "text", "compress", "alignment", "retry", "split", "bad-percent", "lower-neighbor", "upper-neighbor"}
+	kinds := []string{"outside-path", "outside-fileinfo", "cancel", "error", "info", "warning", "object-id", "text", "compress", "alignment", "retry", "split", "stale-mount-dir", "stale-mount-file", "mount-cleanup-progress", "cleanup-scanning-drive", "already-mounted", "cleanup-unmount", "bad-percent"}
 	if ^uintptr(0) > 0xffffffff {
 		kinds = append(kinds, "bad-time")
 	}
@@ -270,6 +305,10 @@ func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
 			s, e := h.begin(ctx, `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
 			if e != nil {
 				t.Fatal(e)
+			}
+			h.deliver(s.token, 0x9498, 1, ^uintptr(0))
+			if v := s.snapshot(); v.Failure != nil {
+				t.Fatal("unconsumed setup message poisoned later refusal test", v.FailureText)
 			}
 			if kind == "cancel" {
 				cancel()
@@ -285,18 +324,12 @@ func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
 				pin.Unpin()
 				runtime.KeepAlive(path)
 				runtime.KeepAlive(info)
-			} else if msg := map[string]uint32{"unknown": 0xdeadbeef, "text": 0x9477, "compress": 0x947e, "alignment": 0x9480, "retry": 0x9481, "split": 0x9482}[kind]; msg != 0 {
+			} else if msg := map[string]uint32{"text": 0x9477, "compress": 0x947e, "alignment": 0x9480, "retry": 0x9481, "split": 0x9482, "stale-mount-dir": 0x9488, "stale-mount-file": 0x9489, "mount-cleanup-progress": 0x948a, "cleanup-scanning-drive": 0x948b, "already-mounted": 0x948c, "cleanup-unmount": 0x948d}[kind]; msg != 0 {
 				h.deliver(s.token, msg, 1, ^uintptr(0))
 			} else if kind == "bad-percent" {
 				h.deliver(s.token, 0x9478, 101, 0)
 			} else if kind == "bad-time" {
 				h.deliver(s.token, 0x9478, 1, ^uintptr(0))
-			} else if kind == "lower-neighbor" || kind == "upper-neighbor" {
-				msg := uint32(0x9494)
-				if kind == "upper-neighbor" {
-					msg = 0x9496
-				}
-				h.deliver(s.token, msg, 1, ^uintptr(0))
 			} else {
 				msg := map[string]uint32{"error": 0x947f, "info": 0x9484, "warning": 0x9485, "object-id": 0x9487}[kind]
 				path, _ := windows.UTF16FromString(`C:\owned\known`)
@@ -310,7 +343,7 @@ func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
 			if kind != "cancel" && before.Failure == nil {
 				t.Fatal("existing failure was not latched")
 			}
-			for _, msg := range []uint32{0x947a, 0x947b, 0x947c, 0x947d, 0x9478, 0x9495} {
+			for _, msg := range []uint32{0x947a, 0x947b, 0x947c, 0x947d, 0x9478, 0x9495, 0x9498, 0x9494, 0x9496, 0, 0xdeadbeef} {
 				if ret := h.deliver(s.token, msg, 1, ^uintptr(0)); ret != 0 {
 					t.Fatal("feedback used an undocumented abort return", msg, ret)
 				}
@@ -318,6 +351,9 @@ func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
 			after := s.snapshot()
 			if after.Failure != before.Failure || after.FailureText != before.FailureText || kind == "cancel" && !after.CancellationRequested {
 				t.Fatal("feedback cleared failure/cancel")
+			}
+			if unconsumedRecord(t, after) != unconsumedRecord(t, before) || unconsumedRecord(t, after).Unconsumed[0] != (opaqueCallbackRecord{MessageID: 0x9498, Count: 1, ReturnValue: 0}) {
+				t.Fatal("unconsumed healthy evidence grew or was cleared after refusal/cancel")
 			}
 			if got := metadataExcludeRecord(t, after); got.Count != 0 {
 				t.Fatalf("failed/cancelled dispatch counted as healthy opaque handling: %+v", got)
@@ -332,6 +368,144 @@ func TestFixedApplyCallbackFeedbackKeepsFailureAndCancellation(t *testing.T) {
 				t.Fatal(e)
 			}
 		})
+	}
+}
+
+func TestFixedApplyCallbackUnconsumedDefaultAllowsFollowingFileCallbacks(t *testing.T) {
+	for _, msg := range []uint32{0x9498, 0x9499, 0x9486, 0x948f, 0x9493, 0x9494, 0x9496, 0, 0x9476, 0x12345678, 0xffffffff, 0xdeadbeef} {
+		t.Run(fmt.Sprintf("%x", msg), func(t *testing.T) {
+			h := &applyCallbackHub{}
+			s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			for _, words := range [][2]uintptr{{0, 0}, {1, ^uintptr(0)}} {
+				if ret := h.deliver(s.token, msg, words[0], words[1]); ret != 0 {
+					t.Fatal("unconsumed default did not return SUCCESS", ret)
+				}
+			}
+			first, second := uint32(7), uint32(11)
+			var pin runtime.Pinner
+			pin.Pin(&first)
+			pin.Pin(&second)
+			defer pin.Unpin()
+			if ret := h.deliver(s.token, msg, uintptr(unsafe.Pointer(&first)), uintptr(unsafe.Pointer(&second))); ret != 0 {
+				t.Fatal(ret)
+			}
+			processRet := callbackPath(t, h, s.token, 0x9479, `C:\owned\known`)
+			info := windows.Win32finddata{FileAttributes: 32, Reserved0: 43}
+			fileRet := callbackFileInfo(t, h, s.token, `C:\owned\known`, &info)
+			info.Reserved0 = 99
+			v := s.snapshot()
+			if processRet != 0 || fileRet != 0 || v.Failure != nil || v.LastFile.Path != `C:\owned\known` || v.LastFile.Data.Reserved0 != 43 {
+				t.Fatalf("unconsumed %#x poisoned PROCESS/FILEINFO: process=%#x file=%#x failure=%s", msg, processRet, fileRet, v.FailureText)
+			}
+			if first != 7 || second != 11 || v.Deliveries != 5 || v.Returned || v.AbortDelivered || v.Progress != 0 || v.OpaqueMetadataExclude.Count != 0 {
+				t.Fatal("unconsumed delivery changed memory, consumed evidence or completion")
+			}
+			var want unconsumedCallbackRecord
+			want.Unconsumed[0] = opaqueCallbackRecord{MessageID: msg, Count: 3, ReturnValue: 0}
+			if got := unconsumedRecord(t, v); got != want {
+				t.Fatalf("default evidence %+v", got)
+			}
+			if e = h.retire(s, true); e != nil {
+				t.Fatal(e)
+			}
+			runtime.KeepAlive(first)
+			runtime.KeepAlive(second)
+		})
+	}
+}
+
+func TestFixedApplyCallbackUnconsumedTableOverflowCapAndLifetime(t *testing.T) {
+	h := &applyCallbackHub{}
+	s, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true, "known": true}, applyCallbackLimits{MaxDeliveries: 105})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for msg := uint32(0); msg < 16; msg++ {
+		h.deliver(s.token, msg, 1, ^uintptr(0))
+	}
+	h.deliver(s.token, 0, 1, ^uintptr(0))
+	for msg := uint32(16); msg < 96; msg++ {
+		h.deliver(s.token, msg, 1, ^uintptr(0))
+	}
+	h.deliver(s.token, 95, 1, ^uintptr(0))
+	h.deliver(s.token, 0, 1, ^uintptr(0))
+	if ret := callbackPath(t, h, s.token, 0x9479, `C:\owned\known`); ret != 0 {
+		t.Fatal("table saturation caused latent PROCESS abort", ret)
+	}
+	info := windows.Win32finddata{FileAttributes: 32, Reserved0: 47}
+	if ret := callbackFileInfo(t, h, s.token, `C:\owned\known`, &info); ret != 0 {
+		t.Fatal(ret)
+	}
+	if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0 {
+		t.Fatal("table saturation requested abort", ret)
+	}
+	v := s.snapshot()
+	record := unconsumedRecord(t, v)
+	if v.Failure != nil || v.Returned || v.AbortDelivered || v.Deliveries != 102 || v.LastFile.Data.Reserved0 != 47 || record.UnconsumedOverflowDeliveries != 81 {
+		t.Fatal("opaque table saturation did not summarize healthy deliveries", v.FailureText, v.Deliveries, record.UnconsumedOverflowDeliveries)
+	}
+	for j, entry := range record.Unconsumed {
+		wantCount := uint64(1)
+		if j == 0 {
+			wantCount = 3
+		}
+		if entry != (opaqueCallbackRecord{MessageID: uint32(j), Count: wantCount, ReturnValue: 0}) {
+			t.Fatalf("table slot %d lost first-distinct ID/count: %+v", j, entry)
+		}
+	}
+	b, e := json.Marshal(v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var exported map[string]json.RawMessage
+	if e = json.Unmarshal(b, &exported); e != nil {
+		t.Fatal(e)
+	}
+	var rows []map[string]json.RawMessage
+	if e = json.Unmarshal(exported["Unconsumed"], &rows); e != nil || len(rows) != 16 || len(exported["Unconsumed"]) > 1280 {
+		t.Fatal("unconsumed evidence is not a fixed bounded table", e, len(rows))
+	}
+	for _, row := range rows {
+		if len(row) != 3 || row["MessageID"] == nil || row["Count"] == nil || row["ReturnValue"] == nil {
+			t.Fatal("opaque evidence captured more than ID/count/return")
+		}
+	}
+	for j := 0; j < 4; j++ {
+		h.deliver(s.token, 0, 1, ^uintptr(0))
+	}
+	v = s.snapshot()
+	record = unconsumedRecord(t, v)
+	if !errors.Is(v.Failure, ErrLimit) || v.Deliveries != 105 || record.Unconsumed[0].Count != 6 || record.UnconsumedOverflowDeliveries != 81 {
+		t.Fatal("unconsumed callback bypassed total cap", v.Deliveries, v.FailureText, record)
+	}
+	if ret := h.deliver(s.token, 0x948e, 0, 0); ret != 0xffffffff {
+		t.Fatal("capped default did not abort", ret)
+	}
+	if e = h.retire(s, true); e != nil {
+		t.Fatal(e)
+	}
+	before := s.snapshot()
+	h.deliver(s.token, 0x9498, 1, ^uintptr(0))
+	if s.snapshot() != before {
+		t.Fatal("retired default grew evidence")
+	}
+	next, e := h.begin(context.Background(), `C:\owned`, map[string]bool{".": true}, applyCallbackLimits{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	h.deliver(s.token, 0x9498, 1, ^uintptr(0))
+	if next.snapshot().Deliveries != 0 || unconsumedRecord(t, next.snapshot()) != (unconsumedCallbackRecord{}) {
+		t.Fatal("stale default touched next generation")
+	}
+	if e = h.retire(next, false); e == nil {
+		t.Fatal("failed unregister forgotten")
+	}
+	h.deliver(next.token, 0x9498, 1, ^uintptr(0))
+	if next.snapshot().Deliveries != 0 || unconsumedRecord(t, next.snapshot()) != (unconsumedCallbackRecord{}) {
+		t.Fatal("frozen default grew evidence")
 	}
 }
 
