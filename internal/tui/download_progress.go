@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"uupbuilder/internal/model"
@@ -57,6 +58,15 @@ func (b *buildActionState) acceptDownload(event model.Event) bool {
 			state = event.Download.State
 		}
 	}
+	if state == model.DownloadCompleted {
+		for i := range b.downloads {
+			if b.downloads[i].key == key {
+				b.downloads = slices.Delete(b.downloads, i, i+1)
+				break
+			}
+		}
+		return true
+	}
 	entry := downloadProgress{key: key, name: name, state: state, completed: copyByteCounter(event.CompletedBytes), total: copyByteCounter(event.TotalBytes)}
 	for i := range b.downloads {
 		if b.downloads[i].key == key {
@@ -65,7 +75,7 @@ func (b *buildActionState) acceptDownload(event model.Event) bool {
 		}
 	}
 	if len(b.downloads) == maxDownloadProgress {
-		// Completed history yields to active transfers. Even a caller with an
+		// Diagnostic history yields to active transfers. Even a caller with an
 		// extreme concurrency setting cannot grow retained state indefinitely.
 		evict := -1
 		for i, old := range b.downloads {
@@ -179,7 +189,7 @@ func (b buildActionState) downloadRows(width, budget int) []row {
 	if len(b.downloads) == 0 || budget <= 0 {
 		return nil
 	}
-	// Show active files first, then the most recent bounded completion history.
+	// Show active files first, then the most recent bounded diagnostic history.
 	ordered := make([]downloadProgress, 0, len(b.downloads))
 	active := 0
 	for _, p := range b.downloads {

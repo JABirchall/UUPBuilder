@@ -83,9 +83,8 @@ func TestDownloadBarsHandleZeroTotalsAndFitNarrowTerminals(t *testing.T) {
 	if text := progressText(m, 50, 20); !strings.Contains(text, "--%") || strings.Contains(text, "100%") {
 		t.Fatalf("unverified zero-length transfer claims completion: %s", text)
 	}
-	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "empty", "empty\x1b[2J.bin", "completed", 0, &zero)})
 	text := progressText(m, 50, 20)
-	for _, want := range []string{"100%", "0 B / 0 B", "Completed"} {
+	for _, want := range []string{"empty.bin", "0 B / 0 B", "Downloading"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q: %s", want, text)
 		}
@@ -96,6 +95,72 @@ func TestDownloadBarsHandleZeroTotalsAndFitNarrowTerminals(t *testing.T) {
 				t.Fatalf("unsafe/oversized row at width %d: %q", width, r.text)
 			}
 		}
+	}
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "empty", "empty\x1b[2J.bin", "completed", 0, &zero)})
+	if text := progressText(m, 50, 20); strings.Contains(text, "empty.bin") || len(m.buildAction.downloads) != 0 {
+		t.Fatalf("completed empty transfer remained visible: %s", text)
+	}
+}
+
+func TestCompletedDownloadIsRemovedFromConcurrentTransfers(t *testing.T) {
+	for _, test := range []struct {
+		name, complete string
+		want           []string
+	}{
+		{"first", "a", []string{"b.bin", "c.bin"}},
+		{"middle", "b", []string{"a.bin", "c.bin"}},
+		{"last", "c", []string{"a.bin", "b.bin"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+			defer m.Close()
+			m.buildAction.busy, m.buildAction.status = true, "Running"
+			total := int64(100)
+			for _, entry := range []struct{ id, state string }{{"a", "downloading"}, {"b", "verifying"}, {"c", "retrying"}} {
+				m = send(m, buildProgressMsg{event: fileProgressEvent(t, entry.id, entry.id+".bin", entry.state, 100, &total)})
+			}
+			if len(m.buildAction.downloads) != 3 {
+				t.Fatal("full byte count removed an unverified transfer")
+			}
+			m = send(m, buildProgressMsg{event: fileProgressEvent(t, test.complete, test.complete+".bin", "completed", 100, &total)})
+			text := progressText(m, 78, 20)
+			if len(m.buildAction.downloads) != 2 || strings.Contains(text, test.complete+".bin") {
+				t.Fatalf("completed transfer remained visible: %s", text)
+			}
+			for i, name := range test.want {
+				if m.buildAction.downloads[i].name != name || !strings.Contains(text, name) {
+					t.Fatalf("completion displaced another transfer: %s", text)
+				}
+			}
+		})
+	}
+}
+
+func TestCompletionOnlyEventDoesNotCreateProgressHistory(t *testing.T) {
+	m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+	defer m.Close()
+	m.buildAction.busy, m.buildAction.status = true, "Running"
+	total := int64(100)
+	m = send(m, buildProgressMsg{event: fileProgressEvent(t, "cache", "cached.bin", "completed", 100, &total)})
+	text := progressText(m, 78, 20)
+	if len(m.buildAction.downloads) != 0 || len(m.buildAction.logs) != 0 || strings.Contains(text, "cached.bin") || strings.Contains(text, "Downloads:") {
+		t.Fatalf("completion-only event added download history: %s", text)
+	}
+}
+
+func TestFailedAndCancelledDownloadsRemainVisible(t *testing.T) {
+	for _, test := range []struct{ state, label string }{{"failed", "Failed"}, {"cancelled", "Cancelled"}} {
+		t.Run(test.state, func(t *testing.T) {
+			m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
+			defer m.Close()
+			m.buildAction.busy, m.buildAction.status = true, "Running"
+			total := int64(100)
+			m = send(m, buildProgressMsg{event: fileProgressEvent(t, "diagnostic", "diagnostic.bin", test.state, 100, &total)})
+			text := progressText(m, 78, 20)
+			if !strings.Contains(text, "diagnostic.bin") || !strings.Contains(text, test.label) {
+				t.Fatalf("diagnostic transfer was hidden: %s", text)
+			}
+		})
 	}
 }
 
@@ -131,7 +196,7 @@ func TestBuildCompletionSettlesActiveBarsAndNewBuildResetsThem(t *testing.T) {
 	}
 }
 
-func TestActiveDownloadRemainsVisibleAfterLargeCompletedHistory(t *testing.T) {
+func TestActiveDownloadRemainsVisibleAfterManyCompletionEvents(t *testing.T) {
 	m := New(Dependencies{Catalog: testCatalog{}}, config.Defaults())
 	defer m.Close()
 	m.buildAction.busy, m.buildAction.status = true, "Running"
@@ -144,8 +209,8 @@ func TestActiveDownloadRemainsVisibleAfterLargeCompletedHistory(t *testing.T) {
 	if !strings.Contains(text, "active.bin") || !strings.Contains(text, "25%") {
 		t.Fatalf("completed history hid active file: %s", text)
 	}
-	if len(m.buildAction.downloads) > 128 {
-		t.Fatalf("unbounded progress history: %d entries", len(m.buildAction.downloads))
+	if len(m.buildAction.downloads) != 1 || strings.Contains(text, "Downloads:") {
+		t.Fatalf("completed downloads consume history or summary space: %s", text)
 	}
 }
 

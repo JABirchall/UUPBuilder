@@ -38,9 +38,12 @@ type Invocation struct {
 type RunResult struct {
 	ProcessID uint32
 	ExitCode  uint32
-	Stdout    string
-	Stderr    string
-	Cancelled bool
+	// ExitObserved means the direct process exited and its exit code was read
+	// successfully. A zero default value alone is never evidence of completion.
+	ExitObserved bool
+	Stdout       string
+	Stderr       string
+	Cancelled    bool
 }
 
 // WorkspaceIdentity is a recovery capability for a directory created by

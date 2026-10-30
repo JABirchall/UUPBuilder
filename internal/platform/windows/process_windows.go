@@ -223,6 +223,7 @@ func runOwnedProcess(ctx context.Context, inv Invocation, emit model.Emit, job w
 		job = 0
 	}
 	exitErr := windows.GetExitCodeProcess(process.Process, &result.ExitCode)
+	result.ExitObserved = waitErr == nil && exitErr == nil
 	wg.Wait()
 	result.Stdout = stdout
 	result.Stderr = stderr

@@ -186,6 +186,10 @@ func (d *DISM) checkExecutable(ctx context.Context, exe *installedExecutable) er
 // can be larger. The complete observation is bounded at 16 MiB and overflow
 // fails verification rather than silently inspecting a truncated list.
 func (d *DISM) run(ctx context.Context, exe *installedExecutable, args []string, emit model.Emit) (string, error) {
+	return d.runObserved(ctx, exe, args, emit, false)
+}
+
+func (d *DISM) runObserved(ctx context.Context, exe *installedExecutable, args []string, emit model.Emit, discardCleanup bool) (string, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.closed {
@@ -214,9 +218,37 @@ func (d *DISM) run(ctx context.Context, exe *installedExecutable, args []string,
 		return "", fmt.Errorf("%w: DISM output exceeds observation bound", ErrVerification)
 	}
 	if err != nil {
+		// CancelWait still returns cancellation to every normal caller. A discard
+		// cleanup has completed when its natural exit was observed as zero and
+		// cancellation is the sole error; retain every other observation failure.
+		if discardCleanup && result.ExitObserved && result.ExitCode == 0 && result.Cancelled && onlyContextCancellation(err) {
+			return decodeOutput(output.String()), nil
+		}
 		return "", fmt.Errorf("offline helper (exit %d): %w", result.ExitCode, err)
 	}
 	return decodeOutput(output.String()), nil
+}
+
+func onlyContextCancellation(err error) bool {
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return true
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		errors := joined.Unwrap()
+		if len(errors) == 0 {
+			return false
+		}
+		for _, child := range errors {
+			if !onlyContextCancellation(child) {
+				return false
+			}
+		}
+		return true
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		return onlyContextCancellation(wrapped.Unwrap())
+	}
+	return false
 }
 
 func ordinaryDISMArguments(args []string) []string {
@@ -246,11 +278,14 @@ func mountPath(m platform.OwnedMount) (string, error) {
 	if err = w.ValidateMount(m); err != nil {
 		return "", err
 	}
-	return filepath.Join(m.Workspace.Path, filepath.FromSlash(m.RelativePath)), nil
+	return w.ShortMountPath(m)
 }
 func (d *DISM) offline(ctx context.Context, m platform.OwnedMount, emit model.Emit, operation ...string) (string, error) {
 	path, err := mountPath(m)
 	if err != nil {
+		return "", err
+	}
+	if err := checkDISMServicingPaths(path); err != nil {
 		return "", err
 	}
 	args := append([]string{"/Image:" + path}, operation...)
@@ -284,7 +319,7 @@ func (d *DISM) Unmount(ctx context.Context, m platform.OwnedMount, commit bool, 
 	if commit {
 		action = "/Commit"
 	}
-	_, err = d.run(ctx, d.dism, d.args("/Unmount-Image", "/MountDir:"+dir, action), emit)
+	_, err = d.runObserved(ctx, d.dism, d.args("/Unmount-Image", "/MountDir:"+dir, action), emit, !commit)
 	return err
 }
 
