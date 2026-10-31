@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"uupbuilder/internal/config"
@@ -49,12 +51,35 @@ func TestDISMCustomizationParsersAndFixedArguments(t *testing.T) {
 	}
 	op := planner.AppProvision{Package: metadata.AppPackage{Identity: metadata.AppIdentity{Name: "Example"}}, SkipLicense: true, Stub: model.AppStub}
 	args, e := appArguments(op, "C:/main.msix", []string{"C:/framework.appx"}, "")
-	if e != nil || len(args) != 5 || args[4] != "/StubPackageOption:installstub" {
+	if e != nil || len(args) != 6 || args[5] != "/StubPackageOption:installstub" {
 		t.Fatalf("app args: %v %v", args, e)
 	}
 	op.SkipLicense = false
 	if _, e = appArguments(op, "C:/main.msix", nil, ""); e == nil {
 		t.Fatal("unlicensed mutation accepted")
+	}
+}
+
+func TestAppArgumentsProvisionWithoutStartLayoutPins(t *testing.T) {
+	for _, stub := range []model.AppStubPolicy{model.AppStubAuto, model.AppStub, model.AppFull} {
+		for _, skipLicense := range []bool{false, true} {
+			t.Run(string(stub)+"/skip-license="+fmt.Sprint(skipLicense), func(t *testing.T) {
+				op := planner.AppProvision{SkipLicense: skipLicense, Stub: stub}
+				license := "C:/license.xml"
+				if skipLicense {
+					license = ""
+				}
+				args, err := appArguments(op, "C:/app.msixbundle", []string{"C:/framework.appx"}, license)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Without an explicit region, Windows only installs provisioned
+				// apps pinned in the Start layout when a user signs in.
+				if !slices.Contains(args, "/Region:all") {
+					t.Fatalf("app installation still depends on Start layout pins: %v", args)
+				}
+			})
+		}
 	}
 }
 

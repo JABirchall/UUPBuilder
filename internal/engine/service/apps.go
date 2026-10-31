@@ -81,7 +81,9 @@ func appArguments(op planner.AppProvision, path string, dependencies []string, l
 	if path == "" {
 		return nil, ErrVerification
 	}
-	args := []string{"/Add-ProvisionedAppxPackage", "/PackagePath:" + path}
+	// An explicit region installs apps at sign-in even without Start layout pins.
+	// https://learn.microsoft.com/windows-hardware/manufacture/desktop/preinstall-apps-using-dism
+	args := []string{"/Add-ProvisionedAppxPackage", "/PackagePath:" + path, "/Region:all"}
 	for _, p := range dependencies {
 		args = append(args, "/DependencyPackagePath:"+p)
 	}
