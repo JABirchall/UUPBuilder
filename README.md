@@ -13,6 +13,7 @@ Unlike a debloater or a project such as tiny11, which starts with an already rel
 - Use the default app selection, select apps, or request no apps.
 - Configure update integration, optional .NET 3.5 and drivers, output settings, download behavior and storage.
 - Choose WIM, ESD or split SWM as the image format **inside** the ISO.
+- Optionally include a Windows Setup answer file as `autounattend.xml` at the ISO root.
 - Review the requested build and required tools before starting downloads and conversion.
 - Save and load a TOML configuration for reuse.
 

@@ -50,6 +50,7 @@ func (cfg Config) Validate() error {
 		optional, auto bool
 	}{
 		{"conversion.drivers.source", cfg.Conversion.Drivers.Source, true, false},
+		{"output.autounattend", cfg.Output.Autounattend, true, false},
 		{"output.directory", cfg.Output.Directory, false, false},
 		{"storage.workspace", cfg.Storage.Workspace, false, true},
 		{"storage.cache", cfg.Storage.Cache, false, true},

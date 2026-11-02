@@ -20,7 +20,7 @@ func TestConversionEditorCoversTypedSettings(t *testing.T) {
 	keys := []string{
 		"conversion.updates", "conversion.servicing_strategy", "conversion.cumulative_update_policy", "conversion.checkpoint_updates", "conversion.enablement_packages", "conversion.cleanup", "conversion.reset_base", "conversion.netfx3", "conversion.include_winre", "conversion.winre_updates", "conversion.update_boot_files", "conversion.boot_wim_engine", "conversion.reference_images", "conversion.cumulative_msu", "conversion.keep_reference_esds",
 		"conversion.drivers.enabled", "conversion.drivers.source", "conversion.drivers.targets", "conversion.editions.derived", "conversion.editions.strategy", "conversion.editions.preserve_required_bases",
-		"output.kind", "output.image_format", "output.split_size_mib", "output.directory", "output.filename", "output.label", "output.edition_order", "downloads.parallel_files", "downloads.retries", "downloads.proxy.mode", "downloads.proxy.url", "storage.workspace", "storage.cache", "storage.keep_downloads", "storage.keep_intermediates",
+		"output.kind", "output.image_format", "output.split_size_mib", "output.directory", "output.filename", "output.label", "output.autounattend", "output.edition_order", "downloads.parallel_files", "downloads.retries", "downloads.proxy.mode", "downloads.proxy.url", "storage.workspace", "storage.cache", "storage.keep_downloads", "storage.keep_intermediates",
 	}
 	for _, key := range keys {
 		found := false
@@ -42,6 +42,7 @@ func TestConversionEditorCoversTypedSettings(t *testing.T) {
 		{Key: "conversion.drivers.targets", Value: "os, winpe, winre, shared"},
 		{Key: "conversion.drivers.enabled", Value: "true"},
 		{Key: "output.image_format", Value: "swm"},
+		{Key: "output.autounattend", Value: `C:\answers\setup.xml`},
 		{Key: "output.edition_order", Value: "professional, core"},
 		{Key: "downloads.proxy.mode", Value: "explicit"},
 		{Key: "downloads.proxy.url", Value: "https://proxy.example:8080"},
@@ -54,7 +55,7 @@ func TestConversionEditorCoversTypedSettings(t *testing.T) {
 	if len(diagnostics) != 0 {
 		t.Fatalf("valid typed settings rejected: %+v", diagnostics)
 	}
-	if !cfg.Conversion.Drivers.Enabled || !reflect.DeepEqual(cfg.Conversion.Drivers.Targets, []model.DriverTarget{"os", "winpe", "winre", "shared"}) || cfg.Output.ImageFormat != model.ImageSWM || !reflect.DeepEqual(cfg.Output.EditionOrder, []string{"professional", "core"}) || cfg.Downloads.Proxy.URL != "https://proxy.example:8080" {
+	if !cfg.Conversion.Drivers.Enabled || !reflect.DeepEqual(cfg.Conversion.Drivers.Targets, []model.DriverTarget{"os", "winpe", "winre", "shared"}) || cfg.Output.ImageFormat != model.ImageSWM || cfg.Output.Autounattend != `C:\answers\setup.xml` || !reflect.DeepEqual(cfg.Output.EditionOrder, []string{"professional", "core"}) || cfg.Downloads.Proxy.URL != "https://proxy.example:8080" {
 		t.Fatalf("typed settings not applied: %+v", cfg)
 	}
 }
@@ -197,12 +198,16 @@ func TestConversionViews(t *testing.T) {
 		name          string
 		width, height int
 	}{{"normal", 120, 32}, {"compact", 68, 24}, {"narrow", 40, 20}} {
-		for _, state := range []string{"focused", "invalid", "long"} {
+		for _, state := range []string{"focused", "invalid", "long", "answer"} {
 			t.Run(size.name+"_"+state, func(t *testing.T) {
 				m := browse(t)
 				m = send(m, NavigateMsg{Area: Conversion})
 				m = send(m, tea.WindowSizeMsg{Width: size.width, Height: size.height})
 				selected := "downloads.parallel_files"
+				if state == "answer" {
+					selected = "output.autounattend"
+					m = send(m, ConversionFieldChangedMsg{Key: selected, Value: `C:\answers\setup.xml`})
+				}
 				if state == "long" {
 					selected = "output.directory"
 					m = send(m, ConversionFieldChangedMsg{Key: selected, Value: `C:\very-long-output-name\` + strings.Repeat("directory", 30) + "\x1b[31m\x1b]0;unsafe\x07"})

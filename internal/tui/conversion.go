@@ -95,6 +95,8 @@ func (c ConversionModel) detail(key string) string {
 			text += " | ISO file deliverable"
 		case "output.image_format":
 			text += " | image inside ISO; standalone images excluded"
+		case "output.autounattend":
+			return text + " | optional answer file copied to ISO root as autounattend.xml"
 		}
 		for _, applicability := range c.applicability {
 			if applicability.Key != key || applicability.RequestedValue != field.value {

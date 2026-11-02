@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -35,8 +36,7 @@ func validateVolume(plan planner.ReadyPlan, label string) error {
 
 // Master binds every source-media and exported-image byte before invoking the
 // producer. A successful helper still grants no VerifiedArtifact.
-func Master(ctx context.Context, req MasterRequest, backend Masterer) (PreparedISO, error) {
-	var out PreparedISO
+func Master(ctx context.Context, req MasterRequest, backend Masterer) (out PreparedISO, err error) {
 	if ctx == nil || backend == nil {
 		return out, ErrVerification
 	}
@@ -48,6 +48,19 @@ func Master(ctx context.Context, req MasterRequest, backend Masterer) (PreparedI
 	}
 	if _, err := os.Lstat(req.ISOPath); !os.IsNotExist(err) {
 		return out, fmt.Errorf("ISO path already exists or is inaccessible")
+	}
+	if path := req.Plan.EffectiveSettings().Output.Autounattend; path != "" {
+		if err := stageUnattend(ctx, req.MediaDirectory, path); err != nil {
+			return out, err
+		}
+		defer func() {
+			if err != nil {
+				removeErr := os.Remove(filepath.Join(req.MediaDirectory, "autounattend.xml"))
+				if removeErr != nil && !os.IsNotExist(removeErr) {
+					err = errors.Join(err, fmt.Errorf("autounattend: clean up staged file: %w", removeErr))
+				}
+			}
+		}()
 	}
 	e, err := MediaExpectations(ctx, req.MediaDirectory, req.Label, req.Export.Source.Architecture)
 	if err != nil {

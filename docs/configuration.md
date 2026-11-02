@@ -120,6 +120,7 @@ split_size_mib = 3800
 directory = "."
 filename = "auto"
 label = "auto"
+autounattend = "" # Optional path to an existing answer file
 edition_order = []
 
 [downloads]
@@ -167,6 +168,7 @@ schema beyond the design's abbreviated example.
 | `output.image_format` | `wim`, `esd`, `swm`: internal image format inside the ISO, not a separate deliverable. |
 | `output.split_size_mib` | Nonnegative integer; must be positive for SWM. |
 | `output.directory`, `filename`, `label`, `edition_order` | Directory, Windows-safe single filename or `auto`, label or `auto`, unique final edition order. |
+| `output.autounattend` | Optional path to a nonempty answer file, relative to the configuration file when not absolute. Its bytes are copied to the ISO root as `autounattend.xml` during mastering; a missing file or existing file with that name in the media stops the build. The file is not checked for Windows Setup compatibility and is included unencrypted in the ISO. |
 | `downloads.parallel_files`, `retries` | Positive parallel file count; nonnegative retry count. |
 | `downloads.proxy.mode`, `url` | `system`, `direct`, `explicit`; explicit mode requires an HTTP/HTTPS/SOCKS5 origin without credentials, query or fragment. Omit `url` in other modes. |
 | `storage.workspace`, `cache` | Directory or `auto`; automatic locations use the `UUP` directory beside the executable. |

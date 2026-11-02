@@ -190,6 +190,7 @@ type OutputSettings struct {
 	Directory    string      `json:"directory" toml:"directory"`
 	Filename     string      `json:"filename" toml:"filename"`
 	Label        string      `json:"label" toml:"label"`
+	Autounattend string      `json:"autounattend,omitempty" toml:"autounattend,omitempty"`
 	EditionOrder []string    `json:"edition_order" toml:"edition_order"`
 }
 

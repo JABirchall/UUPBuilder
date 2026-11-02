@@ -88,6 +88,9 @@ func ResolvePaths(cfg Config, configPath string) (Config, error) {
 	if cfg.Conversion.Drivers.Source != "" {
 		cfg.Conversion.Drivers.Source = resolve(cfg.Conversion.Drivers.Source)
 	}
+	if cfg.Output.Autounattend != "" {
+		cfg.Output.Autounattend = resolve(cfg.Output.Autounattend)
+	}
 	cfg.Output.Directory = resolve(cfg.Output.Directory)
 	if cfg.Storage.Workspace != "auto" {
 		cfg.Storage.Workspace = resolve(cfg.Storage.Workspace)

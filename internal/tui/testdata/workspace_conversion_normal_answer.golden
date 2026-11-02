@@ -1,0 +1,22 @@
+│ UUP / IMAGE BUILDER ┌───────────────┐ │
+│ TUI workspace · live catalogue / current draft │ View TOML (t) │ │
+│ │ ISO conversion and TOML settings │
+│ 01 Builds │ ISO contents · output.autounattend │
+│ │ requested: C:\answers\setup.xml | optional answer file copied to ISO root as autounattend.xml │
+│ 02 Image │ │
+│ │ ┌ ISO output · SWM split size (MiB) ────────────────────────────────────────────────────────┐ │
+│ 03 Apps │ │ 3800 │ │
+│ 04 Conversion │ ┌ ISO output · Output directory ────────────────────────────────────────────────────────────┐ │
+│ │ │ . │ │
+│ 05 Review │ └───────────────────────────────────────────────────────────────────────────────────────────┘ │
+│ │ ┌ ISO output · Filename (auto or name) ─────────────────────────────────────────────────────┐ │
+│ 06 Progress │ │ auto │ │
+│ │ ┌ ISO output · Volume label (auto or label) ────────────────────────────────────────────────┐ │
+│ │ │ auto │ │
+│ │ ┌ ISO contents · Answer file path (optional) ───────────────────────────────────────────────┐ │
+│ │ │ > C:\answers\setup.xml │ │
+│ unsaved draft │ Source: none selected │
+│ Windows 10+ │ ID: select an exact catalogue record │
+│ Host ≠ ISO target │ Target: amd64 | Language: choose | Editions: choose │
+│ │ ! Requested settings changed; applicability is unchecked. │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back | ? help | ctrl+c quit │

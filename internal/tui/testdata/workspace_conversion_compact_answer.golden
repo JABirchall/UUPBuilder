@@ -1,0 +1,18 @@
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ ISO conversion and TOML settings │
+│ ISO contents · output.autounattend │
+│ requested: C:\answers\setup.xml | optional answer file copied │
+│ to ISO root as autounattend.xml │
+│ │ISO output · Image … | wim │ │
+│ │ISO output · SWM sp… | 3800 │ │
+│ │ISO output · Output… | . │ │
+│ │ISO output · Filena… | auto │ │
+│ │ISO output · Volume… | auto │ │
+│ │> ISO contents · Answ… | C:\answers\setup.xml │ │
+│ Source: none selected │
+│ Target: amd64 | Language: choose | Editions: choose │
+│ ! Requested settings changed; applicability is unchecked. │
+│ ↑↓ / tab field | enter / space edit or run | t TOML | esc back │
+│ | ? help | ctrl+c quit │

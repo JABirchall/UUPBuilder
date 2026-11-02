@@ -18,6 +18,10 @@ import (
 )
 
 func outputPlan(t *testing.T) planner.ReadyPlan {
+	return outputPlanWithUnattend(t, "")
+}
+
+func outputPlanWithUnattend(t *testing.T, answer string) planner.ReadyPlan {
 	t.Helper()
 	ctx := context.Background()
 	cfg := config.Defaults()
@@ -28,6 +32,7 @@ func outputPlan(t *testing.T) planner.ReadyPlan {
 	cfg.Storage.Cache = root
 	cfg.Output.Directory = root
 	cfg.Output.Label = "U10_SYNTHETIC"
+	cfg.Output.Autounattend = answer
 	sel, s, _ := cfg.Request()
 	m, err := model.NewPayloadManifest(model.SourceIdentity{UpdateID: sel.UpdateID, BuildLabel: "28000.1", Architecture: sel.Architecture, Language: sel.Language}, []model.Payload{{Destination: "fixture", Identity: model.PayloadIdentity{Digest: model.Digest{Algorithm: model.DigestSHA256, Value: strings.Repeat("a", 64)}, Size: 1, Provenance: model.PackageProvenance{Source: "fixture", Name: "fixture"}}}})
 	if err != nil {
@@ -68,8 +73,12 @@ func (f fixtureExporter) Export(_ context.Context, _, dst string, _ model.ImageF
 func (f fixtureExporter) VerifyImage(context.Context, string, model.ImageFormat) error { return nil }
 
 func exportFixture(t *testing.T) (ExportRequest, fixtureExporter) {
+	return exportFixtureWithUnattend(t, "")
+}
+
+func exportFixtureWithUnattend(t *testing.T, answer string) (ExportRequest, fixtureExporter) {
 	t.Helper()
-	p := outputPlan(t)
+	p := outputPlanWithUnattend(t, answer)
 	c := p.CustomizationPlan()
 	wim := filepath.Join(t.TempDir(), "customized.wim")
 	b := testWIM(c.Editions[0])

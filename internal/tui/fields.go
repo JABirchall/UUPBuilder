@@ -118,6 +118,7 @@ func conversionFields() []settingField {
 		stringField("output.directory", "ISO output", "Output directory", func(c *config.Config) *string { return &c.Output.Directory }),
 		stringField("output.filename", "ISO output", "Filename (auto or name)", func(c *config.Config) *string { return &c.Output.Filename }),
 		stringField("output.label", "ISO output", "Volume label (auto or label)", func(c *config.Config) *string { return &c.Output.Label }),
+		stringField("output.autounattend", "ISO contents", "Answer file path (optional)", func(c *config.Config) *string { return &c.Output.Autounattend }),
 		listField("output.edition_order", "ISO output", "Edition order (comma separated)", func(c *config.Config) *[]string { return &c.Output.EditionOrder }),
 		stringField("downloads.proxy.mode", "Downloads", "Proxy mode", func(c *config.Config) *model.ProxyMode { return &c.Downloads.Proxy.Mode }, model.ProxySystem, model.ProxyDirect, model.ProxyExplicit),
 		stringField("downloads.proxy.url", "Downloads", "Proxy origin (no credentials)", func(c *config.Config) *string { return &c.Downloads.Proxy.URL }),

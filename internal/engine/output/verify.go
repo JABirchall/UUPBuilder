@@ -41,6 +41,9 @@ func Verify(ctx context.Context, plan planner.ReadyPlan, path string, prepared P
 	for _, f := range prepared.Contents.Files {
 		files[strings.ToLower(f.Path)] = f
 	}
+	if plan.EffectiveSettings().Output.Autounattend != "" && files["autounattend.xml"].Size <= 0 {
+		return VerifiedArtifact{}, fmt.Errorf("%w: configured autounattend.xml missing", ErrVerification)
+	}
 	for _, required := range []string{"setup.exe", "sources/boot.wim"} {
 		if files[required].Size <= 0 {
 			return VerifiedArtifact{}, ErrVerification

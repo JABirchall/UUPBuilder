@@ -31,6 +31,9 @@ func (m Model) reviewDetails(width int) []row {
 		"All requested settings: View TOML (t)",
 		"Source applicability is checked after Start build.",
 	}
+	if cfg.Output.Autounattend != "" {
+		details = append(details, "Answer file: "+cfg.Output.Autounattend)
+	}
 	details = append(details, m.buildAction.tools...)
 	var rows []row
 	for _, text := range details {

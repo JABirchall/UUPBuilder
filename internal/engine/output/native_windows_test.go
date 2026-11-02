@@ -54,7 +54,12 @@ func TestNativeSyntheticOutputJourney(t *testing.T) {
 		t.Skip("native component inputs not configured")
 	}
 	ctx := context.Background()
-	plan := outputPlan(t)
+	answer := filepath.Join(t.TempDir(), "answer.xml")
+	wantAnswer := []byte("<unattend>synthetic fixture</unattend>\r\n")
+	if err := os.WriteFile(answer, wantAnswer, 0600); err != nil {
+		t.Fatal(err)
+	}
+	plan := outputPlanWithUnattend(t, answer)
 	w, err := platform.CreateWorkspace(os.TempDir(), "output-native-journey")
 	if err != nil {
 		t.Fatal(err)
@@ -144,6 +149,27 @@ func TestNativeSyntheticOutputJourney(t *testing.T) {
 	verified, err := Verify(ctx, plan, iso, prepared)
 	if err != nil {
 		t.Fatal(err)
+	}
+	f, err := os.Open(iso)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	contents, err := isocontent.OpenWindowsISO(f, info.Size(), prepared.Contents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, size, err := contents.File("autounattend.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(io.NewSectionReader(r, 0, size))
+	if err != nil || string(got) != string(wantAnswer) {
+		t.Fatalf("ISO answer file: %q, %v", got, err)
 	}
 	published, err := PublishVerified(ctx, verified, t.TempDir(), "synthetic-component.iso")
 	if err != nil {
