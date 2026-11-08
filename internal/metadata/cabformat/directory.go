@@ -16,8 +16,13 @@ var ErrLayout = errors.New("malformed cabinet framing")
 var ErrLimit = errors.New("cabinet framing limit exceeded")
 var ErrUnsupported = errors.New("unsupported cabinet layout")
 
-// Zero limits select ceilings; nonzero limits can only lower them. MetadataBytes
-// counts actual bounded ReaderAt bytes, independently of the source/output caps.
+// MaxMemberSize is the CAB format's maximum uncompressed member size.
+const MaxMemberSize = 0x7fff8000
+
+// Zero limits select ceilings except for MaxMemberBytes, which defaults to
+// 256 MiB. Callers that only inspect framing can opt in to larger declarations
+// up to MaxMemberSize. MetadataBytes counts actual bounded ReaderAt bytes,
+// independently of the source/output caps.
 type Limits struct {
 	MaxSourceBytes, MaxMemberBytes, MaxDecodedBytes, MaxMetadataBytes, MaxDirectoryBytes uint64
 	MaxFolders, MaxMembers, MaxBlocks, MaxNameBytes                                      int
@@ -38,8 +43,11 @@ type Inventory struct {
 type span struct{ start, end uint64 }
 
 func Bounds(l Limits) (Limits, error) {
+	if l.MaxMemberBytes == 0 {
+		l.MaxMemberBytes = 256 << 20
+	}
 	for i, p := range []*uint64{&l.MaxSourceBytes, &l.MaxMemberBytes, &l.MaxDecodedBytes, &l.MaxMetadataBytes, &l.MaxDirectoryBytes} {
-		c := []uint64{1 << 30, 256 << 20, 2 << 30, 32 << 20, 128 << 20}[i]
+		c := []uint64{1 << 30, MaxMemberSize, 2 << 30, 32 << 20, 128 << 20}[i]
 		if *p > c {
 			return l, ErrLimit
 		}

@@ -92,3 +92,31 @@ func TestReferenceNameCeilingRemainsAnExplicitLimit(t *testing.T) {
 		t.Fatalf("valid-format name beyond supported bound was called malformed: %v", e)
 	}
 }
+
+func TestDirectoryAcceptsLargeMemberDeclarationsWithExplicitLimit(t *testing.T) {
+	const blockSize = 32768
+	const blocks = (256<<20)/blockSize + 1
+	const memberSize = blocks * blockSize
+	b := fixture(`component\large.dll`, []byte{0})
+	// Inspect only reads the framing, so the compressed data can be a placeholder.
+	block := append([]byte(nil), b[len(b)-9:]...)
+	binary.LittleEndian.PutUint16(block[6:], blockSize)
+	b = append(b[:len(b)-len(block)], bytes.Repeat(block, blocks)...)
+	binary.LittleEndian.PutUint32(b[8:], uint32(len(b)))
+	binary.LittleEndian.PutUint16(b[40:], blocks)
+	binary.LittleEndian.PutUint16(b[42:], 0x1503) // LZX
+	binary.LittleEndian.PutUint32(b[44:], memberSize)
+
+	for _, limits := range []Limits{{}, {MaxMemberBytes: memberSize - 1}} {
+		if _, err := Inspect(context.Background(), bytes.NewReader(b), uint64(len(b)), limits); !errors.Is(err, ErrLimit) {
+			t.Fatalf("large declaration bypassed the member limit: %v", err)
+		}
+	}
+	inv, err := Inspect(context.Background(), bytes.NewReader(b), uint64(len(b)), Limits{MaxMemberBytes: memberSize})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inv.Members) != 1 || inv.Members[0].Size != memberSize || inv.FolderBytes != memberSize {
+		t.Fatalf("large member or folder declaration changed: %+v", inv)
+	}
+}

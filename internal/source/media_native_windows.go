@@ -563,8 +563,8 @@ func addMediaEditionMappings(ctx context.Context, inv *metadata.Inventory, image
 	return nil
 }
 
-// CAB metadata inspection uses the existing strict framing ceilings. Modern
-// large MSUs are WIM containers and take the independent streaming WIM route.
+// CAB metadata inspection validates framing before extracting the CBS manifest.
+// WIM-based MSUs take the independent streaming WIM route.
 func (r *mediaNativeRun) inspectUpdate(ctx context.Context, inv *metadata.Inventory, id model.PayloadIdentity, file string, isMSU bool) (runErr error) {
 	defer func() {
 		if runErr != nil {
@@ -655,7 +655,8 @@ func (r *mediaNativeRun) cabCBS(ctx context.Context, id model.PayloadIdentity, f
 	if err != nil {
 		return nil, err
 	}
-	table, err := cabformat.Inspect(ctx, f, uint64(info.Size()), cabformat.Limits{})
+	// Other members can be large, but only update.mum is extracted and read.
+	table, err := cabformat.Inspect(ctx, f, uint64(info.Size()), cabformat.Limits{MaxMemberBytes: cabformat.MaxMemberSize})
 	if err != nil {
 		return nil, fmt.Errorf("%w: bounded CBS CAB framing: %w", ErrImplementationGap, err)
 	}
