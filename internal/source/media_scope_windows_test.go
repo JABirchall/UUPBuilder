@@ -35,7 +35,7 @@ func scopeCBSFixture(t *testing.T, name, parents string) (metadata.Inventory, er
 	return inv, err
 }
 
-func TestMediaSafeOSScopeRequiresOriginalExclusiveRejuvParents(t *testing.T) {
+func TestMediaSafeOSScopeRequiresOriginalRejuvEvidence(t *testing.T) {
 	parent := `<parent buildCompare="EQ" integrate="separate" disposition="detect"><assemblyIdentity name="WinPE-Rejuv-Package" version="10.0.12345.1" processorArchitecture="amd64" language="neutral" publicKeyToken="publisher"/></parent>`
 	inv, err := scopeCBSFixture(t, "Package_for_SafeOSDU", parent)
 	if err != nil {
@@ -71,5 +71,37 @@ func TestMediaSafeOSScopeRequiresOriginalExclusiveRejuvParents(t *testing.T) {
 	}
 	if err = bindMediaUpdateRelationships(&ordinary); err == nil {
 		t.Fatal("ordinary OS prerequisite was silently skipped")
+	}
+}
+
+func TestMediaSafeOSScopeAcceptsDetectionAlternatives(t *testing.T) {
+	identity := func(name string) string {
+		return fmt.Sprintf(`<assemblyIdentity name="%s" version="10.0.12345.1" processorArchitecture="amd64" language="neutral" publicKeyToken="publisher"/>`, name)
+	}
+	const detect = `<parent buildCompare="EQ" integrate="separate" disposition="detect">`
+	alternatives := identity("Microsoft-Windows-CoreCountrySpecificEdition") + identity("Microsoft-Windows-ProfessionalEdition") +
+		identity("Microsoft-Windows-WinPE-Package") + identity("WinPE-Setup-Package")
+	rejuv := identity("WinPE-Rejuv-Package")
+	inv, err := scopeCBSFixture(t, "Package_for_SafeOSDU", detect+alternatives+rejuv+`</parent>`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inv.Updates) != 1 || inv.Updates[0].Target != metadata.RoleWinRE {
+		t.Fatalf("SafeOS detection alternatives changed the update target: %+v", inv.Updates)
+	}
+	if err = bindMediaUpdateRelationships(&inv); err != nil {
+		t.Fatalf("SafeOS detection alternatives reached OS prerequisite binding: %v", err)
+	}
+
+	for _, tc := range []struct{ name, parents string }{
+		{"no-rejuv-anchor", detect + alternatives + `</parent>`},
+		{"unrecognized-alternative", detect + rejuv + identity("Package_for_RollupFix") + `</parent>`},
+		{"not-detection", `<parent>` + alternatives + rejuv + `</parent>`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := scopeCBSFixture(t, "Package_for_SafeOSDU", tc.parents); err == nil {
+				t.Fatal("ambiguous recovery scope accepted")
+			}
+		})
 	}
 }

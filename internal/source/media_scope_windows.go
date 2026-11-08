@@ -9,8 +9,8 @@ import (
 	"uupbuilder/internal/metadata"
 )
 
-// SafeOS is a WinRE update, not an OS-edition package. Both the recognized CBS
-// installation family and its exclusive original Rejuv parents establish scope.
+// The SafeOS CBS installation family and original Rejuv parents establish WinRE
+// scope. Some packages list edition and WinPE alternatives in Rejuv's detection group.
 // https://learn.microsoft.com/windows/deployment/update/media-dynamic-update
 func mediaUpdateTarget(inv *metadata.Inventory, pack metadata.Package) (metadata.Role, error) {
 	if !strings.EqualFold(pack.Identity.Name, "Package_for_SafeOSDU") {
@@ -51,16 +51,35 @@ func mediaUpdateTarget(inv *metadata.Inventory, pack metadata.Package) (metadata
 		if len(group.Identities) == 0 {
 			return "", fmt.Errorf("%w: SafeOS CBS scope has an empty parent group", ErrImplementationGap)
 		}
+		hasRejuv := false
 		for _, parent := range group.Identities {
-			if !strings.EqualFold(parent.Name, "WinPE-Rejuv-Package") || parent.Architecture != pack.Identity.Architecture || !strings.EqualFold(parent.PublicKeyToken, pack.Identity.PublicKeyToken) || parent.PublicKeyToken == "" || neutral(parent.Language) != neutral(pack.Identity.Language) {
+			if parent.Architecture != pack.Identity.Architecture || !strings.EqualFold(parent.PublicKeyToken, pack.Identity.PublicKeyToken) || parent.PublicKeyToken == "" || neutral(parent.Language) != neutral(pack.Identity.Language) {
 				return "", fmt.Errorf("%w: SafeOS CBS scope has ambiguous parent identity %s", ErrImplementationGap, parent.Name)
 			}
 			if _, err = mediaParseCBSVersion(parent.Version); err != nil {
 				return "", err
 			}
+			if strings.EqualFold(parent.Name, "WinPE-Rejuv-Package") {
+				hasRejuv = true
+			} else if !mediaSafeOSDetectionAlternative(group, parent.Name) {
+				return "", fmt.Errorf("%w: SafeOS CBS scope has ambiguous parent identity %s", ErrImplementationGap, parent.Name)
+			}
+		}
+		if !hasRejuv {
+			return "", fmt.Errorf("%w: SafeOS CBS scope parent group lacks WinPE-Rejuv-Package", ErrImplementationGap)
 		}
 	}
 	return metadata.RoleWinRE, nil
+}
+
+func mediaSafeOSDetectionAlternative(group mediaCBSParent, name string) bool {
+	if group.Integrate != "separate" || group.Disposition != "detect" {
+		return false
+	}
+	name = strings.ToLower(name)
+	return name == "microsoft-windows-winpe-package" ||
+		strings.HasPrefix(name, "winpe-") && strings.HasSuffix(name, "-package") ||
+		strings.HasPrefix(name, "microsoft-windows-") && strings.HasSuffix(name, "edition")
 }
 
 func mediaVerifyWinREUpdate(inv *metadata.Inventory, update metadata.Update) error {
