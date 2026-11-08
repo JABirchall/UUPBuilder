@@ -104,7 +104,7 @@ func conversionFields() []settingField {
 		listField("conversion.editions.derived", "Editions", "Derived editions (comma separated)", func(c *config.Config) *[]string { return &c.Conversion.Editions.Derived }),
 		stringField("conversion.editions.strategy", "Editions", "Edition servicing", func(c *config.Config) *model.ServicingStrategy { return &c.Conversion.Editions.Strategy }, model.ServicingAuto, model.ServicingPerEdition, model.ServicingSharedBase),
 		boolField("conversion.editions.preserve_required_bases", "Editions", "Preserve temporary required bases", func(c *config.Config) *bool { return &c.Conversion.Editions.PreserveRequiredBases }),
-		boolField("conversion.netfx3", "Features", ".NET Framework 3", func(c *config.Config) *bool { return &c.Conversion.NetFX3 }),
+		boolField(netFX3Key, "Features", ".NET Framework 3.5", func(c *config.Config) *bool { return &c.Conversion.NetFX3 }),
 		boolField("conversion.include_winre", "Excluded recovery", "Include WinRE (legacy)", func(c *config.Config) *bool { return &c.Conversion.IncludeWinRE }),
 		stringField("conversion.winre_updates", "Excluded recovery", "WinRE updates (legacy)", func(c *config.Config) *model.InclusionPolicy { return &c.Conversion.WinREUpdates }, model.InclusionAuto, model.InclusionInclude, model.InclusionOmit),
 		boolField("conversion.update_boot_files", "ISO contents", "Update boot files", func(c *config.Config) *bool { return &c.Conversion.UpdateBootFiles }),

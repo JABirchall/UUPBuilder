@@ -33,8 +33,12 @@ func PlanFeatures(inv metadata.Inventory, s model.ConversionSettings) ([]Feature
 	if !s.NetFX3 {
 		return nil, nil
 	}
-	if _, e := rules.Select(inv); e != nil {
+	generation, e := rules.Select(inv)
+	if e != nil {
 		return nil, e
+	}
+	if generation.Build >= model.NetFX3StandaloneBuild {
+		return nil, fmt.Errorf("%s. Set conversion.netfx3 to false", model.NetFX3StandaloneReason)
 	}
 	op := FeatureOperation{Name: "NetFx3", Enable: true}
 	for _, p := range inv.Packages {
@@ -130,7 +134,7 @@ func (p CustomizationPlan) Validate() error {
 	if p.Apps.InventoryDigest != p.InventoryDigest || hash(p.Apps.Requested) != hash(p.Apps.Effective) || p.Apps.Deferred && (len(p.Apps.Provision) > 0 || len(p.Apps.Remove) > 0) {
 		return ErrInvalidPlan
 	}
-	if len(p.Features) > 1 {
+	if len(p.Features) > 1 || len(p.Features) > 0 && p.Generation.Build >= model.NetFX3StandaloneBuild {
 		return ErrInvalidPlan
 	}
 	for _, f := range p.Features {

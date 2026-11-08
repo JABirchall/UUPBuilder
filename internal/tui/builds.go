@@ -127,6 +127,7 @@ func (m *Model) acceptSearch(msg searchResultMsg) {
 			copy := b
 			m.source = &copy
 			m.image.sourceChecked = true
+			m.enforceNetFX3()
 		}
 		break
 	}
@@ -148,6 +149,7 @@ func (m *Model) selectBuild(id string) tea.Cmd {
 		m.cfg.Image = model.Selection{UpdateID: b.UpdateID, Architecture: b.Architecture}
 		m.revision++
 		m.notice = "Source changed: language and editions cleared; app applicability must be checked again."
+		m.enforceNetFX3()
 		m.syncArchitectureCursor()
 		return m.beginLanguages(false)
 	}

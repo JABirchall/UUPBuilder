@@ -115,6 +115,12 @@ type EditionSettings struct {
 	PreserveRequiredBases bool              `json:"preserve_required_bases" toml:"preserve_required_bases"`
 }
 
+// NetFX3StandaloneBuild is the first Windows build that requires the standalone installer.
+// https://learn.microsoft.com/dotnet/framework/install/dotnet-35-windows-11-faq
+const NetFX3StandaloneBuild = 28000
+
+const NetFX3StandaloneReason = ".NET 3.5 requires the standalone installer on Windows build 28000 and later"
+
 type ConversionSettings struct {
 	Updates            UpdatePolicy         `json:"updates" toml:"updates"`
 	ServicingStrategy  ServicingStrategy    `json:"servicing_strategy" toml:"servicing_strategy"`

@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
@@ -14,6 +15,7 @@ import (
 )
 
 const configControlCount = 4 // path, load, save, build/cancel
+const netFX3Key = "conversion.netfx3"
 
 // ConversionModel edits requested policies. Applicability is observational;
 // unknown values remain unknown until the owning resolver supplies evidence.
@@ -117,7 +119,28 @@ func (c ConversionModel) detail(key string) string {
 	return ""
 }
 
+func (m Model) netFX3Locked() bool {
+	if m.source == nil {
+		return false
+	}
+	version := strings.TrimPrefix(strings.TrimSpace(m.source.Build), "10.0.")
+	build, _, _ := strings.Cut(version, ".")
+	number, err := strconv.ParseUint(build, 10, 32)
+	return err == nil && number >= model.NetFX3StandaloneBuild
+}
+
+func (m *Model) enforceNetFX3() {
+	if m.cfg.Conversion.NetFX3 && m.netFX3Locked() {
+		m.changeConversion(netFX3Key, "false")
+		m.notice = model.NetFX3StandaloneReason
+	}
+}
+
 func (m *Model) changeConversion(key, value string) {
+	if key == netFX3Key && value == "true" && m.netFX3Locked() {
+		m.notice = model.NetFX3StandaloneReason
+		return
+	}
 	before := -1
 	for i, field := range m.conversion.fields {
 		if field.key == key {
@@ -195,11 +218,16 @@ func (m Model) updateConversionInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) conversionRows(width, height int) []row {
 	c := m.conversion
+	netFX3Locked := m.netFX3Locked()
 	rows := []row{{text: heading.Render("ISO conversion and TOML settings")}}
 	if c.cursor >= configControlCount {
 		field := c.fields[c.cursor-configControlCount]
 		rows = append(rows, row{text: accent.Render(terminalText(field.group + " · " + field.key))})
-		for _, line := range wrapped(terminalText(c.detail(field.key)), width, 2) {
+		detail := c.detail(field.key)
+		if field.key == netFX3Key && netFX3Locked {
+			detail = "Forced off. " + model.NetFX3StandaloneReason + "."
+		}
+		for _, line := range wrapped(terminalText(detail), width, 2) {
 			rows = append(rows, row{text: muted.Render(line)})
 		}
 	} else {
@@ -248,6 +276,9 @@ func (m Model) conversionRows(width, height int) []row {
 		default:
 			field := c.fields[i-configControlCount]
 			label, text = field.group+" · "+field.label, terminalText(field.value)
+			if field.key == netFX3Key && netFX3Locked {
+				text = "false · standalone installer"
+			}
 		}
 		prefix := ""
 		if i == c.cursor {

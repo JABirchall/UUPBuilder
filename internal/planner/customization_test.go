@@ -2,6 +2,7 @@ package planner
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"uupbuilder/internal/metadata"
 	"uupbuilder/internal/model"
@@ -92,6 +93,7 @@ func TestAppLicenseMustBeOfflineAndLinked(t *testing.T) {
 }
 func TestFeatureAndDriverTargets(t *testing.T) {
 	inv, _ := appPlanFixture(t)
+	inv.Images[0].Build = "10.0.26200.1"
 	inv.Packages = []metadata.Package{{Identity: metadata.PackageIdentity{Name: "Microsoft-Windows-NetFx3-OnDemand-Package", Architecture: inv.Source.Architecture}, Evidence: inv.Apps.Packages[0].Evidence}}
 	features, e := PlanFeatures(inv, model.ConversionSettings{NetFX3: true})
 	if e != nil || len(features) != 1 || features[0].Name != "NetFx3" {
@@ -103,5 +105,15 @@ func TestFeatureAndDriverTargets(t *testing.T) {
 	}
 	if _, e = PlanDrivers(inv, model.DriverSettings{Targets: []model.DriverTarget{model.DriverWinRE}}); e == nil {
 		t.Fatal("excluded recovery target accepted")
+	}
+}
+
+func TestOfflineNetFX3RejectedAtStandaloneBuild(t *testing.T) {
+	inv, _ := appPlanFixture(t)
+	inv.Images[0].Build = "10.0.28000.1"
+	inv.Packages = []metadata.Package{{Identity: metadata.PackageIdentity{Name: "Microsoft-Windows-NetFx3-OnDemand-Package", Architecture: inv.Source.Architecture}, Evidence: inv.Apps.Packages[0].Evidence}}
+	features, err := PlanFeatures(inv, model.ConversionSettings{NetFX3: true})
+	if len(features) != 0 || err == nil || !strings.Contains(err.Error(), "standalone installer") {
+		t.Fatalf("expected the standalone installer restriction, got %+v, %v", features, err)
 	}
 }

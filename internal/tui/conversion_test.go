@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	"uupbuilder/internal/catalog"
 	"uupbuilder/internal/config"
 	"uupbuilder/internal/model"
 )
@@ -153,6 +154,52 @@ func TestConversionCanonicalNoopDoesNotInvalidateDraft(t *testing.T) {
 	m = send(m, ConversionFieldChangedMsg{Key: "output.edition_order", Value: " professional , core "})
 	if m.revision != before {
 		t.Fatalf("equivalent list edit invalidated revision: %d -> %d", before, m.revision)
+	}
+}
+
+func TestConversionForcesOfflineNetFX3OffAtBuild28000(t *testing.T) {
+	cfg := config.Defaults()
+	cfg.Image.UpdateID = firstID
+	cfg.Conversion.NetFX3 = true
+	m := New(Dependencies{Catalog: testCatalog{}}, cfg)
+	defer m.Close()
+	records := []catalog.Build{
+		{UpdateID: firstID, Title: "Windows 11 26H1", Build: "28000.3365", Architecture: cfg.Image.Architecture},
+		{UpdateID: "older-build", Title: "Windows 11 25H2", Build: "26200.5000", Architecture: cfg.Image.Architecture},
+	}
+	m = send(m, searchResultMsg{builds: records})
+	if m.Snapshot().Config.Conversion.NetFX3 {
+		t.Fatal("loaded NetFx3 request survived catalogue confirmation of build 28000")
+	}
+	m = send(m, NavigateMsg{Area: Conversion})
+	for i, f := range m.conversion.fields {
+		if f.key == "conversion.netfx3" {
+			m.conversion.cursor = i + configControlCount
+			if f.value != "false" {
+				t.Fatalf("editor retained NetFx3 value %q", f.value)
+			}
+		}
+	}
+	m = send(m, key(tea.KeyEnter, ""))
+	if m.Snapshot().Config.Conversion.NetFX3 {
+		t.Fatal("Conversion allowed enabling offline NetFx3 on build 28000")
+	}
+	for _, width := range []int{120, 68} {
+		m = send(m, tea.WindowSizeMsg{Width: width, Height: 24})
+		view := ansi.Strip(m.View().Content)
+		if !strings.Contains(view, "false") || !strings.Contains(view, "standalone installer") {
+			t.Fatalf("disabled NetFx3 reason missing at width %d:\n%s", width, view)
+		}
+		t.Logf("NetFx3 field at width %d:\n%s", width, view)
+	}
+	m = send(m, SelectBuildMsg{UpdateID: "older-build"})
+	m = send(m, ConversionFieldChangedMsg{Key: "conversion.netfx3", Value: "true"})
+	if !m.Snapshot().Config.Conversion.NetFX3 {
+		t.Fatal("older Windows 11 build lost the offline NetFx3 setting")
+	}
+	m = send(m, SelectBuildMsg{UpdateID: firstID})
+	if m.Snapshot().Config.Conversion.NetFX3 {
+		t.Fatal("switching to build 28000 retained the older source's NetFx3 setting")
 	}
 }
 

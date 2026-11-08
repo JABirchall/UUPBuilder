@@ -223,6 +223,7 @@ func TestCustomizationFeaturesAndDriversReachSeparateOSAndWinPETargets(t *testin
 	sum := sha256.Sum256(body)
 	req, b := customizationRequestFixture(t, func(inv *metadata.Inventory, s *model.ResolvedSettings) {
 		s.Conversion.NetFX3 = true
+		inv.Images[0].Build = "10.0.26200.1"
 		s.Conversion.Drivers = model.DriverSettings{Enabled: true, Source: driverDir, Targets: []model.DriverTarget{model.DriverShared}}
 		inv.Packages = []metadata.Package{{Identity: metadata.PackageIdentity{Name: "Microsoft-Windows-NetFx3-OnDemand-Package", Architecture: inv.Source.Architecture}, Evidence: inv.Apps.Packages[0].Evidence}}
 	})
