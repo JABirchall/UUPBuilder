@@ -88,7 +88,7 @@ func TestAppsAuthenticMetadataCommandToggleSaveLoad(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("missing real app catalogue command")
 	}
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	if len(m.appChoices()) != 50 {
 		t.Fatalf("actual edition choices=%d state=%+v", len(m.appChoices()), m.apps.status)
 	}
@@ -125,7 +125,7 @@ func TestAppsAuthenticMetadataCommandToggleSaveLoad(t *testing.T) {
 		t.Fatal("reloaded exact source was not validated")
 	}
 	m, cmd = step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m = send(m, tea.KeyPressMsg{Code: 'a', Mod: tea.ModCtrl})
 	if len(m.cfg.Apps.Include) != 0 || m.cfg.Apps.Preset != "" {
 		t.Fatal("authentic select-all failed to deselect offered requests")

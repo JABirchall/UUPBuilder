@@ -21,7 +21,7 @@ func TestISOWorkflowRetainsRequestedSettings(t *testing.T) {
 	defer m.Close()
 	m = send(m, ToggleEditionMsg{Edition: "core"})
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m = send(m, appToggleMsg{featureID: "Example.App_pub"})
 	m = send(m, appStubMsg{policy: model.AppFull})
 	m = send(m, NavigateMsg{Area: Conversion})

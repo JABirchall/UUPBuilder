@@ -54,8 +54,8 @@ func (m *Model) applyAppPreset(id string) {
 	m.appEdited()
 }
 
-// Select-all acts on visible offered families. Hidden and unresolved requests
-// survive; a second activation deselects those same offered families.
+// Select-all acts on visible offered families, preserving selections hidden by
+// the search. A second activation deselects the visible families.
 func (m *Model) toggleAllVisibleApps() {
 	if !m.appOffersExamined() {
 		return
@@ -63,10 +63,8 @@ func (m *Model) toggleAllVisibleApps() {
 	var ids []string
 	allSelected := m.cfg.Apps.Mode == model.AppsCustom
 	for _, choice := range m.appChoices() {
-		if choice.entry != nil {
-			ids = append(ids, choice.featureID)
-			allSelected = allSelected && slices.Contains(m.cfg.Apps.Include, choice.featureID)
-		}
+		ids = append(ids, choice.FeatureID)
+		allSelected = allSelected && slices.Contains(m.cfg.Apps.Include, choice.FeatureID)
 	}
 	if len(ids) == 0 {
 		return

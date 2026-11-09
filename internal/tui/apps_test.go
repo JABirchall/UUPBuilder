@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -35,6 +36,139 @@ func appsChosen(t *testing.T) Model {
 	return m
 }
 
+func TestAppsHideSavedSelectionsUntilCatalogLoads(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m.cfg.Apps.Mode = model.AppsCustom
+	m.cfg.Apps.Include = []string{"Example.App_pub"}
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	if view := ansi.Strip(m.View().Content); strings.Contains(view, "Example.App_pub") {
+		t.Fatalf("loading picker exposed a saved selection:\n%s", view)
+	}
+	m = finishAppsLoad(t, m, cmd)
+	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "[x] Example.App_pub") {
+		t.Fatalf("offered app did not recover its checkmark:\n%s", view)
+	}
+}
+
+func TestAppsPruneSavedSelectionsAgainstCurrentOffers(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m.configActions.path = filepath.Join(t.TempDir(), "apps.toml")
+	m.cfg.Apps.Mode = model.AppsCustom
+	m.cfg.Apps.Include = []string{"Missing.App_pub", "Example.App_pub", "Example.Other_pub", "Example.Framework_pub", "Core.App_pub"}
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		snapshot := appSnapshot(s)
+		snapshot.Entries = append(snapshot.Entries, source.AppCatalogEntry{FeatureID: "Core.App_pub", Type: "MSIX", Editions: []source.AppEditionReference{{Edition: "core"}}})
+		return snapshot, nil
+	}}
+	// The search hides an offered app, but must not remove its selection.
+	m.apps.search.SetValue("Other")
+	before := m.revision
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	m = finishAppsLoad(t, m, cmd)
+	want := []string{"Example.App_pub", "Example.Other_pub"}
+	if !reflect.DeepEqual(m.cfg.Apps.Include, want) || m.revision != before+1 {
+		t.Fatalf("saved selections were not reconciled in the draft: %v (revision %d)", m.cfg.Apps.Include, m.revision)
+	}
+	m.apps.search.SetValue("")
+	if choices := m.appChoices(); len(choices) != 2 {
+		t.Fatalf("unavailable families remained selectable: %+v", choices)
+	}
+	m = finishConfigAction(t, m, SaveConfigMsg{})
+	saved, err := config.Load(m.configActions.path)
+	if err != nil || !reflect.DeepEqual(saved.Apps.Include, want) {
+		t.Fatalf("saved selections = %v, err = %v", saved.Apps.Include, err)
+	}
+}
+
+func TestAppsFailedLoadKeepsRequestsUntilEmptyCatalogIsConfirmed(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m.cfg.Apps.Mode = model.AppsCustom
+	m.cfg.Apps.Include = []string{"Example.App_pub"}
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		return appSnapshot(s), errors.New("catalog offline")
+	}}
+	before := m.revision
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	m = finishAppsLoad(t, m, cmd)
+	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Example.App_pub"}) || m.revision != before {
+		t.Fatal("failed fetch changed the saved requests")
+	}
+	if view := ansi.Strip(m.View().Content); strings.Contains(view, "Example.App_pub") || !strings.Contains(view, "catalog offline") {
+		t.Fatalf("failed fetch did not show just the error state:\n%s", view)
+	}
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		return source.AppCatalogSnapshot{Selection: s, State: source.AppCatalogAvailable}, nil
+	}}
+	m, cmd = step(m, RefreshMsg{})
+	m = finishAppsLoad(t, m, cmd)
+	if len(m.cfg.Apps.Include) != 0 || m.revision != before+1 {
+		t.Fatal("confirmed empty catalog did not remove unavailable requests")
+	}
+}
+
+func TestAppsCatalogCompletionDuringEditionRefreshReconcilesSelections(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m.cfg.Apps.Mode = model.AppsCustom
+	m.cfg.Apps.Include = []string{"Missing.App_pub"}
+	m, appsCmd := step(m, NavigateMsg{Area: Apps})
+	m = send(m, NavigateMsg{Area: Image})
+	m.image.focus = 2
+	m, editionsCmd := step(m, RefreshMsg{})
+	if m.imageReady() {
+		t.Fatal("edition refresh did not start")
+	}
+	m = finishAppsLoad(t, m, appsCmd)
+	m = send(m, editionsCmd())
+	m = send(m, NavigateMsg{Area: Apps})
+	if len(m.appChoices()) != 2 || len(m.cfg.Apps.Include) != 0 {
+		t.Fatalf("catalog and saved requests diverged during edition refresh: %v", m.cfg.Apps.Include)
+	}
+}
+
+func TestAppsLoadingBarAnimatesAndStops(t *testing.T) {
+	m := appsChosen(t)
+	defer m.Close()
+	m = send(m, tea.WindowSizeMsg{Width: 40, Height: 14})
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	before := ansi.Strip(m.View().Content)
+	batch := appLoadCommands(t, cmd)
+	tick := batch[1]()
+	m, next := step(m, tick)
+	if after := ansi.Strip(m.View().Content); after == before || next == nil {
+		t.Fatalf("loading animation did not advance in the short viewport:\n%s", after)
+	}
+	m, retry := step(m, RefreshMsg{})
+	if _, next := step(m, tick); next != nil {
+		t.Fatal("a superseded fetch tick continued animating")
+	}
+	batch = appLoadCommands(t, retry)
+	m = send(m, batch[0]())
+	if _, next := step(m, batch[1]()); next != nil || strings.Contains(ansi.Strip(m.View().Content), "Loading app metadata") {
+		t.Fatal("animation survived catalog completion")
+	}
+}
+
+func finishAppsLoad(t *testing.T, m Model, cmd tea.Cmd) Model {
+	t.Helper()
+	return send(m, appLoadCommands(t, cmd)[0]())
+}
+
+func appLoadCommands(t *testing.T, cmd tea.Cmd) tea.BatchMsg {
+	t.Helper()
+	if cmd == nil {
+		t.Fatal("app load command missing")
+	}
+	batch, ok := cmd().(tea.BatchMsg)
+	if !ok || len(batch) != 2 {
+		t.Fatal("catalog fetch did not schedule a loading animation alongside the request")
+	}
+	return batch
+}
+
 func TestAppsMultiEditionLoadSurvivesPacing(t *testing.T) {
 	m := appsChosen(t)
 	defer m.Close()
@@ -48,7 +182,7 @@ func TestAppsMultiEditionLoadSurvivesPacing(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("app load absent")
 	}
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	if m.apps.status.err != nil || len(m.appChoices()) != 2 {
 		t.Fatalf("app load failed: %v", m.apps.status.err)
 	}
@@ -62,7 +196,7 @@ func TestAppsCommandToggleTOMLSaveLoadRoundTrip(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("entering Apps did not load actual source rows")
 	}
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	if len(m.appChoices()) != 2 || m.revision != before || m.Snapshot().AppsApplicable {
 		t.Fatalf("metadata was treated as app edit/applicability: %+v", m.Snapshot())
 	}
@@ -99,34 +233,27 @@ func TestAppsPendingLoadPreservesEditsAndRejectsObsoleteSelection(t *testing.T) 
 	}
 	m = send(m, appModeMsg{mode: model.AppsNone})
 	revision := m.revision
-	m = send(m, old())
+	m = finishAppsLoad(t, m, old)
 	if m.cfg.Apps.Mode != model.AppsNone || m.revision != revision || m.apps.status.loading {
 		t.Fatal("metadata completion overwrote request edit or stuck loading")
 	}
 	m, old = step(m, RefreshMsg{})
 	m = send(m, SelectLanguageMsg{Language: "de-de"})
-	m = send(m, old())
+	m = finishAppsLoad(t, m, old)
 	if len(m.apps.snapshot.Entries) != 0 || m.apps.status.loading {
 		t.Fatal("late old source result survived language invalidation")
-	}
-	// Requests absent from a new source remain visible and removable.
-	m.cfg.Apps.Mode = model.AppsCustom
-	m.cfg.Apps.Include = []string{"Unavailable.Family_pub"}
-	m = send(m, appToggleMsg{featureID: "Unavailable.Family_pub"})
-	if len(m.cfg.Apps.Include) != 0 {
-		t.Fatal("unresolved request cannot be removed")
 	}
 }
 
 func TestAppsSearchMouseResizeAndPreferenceControls(t *testing.T) {
 	m := appsChosen(t)
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m.apps.focus = 2
 	m = send(m, key('/', "/"))
 	m = send(m, tea.PasteMsg{Content: "Other"})
 	m = send(m, tea.KeyPressMsg{Code: tea.KeyEnter})
-	if len(m.appChoices()) != 1 || m.appChoices()[0].featureID != "Example.Other_pub" {
+	if len(m.appChoices()) != 1 || m.appChoices()[0].FeatureID != "Example.Other_pub" {
 		t.Fatalf("search did not filter: %+v", m.appChoices())
 	}
 	for _, size := range []tea.WindowSizeMsg{{Width: 110, Height: 30}, {Width: 74, Height: 22}, {Width: 49, Height: 18}} {
@@ -163,7 +290,7 @@ func TestAppsSearchMouseResizeAndPreferenceControls(t *testing.T) {
 func TestAppsFocusedSearchSurvivesShortViewport(t *testing.T) {
 	m := appsChosen(t)
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m = send(m, tea.WindowSizeMsg{Width: 40, Height: 14})
 	m = send(m, key('/', "/"))
 	m = send(m, tea.PasteMsg{Content: "Other"})
@@ -194,7 +321,8 @@ func TestAppsCloseCancelsActiveLoadAndNilLoaderIsUseful(t *testing.T) {
 		return source.AppCatalogSnapshot{}, ctx.Err()
 	}}
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	go cmd()
+	load := appLoadCommands(t, cmd)[0]
+	go load()
 	<-started
 	m.Close()
 	select {
@@ -207,7 +335,7 @@ func TestAppsCloseCancelsActiveLoadAndNilLoaderIsUseful(t *testing.T) {
 func TestAppsMouseFocusesClickedFamily(t *testing.T) {
 	m := appsChosen(t)
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	_, hits := m.layout()
 	for _, h := range hits {
 		if msg, ok := h.msg.(appToggleMsg); ok && msg.featureID == "Example.Other_pub" {
@@ -225,7 +353,7 @@ func TestAppsClickTransfersSearchFocusToCheckboxOrPreference(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			m := appsChosen(t)
 			m, cmd := step(m, NavigateMsg{Area: Apps})
-			m = send(m, cmd())
+			m = finishAppsLoad(t, m, cmd)
 			m = send(m, key('/', "/"))
 			m = send(m, tea.PasteMsg{Content: "Example."})
 			_, hits := m.layout()
@@ -287,7 +415,7 @@ func TestAppsClickTransfersSearchFocusToCheckboxOrPreference(t *testing.T) {
 func TestAppsDetailsShowSourceDependencyAndLicenseMismatch(t *testing.T) {
 	m := appsChosen(t)
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m.apps.snapshot.Entries[0].Dependencies = []metadata.AppFeatureDependency{{FeatureID: "Example.Framework_pub", Type: "Required"}}
 	m.apps.snapshot.Entries[0].Licenses = []metadata.AppLicenseObservation{{PFM: "Different.Family_pub", FamilyMatchesIgnoringCase: false}}
 	view := ansi.Strip(m.View().Content)
@@ -309,7 +437,8 @@ func TestAppsSelectionChangeCancelsQueuedLoad(t *testing.T) {
 	}}
 	m, cmd := step(m, NavigateMsg{Area: Apps})
 	done := make(chan tea.Msg, 1)
-	go func() { done <- cmd() }()
+	load := appLoadCommands(t, cmd)[0]
+	go func() { done <- load() }()
 	<-started
 	m = send(m, ToggleEditionMsg{Edition: "professional"})
 	select {
@@ -321,9 +450,8 @@ func TestAppsSelectionChangeCancelsQueuedLoad(t *testing.T) {
 	if len(m.apps.snapshot.Entries) != 0 || !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Unavailable.Family_pub"}) {
 		t.Fatal("late source replaced retained requests")
 	}
-	rows := m.appChoices()
-	if len(rows) != 1 || rows[0].entry != nil {
-		t.Fatal("unresolved source request disappeared")
+	if len(m.appChoices()) != 0 {
+		t.Fatal("obsolete source left selectable app rows")
 	}
 }
 

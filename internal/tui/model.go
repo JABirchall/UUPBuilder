@@ -126,6 +126,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case appsResultMsg:
 		m.acceptApps(msg)
+	case appsLoadTickMsg:
+		if m.apps.status.loading && msg.generation == m.apps.generation {
+			m.apps.loadFrame++
+			return m, appsLoadTick(msg.generation)
+		}
 	case appModeMsg:
 		m.setAppMode(msg.mode)
 	case appStubMsg:

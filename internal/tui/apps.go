@@ -24,6 +24,7 @@ type appsState struct {
 	endpoint      string
 	cancel        context.CancelFunc
 	status        requestStatus
+	loadFrame     int
 	snapshot      source.AppCatalogSnapshot
 	search        textinput.Model
 	focus, cursor int // mode, stub preference, family list, All offered preset
@@ -46,19 +47,16 @@ type appsResultMsg struct {
 	err        error
 	checkedAt  time.Time
 }
+type appsLoadTickMsg struct{ generation uint64 }
 type appModeMsg struct{ mode model.AppMode }
 type appStubMsg struct{ policy model.AppStubPolicy }
 type appToggleMsg struct{ featureID string }
 type appSearchMsg struct{}
 type appControlMsg struct{ field int }
-type appChoice struct {
-	featureID string
-	entry     *source.AppCatalogEntry
-}
 
 func newAppsState() appsState {
 	input := newBuildsState().filter
-	input.Placeholder = "source families / retained requests"
+	input.Placeholder = "source app families"
 	return appsState{search: input, focus: 2}
 }
 func sameAppSelection(a, b model.Selection) bool {
@@ -74,6 +72,7 @@ func (m *Model) invalidateApps() {
 	m.apps.snapshot = source.AppCatalogSnapshot{}
 	m.apps.validated = nil
 	m.apps.status = requestStatus{}
+	m.apps.loadFrame = 0
 	m.apps.cursor = 0
 	m.appsUnchecked = true
 }
@@ -102,18 +101,24 @@ func (m *Model) beginApps(force bool) tea.Cmd {
 	m.apps.status = requestStatus{loading: true}
 	generation, selection, endpoint, loader := m.apps.generation, m.apps.selection, m.apps.endpoint, m.deps.AppCatalog
 	selection.Editions = slices.Clone(selection.Editions)
-	return func() tea.Msg {
+	load := func() tea.Msg {
 		defer cancel()
 		portSelection := selection
 		portSelection.Editions = slices.Clone(selection.Editions)
 		snapshot, err := loader.Load(ctx, portSelection)
 		return appsResultMsg{generation: generation, selection: selection, endpoint: endpoint, snapshot: snapshot.Clone(), err: err, checkedAt: time.Now()}
 	}
+	return tea.Batch(load, appsLoadTick(generation))
 }
+
+func appsLoadTick(generation uint64) tea.Cmd {
+	return tea.Tick(120*time.Millisecond, func(time.Time) tea.Msg { return appsLoadTickMsg{generation} })
+}
+
 func (m *Model) acceptApps(msg appsResultMsg) {
 	// App request edits do not change this source observation's identity. Guard
 	// source generation + exact tuple/endpoint, rather than the whole draft, so
-	// pending metadata can never overwrite edits or leave a spinner stranded.
+	// pending metadata can never apply to a superseded source.
 	if msg.generation != m.apps.generation || msg.endpoint != m.cfg.Catalog.Endpoint || !sameAppSelection(msg.selection, m.cfg.Image) || !sameAppSelection(msg.selection, m.apps.selection) {
 		return
 	}
@@ -127,25 +132,47 @@ func (m *Model) acceptApps(msg appsResultMsg) {
 		return
 	}
 	m.apps.snapshot = msg.snapshot.Clone()
+	if m.apps.snapshot.State == source.AppCatalogAvailable && len(m.cfg.Apps.Include) > 0 {
+		m.reconcileAppSelections()
+	}
 	m.apps.cursor = min(m.apps.cursor, max(0, len(m.appChoices())-1))
 }
-func (m Model) appChoices() []appChoice {
-	var rows []appChoice
+
+func (m *Model) reconcileAppSelections() {
+	offered := make(map[string]bool, len(m.apps.snapshot.Entries))
+	for _, entry := range m.apps.snapshot.Entries {
+		if offeredToSelectedEdition(entry, m.cfg.Image.Editions) {
+			offered[entry.FeatureID] = true
+		}
+	}
+	var retained []string
+	for _, id := range m.cfg.Apps.Include {
+		if offered[id] {
+			retained = append(retained, id)
+		}
+	}
+	if len(retained) < len(m.cfg.Apps.Include) {
+		m.cfg.Apps.Include = retained
+		m.appEdited()
+		m.notice = "Removed saved app selections unavailable for the current source."
+	}
+}
+
+func (m Model) appChoices() []*source.AppCatalogEntry {
+	if !m.appOffersExamined() {
+		return nil
+	}
+	var rows []*source.AppCatalogEntry
 	known := map[string]bool{}
 	query := strings.ToLower(m.apps.search.Value())
 	for i := range m.apps.snapshot.Entries {
 		entry := &m.apps.snapshot.Entries[i]
-		if !m.appOffersExamined() || !offeredToSelectedEdition(*entry, m.cfg.Image.Editions) || known[entry.FeatureID] {
+		if !offeredToSelectedEdition(*entry, m.cfg.Image.Editions) || known[entry.FeatureID] {
 			continue
 		}
 		known[entry.FeatureID] = true
 		if query == "" || strings.Contains(strings.ToLower(entry.FeatureID), query) {
-			rows = append(rows, appChoice{entry.FeatureID, entry})
-		}
-	}
-	for _, id := range m.cfg.Apps.Include {
-		if !known[id] && (query == "" || strings.Contains(strings.ToLower(id), query)) {
-			rows = append(rows, appChoice{featureID: id})
+			rows = append(rows, entry)
 		}
 	}
 	return rows
@@ -177,9 +204,9 @@ func (m *Model) setAppStub(policy model.AppStubPolicy) {
 	m.appEdited()
 }
 func (m *Model) toggleApp(id string) {
-	allowed := slices.Contains(m.cfg.Apps.Include, id)
+	allowed := false
 	for i, choice := range m.appChoices() {
-		if choice.featureID == id {
+		if choice.FeatureID == id {
 			allowed = true
 			m.apps.cursor = i
 			break
@@ -234,33 +261,46 @@ func (m Model) updateAppInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 func (m Model) appsRows(width, height int) []row {
 	rows := []row{{text: heading.Render("Choose included apps")}}
-	status := "Choose a validated language and edition to examine source app metadata."
-	if m.imageReady() {
-		switch {
-		case m.apps.status.loading:
-			status = "Loading app metadata; link requests may wait or retry..."
-		case m.apps.status.err != nil:
-			status = "App catalogue unavailable | r retry: " + boundedText(m.apps.status.err.Error(), 160)
-		case m.appOffersExamined():
-			offered := map[string]bool{}
-			for _, e := range m.apps.snapshot.Entries {
-				if offeredToSelectedEdition(e, m.cfg.Image.Editions) {
-					offered[e.FeatureID] = true
-				}
+	examined := m.appOffersExamined()
+	choices := m.appChoices()
+	var status string
+	switch {
+	case m.apps.status.loading:
+		status = "Loading app metadata..."
+	case !m.imageReady():
+		status = "Choose a validated language and edition to examine source app metadata."
+	case m.apps.status.err != nil:
+		status = "App catalogue unavailable | r retry: " + boundedText(m.apps.status.err.Error(), 160)
+	case examined:
+		offered := map[string]bool{}
+		for _, e := range m.apps.snapshot.Entries {
+			if offeredToSelectedEdition(e, m.cfg.Image.Editions) {
+				offered[e.FeatureID] = true
 			}
-			status = fmt.Sprintf("%d source-offered · %d visible requests · applicability pending", len(offered), len(m.appChoices()))
-		case len(m.apps.snapshot.Gaps) > 0:
-			status = "Deferred | " + m.apps.snapshot.Gaps[0]
-		default:
-			status = "Source app metadata has not been examined; r retry."
 		}
+		status = fmt.Sprintf("%d source-offered · %d visible · applicability pending", len(offered), len(choices))
+	case len(m.apps.snapshot.Gaps) > 0:
+		status = "Deferred | " + m.apps.snapshot.Gaps[0]
+	default:
+		status = "Source app metadata has not been examined; r retry."
 	}
 	if m.validatedApps() {
 		status = "Source manifests, app closure and requested policies validated for this draft."
 	}
+	statusRows := []row{{text: muted.Render(status)}}
+	if m.apps.status.loading {
+		barWidth := min(24, width)
+		markerWidth := min(4, barWidth)
+		offset := m.apps.loadFrame % (barWidth - markerWidth + 1)
+		bar := rule(offset) + accent.Render(strings.Repeat("━", markerWidth)) + rule(barWidth-markerWidth-offset)
+		statusRows = append(statusRows, row{text: bar})
+	}
 	if height < 5 && m.apps.search.Focused() {
 		search := controlRows("Search (/)", inputView(m.apps.search, max(1, width-16)), width, true, true, appSearchMsg{})
-		return append(search, row{text: muted.Render(status)})
+		return append(search, statusRows...)
+	}
+	if !examined {
+		rows = append(rows, statusRows...)
 	}
 	controls := joinControls(controlRows("Mode (d/c/n)", string(m.cfg.Apps.Mode), max(1, (width-2)/2), m.apps.focus == 0, true, appControlMsg{field: 0}), controlRows("Stub preference", string(m.cfg.Apps.StubPolicy), max(1, width-(width-2)/2-2), m.apps.focus == 1, true, appControlMsg{field: 1}))
 	if width < 46 {
@@ -268,7 +308,7 @@ func (m Model) appsRows(width, height int) []row {
 	}
 	rows = append(rows, controls...)
 	preset := "apply to current source"
-	if !m.appOffersExamined() {
+	if !examined {
 		preset = "unavailable; metadata unexamined"
 	} else if m.cfg.Apps.Preset == allOfferedPreset {
 		preset = "saved request; apply again to replace"
@@ -280,7 +320,9 @@ func (m Model) appsRows(width, height int) []row {
 	if height >= 7 || m.apps.search.Focused() {
 		rows = append(rows, controlRows("Search (/)", inputView(m.apps.search, max(1, width-16)), width, m.apps.search.Focused(), true, appSearchMsg{})...)
 	}
-	rows = append(rows, row{text: muted.Render(status)})
+	if examined {
+		rows = append(rows, statusRows...)
+	}
 	if height >= 8 {
 		semantics := "Default: engine/source defaults; boxes show no explicit custom requests."
 		if m.cfg.Apps.Mode == model.AppsCustom {
@@ -291,7 +333,6 @@ func (m Model) appsRows(width, height int) []row {
 		}
 		rows = append(rows, row{text: muted.Render(semantics)})
 	}
-	choices := m.appChoices()
 	count := max(1, height-len(rows))
 	if height >= 10 {
 		count = max(1, count-2)
@@ -300,7 +341,7 @@ func (m Model) appsRows(width, height int) []row {
 	for i := start; i < min(len(choices), start+count); i++ {
 		choice := choices[i]
 		check := "[ ]"
-		if m.cfg.Apps.Mode == model.AppsCustom && slices.Contains(m.cfg.Apps.Include, choice.featureID) {
+		if m.cfg.Apps.Mode == model.AppsCustom && slices.Contains(m.cfg.Apps.Include, choice.FeatureID) {
 			check = "[x]"
 		}
 		prefix := "  "
@@ -308,40 +349,33 @@ func (m Model) appsRows(width, height int) []row {
 		if focused {
 			prefix = "> "
 		}
-		hint := ""
-		if choice.entry == nil {
-			hint = " ! unresolved request"
-		}
-		rows = append(rows, row{text: selectedLine(prefix+check+" "+terminalText(choice.featureID)+hint, width, focused), msg: appToggleMsg{featureID: choice.featureID}})
+		rows = append(rows, row{text: selectedLine(prefix+check+" "+terminalText(choice.FeatureID), width, focused), msg: appToggleMsg{featureID: choice.FeatureID}})
 	}
-	if len(choices) == 0 && !m.apps.status.loading && m.apps.snapshot.State == source.AppCatalogAvailable {
-		rows = append(rows, row{text: muted.Render("No matching source families or retained requests.")})
+	if len(choices) == 0 && examined {
+		rows = append(rows, row{text: muted.Render("No matching source app families.")})
 	}
 	if height >= 10 && len(choices) > m.apps.cursor {
-		choice := choices[m.apps.cursor]
-		detail := "Retained request has no selectable source app reference; toggle to remove."
+		e := choices[m.apps.cursor]
+		memberships := []string{}
+		for _, ref := range e.Editions {
+			memberships = append(memberships, ref.Edition+":"+ref.Type)
+		}
+		detail := strings.Join(memberships, ", ") + fmt.Sprintf(" · %d source dependencies", len(e.Dependencies))
+		if len(e.InitialIntents) > 0 {
+			detail += " · " + strings.Join(e.InitialIntents, ",")
+		}
+		for _, license := range e.Licenses {
+			if !license.FamilyMatchesIgnoringCase {
+				detail = "Unresolved license PFM mismatch: " + license.PFM
+			}
+		}
 		dependencies := "Manifest, package closure, licensing and provisioning checks remain pending."
-		if e := choice.entry; e != nil {
-			memberships := []string{}
-			for _, ref := range e.Editions {
-				memberships = append(memberships, ref.Edition+":"+ref.Type)
+		if len(e.Dependencies) > 0 {
+			names := []string{}
+			for _, dep := range e.Dependencies {
+				names = append(names, dep.FeatureID+" ("+dep.Type+")")
 			}
-			detail = strings.Join(memberships, ", ") + fmt.Sprintf(" · %d source dependencies", len(e.Dependencies))
-			if len(e.InitialIntents) > 0 {
-				detail += " · " + strings.Join(e.InitialIntents, ",")
-			}
-			for _, license := range e.Licenses {
-				if !license.FamilyMatchesIgnoringCase {
-					detail = "Unresolved license PFM mismatch: " + license.PFM
-				}
-			}
-			if len(e.Dependencies) > 0 {
-				names := []string{}
-				for _, dep := range e.Dependencies {
-					names = append(names, dep.FeatureID+" ("+dep.Type+")")
-				}
-				dependencies = "Source dependencies: " + strings.Join(names, ", ")
-			}
+			dependencies = "Source dependencies: " + strings.Join(names, ", ")
 		}
 		rows = append(rows, row{text: muted.Render(terminalText(detail))}, row{text: muted.Render(terminalText(dependencies))})
 	}
@@ -352,12 +386,12 @@ func (m Model) appsRows(width, height int) []row {
 			focused := false
 			switch msg := r.msg.(type) {
 			case appToggleMsg:
-				focused = m.apps.focus == 2 && len(choices) > m.apps.cursor && msg.featureID == choices[m.apps.cursor].featureID
+				focused = m.apps.focus == 2 && len(choices) > m.apps.cursor && msg.featureID == choices[m.apps.cursor].FeatureID
 			case appControlMsg:
 				focused = m.apps.focus == msg.field
 			}
 			if focused {
-				return append([]row{{text: muted.Render(status)}}, rows[i:]...)
+				return append(statusRows, rows[i:]...)
 			}
 		}
 	}

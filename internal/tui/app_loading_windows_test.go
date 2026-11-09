@@ -25,9 +25,9 @@ func TestAppsForceRefreshRechecksNeutralEditions(t *testing.T) {
 	defer m.Close()
 	m.deps.AppCatalog = source.NewAppCatalog(server.URL)
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m, cmd = step(m, RefreshMsg{})
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	if calls != 2 || m.apps.status.err != nil {
 		t.Fatalf("explicit refresh reused stale selector cache: calls=%d err=%v", calls, m.apps.status.err)
 	}

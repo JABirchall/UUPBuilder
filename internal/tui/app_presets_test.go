@@ -1,11 +1,11 @@
 package tui
 
 import (
+	"context"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -26,7 +26,7 @@ func TestAppPresetsUseCurrentSource(t *testing.T) {
 	if m.revision != before || m.cfg.Apps.Preset != "" {
 		t.Fatal("unexamined metadata allowed All offered")
 	}
-	m = send(m, cmd())
+	m = finishAppsLoad(t, m, cmd)
 	m.apps.snapshot.Entries = []source.AppCatalogEntry{
 		{FeatureID: "Z.Main_pub", Type: "MSIXBundle", Editions: []source.AppEditionReference{{Edition: "PROFESSIONAL"}}},
 		{FeatureID: "A.Main_pub", Type: "MSIX", Editions: []source.AppEditionReference{{Edition: "professional"}, {Edition: "core"}}},
@@ -51,10 +51,17 @@ func TestAppPresetsUseCurrentSource(t *testing.T) {
 		t.Fatalf("duplicate or other-edition rows remain selectable: %+v", m.appChoices())
 	}
 	// A refreshed source supplies a different list; it must not reapply intent.
+	stillOffered := m.apps.snapshot.Entries[0]
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		snapshot := appSnapshot(s)
+		snapshot.Entries = append(snapshot.Entries, stillOffered)
+		return snapshot, nil
+	}}
 	m, cmd = step(m, RefreshMsg{})
-	m = send(m, cmd())
-	if !reflect.DeepEqual(m.cfg.Apps, want) || m.revision != before+1 {
-		t.Fatal("source refresh automatically reapplied preset or edited the draft")
+	m = finishAppsLoad(t, m, cmd)
+	want.Include = []string{"Z.Main_pub"}
+	if !reflect.DeepEqual(m.cfg.Apps, want) || m.revision != before+2 {
+		t.Fatal("source refresh did not preserve just the previously offered selection")
 	}
 	for _, mutate := range []struct {
 		name  string
@@ -68,7 +75,7 @@ func TestAppPresetsUseCurrentSource(t *testing.T) {
 			copy := m
 			mutate.apply(&copy)
 			copy = send(copy, key('a', "a"))
-			if !reflect.DeepEqual(copy.cfg.Apps, want) || copy.revision != before+1 {
+			if !reflect.DeepEqual(copy.cfg.Apps, want) || copy.revision != before+2 {
 				t.Fatal("All offered applied without a current examined source")
 			}
 		})
@@ -79,22 +86,25 @@ func TestAppRequestsSurviveDeferredInventory(t *testing.T) {
 	m := appsChosen(t)
 	defer m.Close()
 	m.cfg.Apps = model.AppSettings{Mode: model.AppsCustom, Preset: "saved-unknown-preset", StubPolicy: model.AppFull, Edge: model.EdgeDefault, Include: []string{"Unknown.Family_pub"}}
-	m, cmd := step(m, NavigateMsg{Area: Apps})
-	msg := cmd().(appsResultMsg)
-	msg.snapshot.State = source.AppCatalogDeferred
-	msg.snapshot.Entries = nil
-	msg.snapshot.Gaps = []string{"Legacy source lacks selected-edition app metadata; unexamined."}
-	m = send(m, msg)
 	want := m.cfg.Apps
 	before := m.revision
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		return source.AppCatalogSnapshot{Selection: s, State: source.AppCatalogDeferred, Gaps: []string{"Legacy source lacks selected-edition app metadata."}}, nil
+	}}
+	m, cmd := step(m, NavigateMsg{Area: Apps})
+	m = finishAppsLoad(t, m, cmd)
 	view := ansi.Strip(m.View().Content)
-	for _, text := range []string{"saved-unknown-preset", "unresolved", "Unknown.Family_pub", "Legacy source"} {
+	for _, text := range []string{"saved-unknown-preset", "unresolved", "Legacy source"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("deferred inventory hides %q: %s", text, view)
 		}
 	}
+	if strings.Contains(view, "Unknown.Family_pub") {
+		t.Fatalf("deferred inventory exposed an unchecked family: %s", view)
+	}
 	m = send(m, key('a', "a"))
 	m = send(m, tea.KeyPressMsg{Code: 'a', Mod: tea.ModCtrl})
+	m = send(m, appToggleMsg{featureID: "Unknown.Family_pub"})
 	if !reflect.DeepEqual(m.cfg.Apps, want) || m.revision != before {
 		t.Fatal("unavailable bulk controls replaced retained requests")
 	}
@@ -112,16 +122,20 @@ func TestAppRequestsSurviveDeferredInventory(t *testing.T) {
 	if !reflect.DeepEqual(m.cfg.Apps, want) || m.revision != before {
 		t.Fatal("stub preference changed saved requests")
 	}
-	// Metadata completion is source observation, never request application.
-	msg.snapshot = appSnapshot(m.cfg.Image)
-	msg.checkedAt = time.Now()
-	m = send(m, msg)
+	// Catalog completion filters selections without applying the saved preset.
+	m.deps.AppCatalog = testAppCatalog{func(_ context.Context, s model.Selection) (source.AppCatalogSnapshot, error) {
+		return appSnapshot(s), nil
+	}}
+	m, cmd = step(m, RefreshMsg{})
+	m = finishAppsLoad(t, m, cmd)
+	before++
+	want.Include = nil
 	if !reflect.DeepEqual(m.cfg.Apps, want) || m.revision != before {
 		t.Fatal("examined metadata reinterpreted an unknown saved preset")
 	}
-	m = send(m, appToggleMsg{featureID: "Unknown.Family_pub"})
-	if len(m.cfg.Apps.Include) != 0 || m.cfg.Apps.Preset != "" || m.revision != before+1 {
-		t.Fatal("individual edit did not remove unresolved request and stale preset")
+	m = send(m, appToggleMsg{featureID: "Example.App_pub"})
+	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Example.App_pub"}) || m.cfg.Apps.Preset != "" || m.revision != before+1 {
+		t.Fatal("individual edit did not add an offered family and clear the preset")
 	}
 }
 
@@ -129,8 +143,8 @@ func TestAppSelectAllAndPresetInteractions(t *testing.T) {
 	m := appsChosen(t)
 	defer m.Close()
 	m, cmd := step(m, NavigateMsg{Area: Apps})
-	m = send(m, cmd())
-	m.cfg.Apps.Include = []string{"Unavailable.Family_pub"}
+	m = finishAppsLoad(t, m, cmd)
+	m.cfg.Apps.Include = []string{"Example.App_pub"}
 	before := m.revision
 	m = send(m, key('/', "/"))
 	m = send(m, tea.PasteMsg{Content: "Other"})
@@ -140,11 +154,11 @@ func TestAppSelectAllAndPresetInteractions(t *testing.T) {
 	}
 	selectAll := tea.KeyPressMsg{Code: 'a', Mod: tea.ModCtrl}
 	m = send(m, selectAll)
-	if m.cfg.Apps.Mode != model.AppsCustom || !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Unavailable.Family_pub", "Example.Other_pub"}) || m.revision != before+1 {
+	if m.cfg.Apps.Mode != model.AppsCustom || !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Example.App_pub", "Example.Other_pub"}) || m.revision != before+1 {
 		t.Fatalf("select all did not preserve hidden requests and select visible rows: %+v", m.cfg.Apps)
 	}
 	m = send(m, selectAll)
-	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Unavailable.Family_pub"}) || m.revision != before+2 {
+	if !reflect.DeepEqual(m.cfg.Apps.Include, []string{"Example.App_pub"}) || m.revision != before+2 {
 		t.Fatal("second select all did not deselect visible offered rows only")
 	}
 	m = send(m, key('a', "a"))
@@ -169,7 +183,7 @@ func TestAppModesRoundTripTOML(t *testing.T) {
 				defer m.Close()
 				m.configActions.path = filepath.Join(t.TempDir(), "requests.toml")
 				m, cmd := step(m, NavigateMsg{Area: Apps})
-				m = send(m, cmd())
+				m = finishAppsLoad(t, m, cmd)
 				m = send(m, key('a', "a"))
 				m = send(m, appModeMsg{mode: mode})
 				m = send(m, appStubMsg{policy: stub})
@@ -197,7 +211,7 @@ func TestAppPresetMouseAndKeyboardControls(t *testing.T) {
 	for _, size := range []tea.WindowSizeMsg{{Width: 120, Height: 32}, {Width: 68, Height: 24}, {Width: 40, Height: 14}} {
 		m := appsChosen(t)
 		m, cmd := step(m, NavigateMsg{Area: Apps})
-		m = send(m, cmd())
+		m = finishAppsLoad(t, m, cmd)
 		m = send(m, size)
 		// Mode, stub and list retain their focus indices; the preset follows
 		// the list and stays visible when focused.

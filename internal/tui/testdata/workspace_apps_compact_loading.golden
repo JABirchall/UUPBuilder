@@ -1,0 +1,16 @@
+│ UUP / IMAGE BUILDER │View TOML (t) │ │
+│ 01 Builds 02 Image 03 Apps 04 Conversion 05 Review │
+│ 06 Progress │
+│ Choose included apps │
+│ Loading app metadata... │
+│ ━━━━──────────────────── │
+│ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
+│ │All offered (a) | unavailable; metadata unexamined │ │
+│ │Search (/) | source app families │ │
+│ Custom: checked families are explicit requests; source hint... │
+│ Source: Windows example · 26100.1 │
+│ Target: amd64 | Language: en-us | Editions: professional │
+│ Apps: unchecked; requested policies retained. │
+│ ! Edition selection changed; app applicability must be chec... │
+│ ↑↓ move | space request | / search | a All offered | ctrl+a │
+│ visible | tab control | d/c/n mode | enter next | r retry |... │

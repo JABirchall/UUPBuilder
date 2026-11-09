@@ -4,14 +4,14 @@
 │ Choose included apps │
 │ │Mode (d/c/n) | custom │ │Stub preference | auto │ │
 │ │All offered (a) | apply to current source │ │
-│ │Search (/) | source families / retained requests │ │
-│ 2 source-offered · 2 visible requests · applicability pending │
+│ │Search (/) | source app families │ │
+│ 2 source-offered · 2 visible · applicability pending │
 │ Custom: checked families are explicit requests; source hint... │
 │ > [x] Example.App_pub │
 │ [ ] Example.Other_pub │
 │ Source: Windows example · 26100.1 │
 │ Target: amd64 | Language: en-us | Editions: professional │
 │ Apps: unchecked; requested policies retained. │
-│ ! App requests changed; manifest, licensing and provisionin... │
+│ ! Edition selection changed; app applicability must be chec... │
 │ ↑↓ move | space request | / search | a All offered | ctrl+a │
 │ visible | tab control | d/c/n mode | enter next | r retry |... │

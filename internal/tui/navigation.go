@@ -203,7 +203,7 @@ func (m Model) updateKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			}
 			choices := m.appChoices()
 			if len(choices) > m.apps.cursor {
-				m.toggleApp(choices[m.apps.cursor].featureID)
+				m.toggleApp(choices[m.apps.cursor].FeatureID)
 			}
 			return m, nil
 		}
