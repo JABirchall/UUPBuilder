@@ -137,13 +137,15 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 	if mainBytes == 0 || reserveBytes == 0 || mainBytes%2048 != 0 || reserveBytes%2048 != 0 || mainBytes > 128*2048 || reserveBytes > 128*2048 {
 		return nil, errors.New("unsupported volume descriptor sequence length")
 	}
+	reserveOff := int64(reserve) * isoBlock
 	backup := 0
 	anchors := []int64{256 * isoBlock}
 	for _, n := range []int64{r.size/isoBlock - 257, r.size/isoBlock - 1} {
 		if n == 256 {
 			continue
 		}
-		p, err := r.read(n*isoBlock, isoBlock)
+		off := n * isoBlock
+		p, err := r.read(off, isoBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -153,10 +155,14 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 		if err = udfAnchor(p, uint32(n), anchor); err != nil {
 			return nil, err
 		}
-		if err = r.claim(n*isoBlock, isoBlock, "UDF backup anchor", false); err != nil {
-			return nil, err
+		// IMAPI can place a standard backup anchor inside the reserve extent.
+		// udfSequence claims that extent and only permits anchors after its terminator.
+		if off < reserveOff || off >= reserveOff+int64(reserveBytes) {
+			if err = r.claim(off, isoBlock, "UDF backup anchor", false); err != nil {
+				return nil, err
+			}
 		}
-		anchors = append(anchors, n*isoBlock)
+		anchors = append(anchors, off)
 		backup++
 	}
 	if backup == 0 || (r.isoSize < r.size && backup != 2) {
@@ -334,7 +340,7 @@ func (r *isoReader) udf(volume string) (map[string]isoFile, error) {
 	if uint32(len(files)) != fileCount || uint32(len(seen)-len(files)) != directoryCount {
 		return nil, errors.New("UDF integrity file/directory counts differ from reconstructed graph")
 	}
-	if err = r.udfTail(int64(reserve)*isoBlock, int64(reserveBytes), anchors, anchor); err != nil {
+	if err = r.udfTail(reserveOff, int64(reserveBytes), anchors, anchor); err != nil {
 		return nil, err
 	}
 	return files, nil

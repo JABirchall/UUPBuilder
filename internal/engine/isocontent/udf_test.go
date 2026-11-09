@@ -79,10 +79,12 @@ func TestUDFBridgeValidatesEveryRedundantTailAnchor(t *testing.T) {
 	b, e := syntheticBridgeWithUDFTail()
 	for _, n := range []int{256, 511, 767} {
 		p := b[n*2048 : (n+1)*2048]
-		binary.LittleEndian.PutUint32(p[24:], 8*2048)
+		binary.LittleEndian.PutUint32(p[24:], 16*2048)
 		syntheticUDFTag(p, 2, uint32(n), 496)
 	}
-	for n := 506; n < 511; n++ {
+	// IMAPI fills the reserve padding and the start of the tail with anchors.
+	// The standard backup anchor at N-256 (511) falls in the reserve padding.
+	for n := 506; n <= 516; n++ {
 		p := b[n*2048 : (n+1)*2048]
 		copy(p, b[256*2048:257*2048])
 		syntheticUDFTag(p, 2, uint32(n), 496)
@@ -90,7 +92,7 @@ func TestUDFBridgeValidatesEveryRedundantTailAnchor(t *testing.T) {
 	if _, err := InspectISO(bytes.NewReader(b), int64(len(b)), e); err != nil {
 		t.Fatal(err)
 	}
-	for _, offset := range []int{506*2048 + 8, 508*2048 + 8} {
+	for _, offset := range []int{506*2048 + 8, 511*2048 + 8, 516*2048 + 8} {
 		p := append([]byte(nil), b...)
 		p[offset] ^= 1
 		if _, err := InspectISO(bytes.NewReader(p), int64(len(p)), e); err == nil {
